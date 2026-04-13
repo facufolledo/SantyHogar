@@ -1,0 +1,149 @@
+# Marmolería Santa Rita - Sitio Web Oficial
+
+Sitio web oficial de Marmolería Santa Rita, especialistas en granitos y mármoles premium en La Rioja, Argentina.
+
+## 🏠 Sobre Nosotros
+
+Marmolería Santa Rita nació hace más de 15 años en Córdoba, impulsada por la pasión familiar de ofrecer productos de calidad y buen servicio. Con esfuerzo y compromiso, hoy seguimos creciendo desde La Rioja, conservando el mismo espíritu de trabajo y atención personalizada que nos caracteriza.
+
+## 🚀 Características
+
+- **Diseño Moderno**: Interfaz elegante y responsiva
+- **Animaciones Suaves**: Transiciones fluidas con Framer Motion
+- **SEO Optimizado**: Meta tags, Schema.org y sitemap
+- **Rendimiento**: Carga rápida y optimizada
+- **Accesibilidad**: Diseño inclusivo y accesible
+
+## 🛠️ Tecnologías
+
+- **React 18** - Biblioteca de interfaz de usuario
+- **TypeScript** - Tipado estático
+- **Vite** - Herramienta de construcción
+- **Tailwind CSS** - Framework de CSS
+- **Framer Motion** - Animaciones
+- **React Router** - Navegación
+
+## 📦 Instalación
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/tu-usuario/marmoleria-santa-rita.git
+
+# Instalar dependencias
+npm install
+
+# Ejecutar en desarrollo
+npm run dev
+
+# Construir para producción
+npm run build
+
+# Previsualizar build
+npm run preview
+```
+
+## 🌐 Despliegue
+
+### Para marmoleriasantarita.com
+
+1. **Construir el proyecto**:
+   ```bash
+   npm run build
+   ```
+
+2. **Subir archivos**:
+   - Subir todo el contenido de la carpeta `dist/` al directorio raíz de tu hosting
+   - Asegurarse de que el archivo `.htaccess` esté en la raíz
+
+3. **Configurar dominio**:
+   - Apuntar el dominio `marmoleriasantarita.com` al hosting
+   - Configurar SSL/HTTPS
+
+4. **Verificar SEO**:
+   ```bash
+   npm run seo-check
+   npm run lighthouse
+   ```
+
+## 📊 SEO y Rendimiento
+
+### Meta Tags Optimizados
+- Título y descripción específicos para cada página
+- Open Graph y Twitter Cards
+- Schema.org structured data
+- Canonical URLs
+
+### Archivos SEO
+- `sitemap.xml` - Mapa del sitio
+- `robots.txt` - Instrucciones para crawlers
+- `.htaccess` - Configuración del servidor
+
+### Rendimiento
+- Compresión GZIP
+- Cache de navegador
+- Lazy loading de imágenes
+- Bundle splitting
+
+## 📱 Páginas
+
+- **Inicio** (`/`) - Página principal con hero y valores
+- **Nosotros** (`/nosotros`) - Historia y filosofía
+- **Productos** (`/productos`) - Catálogo de granitos
+- **Trabajos** (`/trabajos`) - Galería de ejemplos
+- **Diseños** (`/disenos`) - Diseños de interiores
+- **Contacto** (`/contacto`) - Información de contacto
+
+## 🎨 Estructura del Proyecto
+
+```
+src/
+├── components/     # Componentes reutilizables
+├── pages/         # Páginas de la aplicación
+├── data/          # Datos estáticos
+└── main.tsx       # Punto de entrada
+```
+
+## 📈 Monitoreo
+
+### Google Analytics
+Agregar el código de Google Analytics en `index.html`:
+
+```html
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'GA_MEASUREMENT_ID');
+</script>
+```
+
+### Google Search Console
+1. Verificar propiedad en Google Search Console
+2. Enviar sitemap: `https://marmoleriasantarita.com/sitemap.xml`
+3. Monitorear rendimiento de búsqueda
+
+## 🔧 Scripts Disponibles
+
+- `npm run dev` - Servidor de desarrollo
+- `npm run build` - Construir para producción
+- `npm run preview` - Previsualizar build
+- `npm run deploy` - Construir y preparar para despliegue
+- `npm run analyze` - Analizar bundle
+- `npm run lighthouse` - Auditoría de rendimiento
+- `npm run seo-check` - Verificación de SEO
+
+## 📞 Contacto
+
+- **Teléfono**: +54 9 3549 43-4885
+- **Email**: Maximilianoopriarioo@gmail.com
+- **Ubicación**: La Rioja, Argentina
+
+## 📄 Licencia
+
+MIT License - ver archivo LICENSE para detalles.
+
+---
+
+**Marmolería Santa Rita** - Especialistas en granitos y mármoles premium en La Rioja, Argentina.
