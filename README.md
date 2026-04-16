@@ -2,6 +2,8 @@
 
 Sitio web oficial de Marmolería Santa Rita, especialistas en granitos y mármoles premium en La Rioja, Argentina.
 
+Monorepo: **`frontend/`** (Vite + React) y **`backend/`** (FastAPI).
+
 ## 🏠 Sobre Nosotros
 
 Marmolería Santa Rita nació hace más de 15 años en Córdoba, impulsada por la pasión familiar de ofrecer productos de calidad y buen servicio. Con esfuerzo y compromiso, hoy seguimos creciendo desde La Rioja, conservando el mismo espíritu de trabajo y atención personalizada que nos caracteriza.
@@ -23,22 +25,18 @@ Marmolería Santa Rita nació hace más de 15 años en Córdoba, impulsada por l
 - **Framer Motion** - Animaciones
 - **React Router** - Navegación
 
-## 📦 Instalación
+## 📦 Instalación (frontend)
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tu-usuario/marmoleria-santa-rita.git
+git clone https://github.com/cassiel2002/SantyHogar.git
+cd SantyHogar
 
-# Instalar dependencias
+cd frontend
 npm install
 
-# Ejecutar en desarrollo
 npm run dev
-
-# Construir para producción
 npm run build
-
-# Previsualizar build
 npm run preview
 ```
 
@@ -48,12 +46,13 @@ npm run preview
 
 1. **Construir el proyecto**:
    ```bash
+   cd frontend
    npm run build
    ```
 
 2. **Subir archivos**:
-   - Subir todo el contenido de la carpeta `dist/` al directorio raíz de tu hosting
-   - Asegurarse de que el archivo `.htaccess` esté en la raíz
+   - Subir todo el contenido de `frontend/dist/` al directorio raíz de tu hosting
+   - Asegurarse de que el `.htaccess` de despliegue esté en la raíz del sitio (ver `frontend/.htaccess` o `frontend/public/.htaccess` según tu hosting)
 
 3. **Configurar dominio**:
    - Apuntar el dominio `marmoleriasantarita.com` al hosting
@@ -61,6 +60,7 @@ npm run preview
 
 4. **Verificar SEO**:
    ```bash
+   cd frontend
    npm run seo-check
    npm run lighthouse
    ```
@@ -74,9 +74,9 @@ npm run preview
 - Canonical URLs
 
 ### Archivos SEO
-- `sitemap.xml` - Mapa del sitio
-- `robots.txt` - Instrucciones para crawlers
-- `.htaccess` - Configuración del servidor
+- `frontend/sitemap.xml` - Mapa del sitio
+- `frontend/robots.txt` - Instrucciones para crawlers
+- `frontend/.htaccess` - Configuración del servidor (si aplica)
 
 ### Rendimiento
 - Compresión GZIP
@@ -93,20 +93,29 @@ npm run preview
 - **Diseños** (`/disenos`) - Diseños de interiores
 - **Contacto** (`/contacto`) - Información de contacto
 
-## 🎨 Estructura del Proyecto
+## 🎨 Estructura del repositorio
 
 ```
-src/
-├── components/     # Componentes reutilizables
-├── pages/         # Páginas de la aplicación
-├── data/          # Datos estáticos
-└── main.tsx       # Punto de entrada
+frontend/          # Vite + React
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── data/
+│   └── main.tsx
+├── public/
+├── index.html
+└── package.json
+
+backend/           # FastAPI
+├── app/
+├── database/
+└── requirements.txt
 ```
 
 ## 📈 Monitoreo
 
 ### Google Analytics
-Agregar el código de Google Analytics en `index.html`:
+Agregar el código de Google Analytics en `frontend/index.html`:
 
 ```html
 <!-- Google Analytics -->
@@ -124,7 +133,7 @@ Agregar el código de Google Analytics en `index.html`:
 2. Enviar sitemap: `https://marmoleriasantarita.com/sitemap.xml`
 3. Monitorear rendimiento de búsqueda
 
-## 🔧 Scripts Disponibles
+## 🔧 Scripts Disponibles (en `frontend/`)
 
 - `npm run dev` - Servidor de desarrollo
 - `npm run build` - Construir para producción
