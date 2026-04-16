@@ -1,0 +1,26 @@
+# FastAPI and server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Database
+supabase==2.3.4
+
+# Payment integration
+mercadopago==2.2.1
+
+# Data validation (use 2.10+ for prebuilt wheels on Python 3.13+)
+pydantic>=2.10.4,<3
+pydantic-settings>=2.6.0
+email-validator>=2.2.0
+
+# HTTP client (must stay <0.26 for supabase 2.3.x)
+httpx>=0.24,<0.26
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+hypothesis==6.98.3
+
+# Development
+python-dotenv==1.0.0

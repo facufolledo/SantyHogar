@@ -144,6 +144,25 @@ Agregar el código de Google Analytics en `index.html`:
 
 MIT License - ver archivo LICENSE para detalles.
 
+## Backend (API FastAPI)
+
+Código en `backend/`. Variables de entorno: `backend/.env` (no se versiona; partí de `backend/.env.example`).
+
+Desde la raíz del repositorio:
+
+```bash
+python -m venv .venv
+.venv\Scripts\pip install -r backend\requirements.txt
+```
+
+Activá el venv y usá el directorio `backend` como cwd para imports de `app`:
+
+```bash
+cd backend
+..\.venv\Scripts\activate
+python -c "from app.config import get_config"
+```
+
 ---
 
 **Marmolería Santa Rita** - Especialistas en granitos y mármoles premium en La Rioja, Argentina.
