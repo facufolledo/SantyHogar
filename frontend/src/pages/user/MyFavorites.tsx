@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart } from 'lucide-react';
-import { products } from '../../data/products';
+import { useProducts } from '../../context/ProductsContext';
 import { mockUser } from '../../data/user';
 import ProductCard from '../../components/ProductCard';
 
 export default function MyFavorites() {
+  const { products } = useProducts();
   const [favIds, setFavIds] = useState<string[]>(mockUser.favorites);
-  const favProducts = products.filter(p => favIds.includes(p.id));
+  const favProducts = products.filter(
+    p => favIds.includes(p.id) || favIds.includes(p.slug)
+  );
 
   return (
     <div className="space-y-4">
@@ -34,7 +37,7 @@ export default function MyFavorites() {
                 className="relative"
               >
                 <button
-                  onClick={() => setFavIds(prev => prev.filter(id => id !== p.id))}
+                  onClick={() => setFavIds(prev => prev.filter(x => x !== p.id && x !== p.slug))}
                   className="absolute top-2 right-2 z-10 w-7 h-7 bg-white rounded-full shadow flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors"
                   title="Quitar de favoritos"
                 >

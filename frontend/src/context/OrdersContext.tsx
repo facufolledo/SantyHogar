@@ -20,6 +20,8 @@ export interface Order {
 interface OrdersContextType {
   orders: Order[];
   createOrder: (data: Omit<Order, 'id' | 'createdAt' | 'orderNumber' | 'status'>) => Order;
+  /** Orden ya creada en el servidor (p. ej. checkout con Mercado Pago). */
+  pushOrder: (order: Order) => void;
   updateStatus: (id: string, status: OrderStatus) => void;
   getUserOrders: (userId: string) => Order[];
 }
@@ -51,6 +53,10 @@ export const OrdersProvider = ({ children }: { children: React.ReactNode }) => {
     return newOrder;
   };
 
+  const pushOrder = (order: Order) => {
+    setOrders(prev => [order, ...prev]);
+  };
+
   const updateStatus = (id: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
   };
@@ -59,7 +65,7 @@ export const OrdersProvider = ({ children }: { children: React.ReactNode }) => {
     orders.filter(o => o.userId === userId);
 
   return (
-    <OrdersContext.Provider value={{ orders, createOrder, updateStatus, getUserOrders }}>
+    <OrdersContext.Provider value={{ orders, createOrder, pushOrder, updateStatus, getUserOrders }}>
       {children}
     </OrdersContext.Provider>
   );

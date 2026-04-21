@@ -3,8 +3,10 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 
-# Database
-supabase==2.3.4
+# Database — 2.28+ corrige incompatibilidad gotrue/httpx (keyword "proxy")
+supabase==2.28.3
+httpx>=0.26,<0.29
+websockets>=15,<17
 
 # Payment integration
 mercadopago==2.2.1
@@ -13,9 +15,6 @@ mercadopago==2.2.1
 pydantic>=2.10.4,<3
 pydantic-settings>=2.6.0
 email-validator>=2.2.0
-
-# HTTP client (must stay <0.26 for supabase 2.3.x)
-httpx>=0.24,<0.26
 
 # Testing
 pytest==7.4.4

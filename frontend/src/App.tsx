@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import { OrdersProvider } from './context/OrdersContext';
+import { ProductsProvider } from './context/ProductsContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -66,6 +67,7 @@ function App() {
     <BrowserRouter basename="/SantyHogar">
       <AuthProvider>
         <OrdersProvider>
+        <ProductsProvider>
         <CartProvider>
           <ToastProvider>
           <Routes>
@@ -94,6 +96,7 @@ function App() {
           </Routes>
         </ToastProvider>
         </CartProvider>
+        </ProductsProvider>
         </OrdersProvider>
       </AuthProvider>
     </BrowserRouter>

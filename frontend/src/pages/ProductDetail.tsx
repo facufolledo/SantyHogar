@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingCart, ChevronRight, Star, Truck, Shield, RefreshCw, Minus, Plus, Lock } from 'lucide-react';
-import { products } from '../data/products';
+import { useProducts } from '../context/ProductsContext';
+import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -12,6 +13,7 @@ import AuthModal from '../components/AuthModal';
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { products, loading, error } = useProducts();
   const product = products.find(p => p.slug === slug);
   const [activeImg, setActiveImg] = useState(0);
   const [qty, setQty] = useState(1);
@@ -20,6 +22,22 @@ const ProductDetail = () => {
   const { isLogged } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  if (loading && !product) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-20 text-center text-gray-500">
+        <p className="text-lg">Cargando producto…</p>
+      </div>
+    );
+  }
+
+  if (error && !loading && products.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <ProductsErrorBanner />
+      </div>
+    );
+  }
 
   if (!product) return (
     <div className="max-w-7xl mx-auto px-6 py-20 text-center">

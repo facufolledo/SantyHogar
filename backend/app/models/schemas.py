@@ -131,3 +131,4 @@ class PaymentInfo(BaseModel):
     payment_id: str
     status: str
     preference_id: str
+    external_reference: Optional[str] = None

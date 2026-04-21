@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
-import { products } from '../data/products';
+import { useProducts } from '../context/ProductsContext';
+import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import ProductCard from '../components/ProductCard';
 
 const SORT_OPTIONS = [
@@ -20,6 +21,7 @@ const PRICE_RANGES = [
 ];
 
 const Shop = () => {
+  const { products, loading, error } = useProducts();
   const [params, setParams] = useSearchParams();
   const [sort, setSort] = useState('relevance');
   const [priceRange, setPriceRange] = useState<number | null>(null);
@@ -40,7 +42,7 @@ const Shop = () => {
     else if (sort === 'price-desc') list.sort((a, b) => b.price - a.price);
     else if (sort === 'rating') list.sort((a, b) => b.rating - a.rating);
     return list;
-  }, [activeCat, query, priceRange, sort]);
+  }, [activeCat, query, priceRange, sort, products]);
 
   const setCategory = (cat: string) => {
     const p = new URLSearchParams(params);
@@ -90,6 +92,7 @@ const Shop = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <ProductsErrorBanner />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -172,7 +175,15 @@ const Shop = () => {
 
         {/* Grid */}
         <div className="flex-1">
-          {filtered.length === 0 ? (
+          {loading && products.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <p className="text-lg">Cargando productos…</p>
+            </div>
+          ) : error && products.length === 0 ? (
+            <div className="text-center py-16 text-gray-500 text-sm px-4">
+              No se pudo cargar el catálogo. Revisá el mensaje de error arriba.
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
               <p className="text-5xl mb-4">🔍</p>
               <p className="text-lg font-medium">No encontramos productos</p>

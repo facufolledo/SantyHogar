@@ -17,12 +17,14 @@ interface Props {
   product: Product | null;
   onSave: (data: Partial<Product>) => void;
   onClose: () => void;
+  /** Solo lectura: datos vienen de la base vía API (no hay alta/edición en el backend aún). */
+  readOnly?: boolean;
 }
 
 // Dark input class used throughout this modal
 const di = 'w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500';
 
-export default function ProductFormModal({ product, onSave, onClose }: Props) {
+export default function ProductFormModal({ product, onSave, onClose, readOnly = false }: Props) {
   const [tab, setTab] = useState<Tab>('general');
   const [form, setForm] = useState({
     name: product?.name || '',
@@ -49,6 +51,7 @@ export default function ProductFormModal({ product, onSave, onClose }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (readOnly) return;
     onSave({
       name: form.name,
       description: form.description,
@@ -78,7 +81,9 @@ export default function ProductFormModal({ product, onSave, onClose }: Props) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-shrink-0">
-          <h3 className="font-bold text-white">{product ? 'Editar producto' : 'Nuevo producto'}</h3>
+          <h3 className="font-bold text-white">
+            {readOnly ? 'Ver producto' : product ? 'Editar producto' : 'Nuevo producto'}
+          </h3>
           <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-gray-700 rounded-lg transition-colors">
             <X size={18} />
           </button>
@@ -97,8 +102,11 @@ export default function ProductFormModal({ product, onSave, onClose }: Props) {
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-6 py-5">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
+          <fieldset
+            disabled={readOnly}
+            className="flex-1 min-h-0 overflow-y-auto border-0 px-6 py-5 mx-0 flex flex-col [&:disabled]:opacity-90"
+          >
 
             {/* GENERAL */}
             {tab === 'general' && (
@@ -257,17 +265,25 @@ export default function ProductFormModal({ product, onSave, onClose }: Props) {
                 </div>
               </motion.div>
             )}
-          </div>
+          </fieldset>
 
           {/* Footer */}
           <div className="flex gap-3 px-6 py-4 border-t border-gray-700 flex-shrink-0">
-            <button type="button" onClick={onClose}
-              className="flex-1 text-sm py-2.5 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
-              Cancelar
-            </button>
-            <button type="submit" className="btn-primary flex-1 text-sm py-2.5">
-              {product ? 'Guardar cambios' : 'Crear producto'}
-            </button>
+            {readOnly ? (
+              <button type="button" onClick={onClose} className="flex-1 text-sm py-2.5 rounded-lg btn-primary">
+                Cerrar
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={onClose}
+                  className="flex-1 text-sm py-2.5 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary flex-1 text-sm py-2.5">
+                  {product ? 'Guardar cambios' : 'Crear producto'}
+                </button>
+              </>
+            )}
           </div>
         </form>
       </motion.div>

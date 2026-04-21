@@ -5,6 +5,15 @@ import { CheckCircle, CreditCard, Smartphone, MapPin, Clock, Phone } from 'lucid
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
+import { useToast } from '../context/ToastContext';
+import { isApiConfigured, isMpCheckoutEnabled } from '../api/config';
+
+/** Sin MP online: pedido solo en el navegador (o API sin checkout MP). */
+function isLocalCheckoutMode(): boolean {
+  return !isMpCheckoutEnabled() || !isApiConfigured();
+}
+import { ApiError } from '../api/client';
+import { createOrderApi } from '../api/ordersApi';
 import { formatPrice } from '../utils/format';
 import type { CartItem } from '../context/CartContext';
 
@@ -25,7 +34,8 @@ const STEPS = ['Datos', 'Pago', 'Confirmación'];
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
   const { user } = useAuth();
-  const { createOrder } = useOrders();
+  const { createOrder, pushOrder } = useOrders();
+  const { toast } = useToast();
   const navigate = useNavigate();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   void navigate;
@@ -33,6 +43,7 @@ const Checkout = () => {
   const [step, setStep] = useState<Step>('form');
   const [payMethod, setPayMethod] = useState<'mp' | 'fiserv'>('mp');
   const [confirmedOrder, setConfirmedOrder] = useState<{ orderNumber: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -41,13 +52,63 @@ const Checkout = () => {
 
   const grandTotal = total;
   const stepIndex = ['form', 'payment', 'confirm'].indexOf(step);
+  const localCheckout = isLocalCheckoutMode();
+  const mercadoPagoOnline =
+    isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'mp';
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setStep('payment');
   };
 
-  const handlePay = () => {
+  const handlePay = async () => {
+    const useMercadoPagoRedirect =
+      isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'mp';
+
+    if (useMercadoPagoRedirect) {
+      setSubmitting(true);
+      try {
+        const res = await createOrderApi({
+          userId: user?.id ?? null,
+          customerName: form.name,
+          customerEmail: form.email,
+          customerPhone: form.phone,
+          items: items.map(({ product, quantity }) => ({
+            product_id: product.id,
+            quantity,
+          })),
+          paymentMethod: 'mp',
+        });
+        pushOrder({
+          id: String(res.id),
+          userId: user?.id || 'guest',
+          customerName: form.name,
+          customerEmail: form.email,
+          customerPhone: form.phone,
+          items: [...items] as CartItem[],
+          total: grandTotal,
+          paymentMethod: 'mp',
+          status: 'pending',
+          createdAt: res.createdAt,
+          orderNumber: res.orderNumber,
+        });
+        clearCart();
+        window.location.href = res.init_point;
+      } catch (e) {
+        const msg =
+          e instanceof ApiError ? e.message : 'No se pudo iniciar el pago. Intentá de nuevo.';
+        toast(msg, 'error');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    if (isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'fiserv') {
+      toast('Mercado Pago es el único método con cobro online por ahora. Elegí MP o desactivá VITE_ENABLE_MP_CHECKOUT para modo local.', 'error');
+      return;
+    }
+
     const order = createOrder({
       userId: user?.id || 'guest',
       customerName: form.name,
@@ -166,6 +227,14 @@ const Checkout = () => {
               <div className="lg:col-span-2 space-y-4">
                 <div className="card p-6">
                   <h2 className="font-bold text-gray-900 mb-4">Método de pago</h2>
+                  {localCheckout && (
+                    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                      <p className="font-medium">Modo local</p>
+                      <p className="text-amber-800/90 mt-0.5">
+                        No hay cobro online: el pedido queda guardado en este navegador. Al publicar el sitio podrás activar el pago con Mercado Pago.
+                      </p>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                     {[
                       { id: 'mp', icon: Smartphone, label: 'Mercado Pago', sub: 'Tarjeta, débito, MP', color: 'text-blue-500' },
@@ -186,7 +255,17 @@ const Checkout = () => {
                     <p className="font-medium text-gray-800 mb-1">
                       {payMethod === 'mp' ? '🔵 Mercado Pago' : '🟢 Fiserv'}
                     </p>
-                    <p>Serás redirigido al portal de pago seguro para completar la transacción.</p>
+                    {mercadoPagoOnline ? (
+                      <p>Serás redirigido a Mercado Pago para completar el pago.</p>
+                    ) : isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'fiserv' ? (
+                      <p>Para pago online con tarjeta elegí Mercado Pago, o confirmá el pedido en modo local y coordiná el pago al retirar.</p>
+                    ) : (
+                      <p>
+                        {localCheckout
+                          ? 'Confirmá el pedido: coordiná el pago al retirar en el depósito (efectivo, transferencia o lo que acuerden).'
+                          : 'Serás redirigido a Mercado Pago para completar el pago.'}
+                      </p>
+                    )}
                   </div>
 
                   {/* Recordatorio retiro */}
@@ -199,9 +278,15 @@ const Checkout = () => {
                   </div>
 
                   <div className="flex gap-3">
-                    <button onClick={() => setStep('form')} className="btn-secondary flex-1">Volver</button>
-                    <button onClick={handlePay} className="btn-primary flex-1">
-                      Confirmar y pagar {formatPrice(grandTotal)}
+                    <button type="button" onClick={() => setStep('form')} className="btn-secondary flex-1" disabled={submitting}>Volver</button>
+                    <button type="button" onClick={() => void handlePay()} className="btn-primary flex-1 disabled:opacity-60" disabled={submitting}>
+                      {submitting
+                        ? mercadoPagoOnline
+                          ? 'Redirigiendo…'
+                          : 'Guardando…'
+                        : mercadoPagoOnline
+                          ? `Confirmar y pagar ${formatPrice(grandTotal)}`
+                          : `Confirmar pedido · ${formatPrice(grandTotal)}`}
                     </button>
                   </div>
                 </div>

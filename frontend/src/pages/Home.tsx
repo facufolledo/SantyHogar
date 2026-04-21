@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Truck, CreditCard, Shield, RefreshCw, X, ChevronLeft } from 'lucide-react';
-import { products, categories } from '../data/products';
+import { buildCategoryCards } from '../data/products';
+import { useProducts } from '../context/ProductsContext';
+import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import ProductCard from '../components/ProductCard';
 
 // Hero slides
@@ -41,9 +43,14 @@ const trust = [
 ];
 
 const Home = () => {
+  const { products, loading } = useProducts();
   const [slide, setSlide] = useState(0);
   const [promoOpen, setPromoOpen] = useState(true);
-  const featured = products.filter(p => p.featured).slice(0, 8);
+  const categories = useMemo(() => buildCategoryCards(products), [products]);
+  const featured = useMemo(
+    () => products.filter(p => p.featured).slice(0, 8),
+    [products]
+  );
 
   useEffect(() => {
     const t = setInterval(() => setSlide(s => (s + 1) % slides.length), 5000);
@@ -172,6 +179,8 @@ const Home = () => {
         </div>
       </section>
 
+      <ProductsErrorBanner />
+
       {/* Categories */}
       <section className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-6">
@@ -181,7 +190,10 @@ const Home = () => {
           </Link>
         </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {categories.map((cat, i) => (
+          {loading && products.length === 0 ? (
+            <p className="col-span-full text-center text-gray-500 py-8">Cargando categorías…</p>
+          ) : (
+          categories.map((cat, i) => (
             <motion.div
               key={cat.id}
               initial={{ opacity: 0, y: 20 }}
@@ -215,7 +227,8 @@ const Home = () => {
                 </div>
               </Link>
             </motion.div>
-          ))}
+          ))
+          )}
         </div>
       </section>
 
@@ -229,7 +242,10 @@ const Home = () => {
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {featured.map((p, i) => (
+            {loading && featured.length === 0 ? (
+              <p className="col-span-full text-center text-gray-500 py-12">Cargando productos…</p>
+            ) : (
+            featured.map((p, i) => (
               <motion.div
                 key={p.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -239,7 +255,8 @@ const Home = () => {
               >
                 <ProductCard product={p} />
               </motion.div>
-            ))}
+            ))
+            )}
           </div>
         </div>
       </section>

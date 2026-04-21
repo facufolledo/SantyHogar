@@ -30,7 +30,8 @@ export const mockUser: UserProfile = {
     { id: 'a1', label: 'Casa', street: 'Av. Corrientes 1234, Piso 3', city: 'Buenos Aires', province: 'Buenos Aires', zip: '1043', isPrimary: true },
     { id: 'a2', label: 'Trabajo', street: 'Av. Santa Fe 890', city: 'Buenos Aires', province: 'Buenos Aires', zip: '1059', isPrimary: false },
   ],
-  favorites: ['1', '6', '11'],
+  /** Slugs estables (coinciden con API y catálogo estático). */
+  favorites: ['lavarropas-automatico-8kg', 'smart-tv-55-4k', 'colchon-resortes-2-plazas'],
 };
 
 export const mockSessions = [

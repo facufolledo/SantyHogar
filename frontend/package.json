@@ -1,5 +1,5 @@
 {
-  "name": "marmoleria-santa-rita",
+  "name": "santyhogar",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -9,8 +9,8 @@
     "preview": "vite preview",
     "deploy": "npm run build && echo 'Build completado. Sube la carpeta dist a tu hosting.'",
     "analyze": "npm run build && npx vite-bundle-analyzer dist",
-    "lighthouse": "npx lighthouse https://marmoleriasantarita.com --output=html --output-path=./lighthouse-report.html",
-    "seo-check": "npx lighthouse https://marmoleriasantarita.com --only-categories=seo --output=json --output-path=./seo-report.json"
+    "lighthouse": "npx lighthouse http://localhost:5173/SantyHogar/ --output=html --output-path=./lighthouse-report.html",
+    "seo-check": "npx lighthouse http://localhost:5173/SantyHogar/ --only-categories=seo --output=json --output-path=./seo-report.json"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -35,18 +35,15 @@
     "vite-bundle-analyzer": "^0.7.0"
   },
   "keywords": [
-    "marmolería",
-    "granitos",
-    "mármoles",
-    "La Rioja",
+    "Santy Hogar",
+    "ecommerce",
+    "electrodomésticos",
+    "mueblería",
+    "colchonería",
     "Argentina",
-    "cocinas",
-    "baños",
-    "mesadas",
-    "piedras naturales",
-    "diseño de interiores"
+    "tienda online"
   ],
-  "author": "Marmolería Santa Rita",
+  "author": "Santy Hogar",
   "license": "MIT",
-  "description": "Sitio web oficial de Marmolería Santa Rita - Especialistas en granitos y mármoles premium en La Rioja, Argentina"
+  "description": "Tienda online Santy Hogar — electrodomésticos, mueblería y colchonería."
 }

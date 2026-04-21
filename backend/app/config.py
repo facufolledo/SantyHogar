@@ -35,9 +35,16 @@ class Config(BaseSettings):
     # CORS
     frontend_url: str = Field(default="http://localhost:5173", description="Frontend URL for CORS")
     
+    # Desarrollo: si True, los 500 por DatabaseError incluyen el mensaje real (útil para Supabase/RLS).
+    debug: bool = Field(default=False, description="Expose DB error details in API responses")
+
     # API
     api_host: str = Field(default="0.0.0.0", description="API host")
     api_port: int = Field(default=8000, description="API port")
+    public_api_url: str = Field(
+        default="http://localhost:8000",
+        description="URL pública del backend (webhook Mercado Pago, back_urls si aplica)",
+    )
     
     @field_validator('supabase_url')
     @classmethod

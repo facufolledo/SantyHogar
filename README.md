@@ -1,34 +1,25 @@
-# Marmolería Santa Rita - Sitio Web Oficial
+# Santy Hogar — Ecommerce
 
-Sitio web oficial de Marmolería Santa Rita, especialistas en granitos y mármoles premium en La Rioja, Argentina.
+Tienda online de **Santy Hogar**: electrodomésticos, mueblería y colchonería con carrito, checkout y pago con Mercado Pago.
 
 Monorepo: **`frontend/`** (Vite + React) y **`backend/`** (FastAPI).
 
-## 🏠 Sobre Nosotros
+## Características
 
-Marmolería Santa Rita nació hace más de 15 años en Córdoba, impulsada por la pasión familiar de ofrecer productos de calidad y buen servicio. Con esfuerzo y compromiso, hoy seguimos creciendo desde La Rioja, conservando el mismo espíritu de trabajo y atención personalizada que nos caracteriza.
+- Catálogo de productos (API o catálogo estático de respaldo)
+- Carrito, checkout y creación de órdenes vía API
+- Integración Mercado Pago (`init_point`)
+- Panel de administración y área de cuenta de usuario
 
-## 🚀 Características
+## Tecnologías (frontend)
 
-- **Diseño Moderno**: Interfaz elegante y responsiva
-- **Animaciones Suaves**: Transiciones fluidas con Framer Motion
-- **SEO Optimizado**: Meta tags, Schema.org y sitemap
-- **Rendimiento**: Carga rápida y optimizada
-- **Accesibilidad**: Diseño inclusivo y accesible
+- React 18, TypeScript, Vite
+- Tailwind CSS, Framer Motion
+- React Router
 
-## 🛠️ Tecnologías
-
-- **React 18** - Biblioteca de interfaz de usuario
-- **TypeScript** - Tipado estático
-- **Vite** - Herramienta de construcción
-- **Tailwind CSS** - Framework de CSS
-- **Framer Motion** - Animaciones
-- **React Router** - Navegación
-
-## 📦 Instalación (frontend)
+## Instalación (frontend)
 
 ```bash
-# Clonar el repositorio
 git clone https://github.com/cassiel2002/SantyHogar.git
 cd SantyHogar
 
@@ -40,9 +31,7 @@ npm run build
 npm run preview
 ```
 
-## 🌐 Despliegue
-
-### Para marmoleriasantarita.com
+## Despliegue
 
 1. **Construir el proyecto**:
    ```bash
@@ -50,112 +39,45 @@ npm run preview
    npm run build
    ```
 
-2. **Subir archivos**:
-   - Subir todo el contenido de `frontend/dist/` al directorio raíz de tu hosting
-   - Asegurarse de que el `.htaccess` de despliegue esté en la raíz del sitio (ver `frontend/.htaccess` o `frontend/public/.htaccess` según tu hosting)
+2. **Subir** el contenido de `frontend/dist/` al hosting (según tu proveedor: GitHub Pages, VPS, etc.).
 
-3. **Configurar dominio**:
-   - Apuntar el dominio `marmoleriasantarita.com` al hosting
-   - Configurar SSL/HTTPS
+3. **Dominio y SSL**: apuntá tu dominio al hosting y configurá HTTPS.
 
-4. **Verificar SEO**:
+4. **SEO**: en `frontend/public/robots.txt` y `frontend/public/sitemap.xml` reemplazá `https://www.santyhogar.com` por tu dominio real si no coincide. Si publicás sin el subpath `/SantyHogar/`, ajustá también esas rutas para que coincidan con `vite.config.ts` (`base`).
+
+5. **Auditorías locales** (opcional):
    ```bash
    cd frontend
    npm run seo-check
    npm run lighthouse
    ```
+   Los scripts apuntan a `http://localhost:5173/SantyHogar/`; levantá el dev server antes.
 
-## 📊 SEO y Rendimiento
+## SEO
 
-### Meta Tags Optimizados
-- Título y descripción específicos para cada página
-- Open Graph y Twitter Cards
-- Schema.org structured data
-- Canonical URLs
+- `frontend/public/sitemap.xml` — mapa del sitio (rutas públicas principales)
+- `frontend/public/robots.txt` — instrucciones para crawlers
+- Meta tags en `frontend/index.html`
 
-### Archivos SEO
-- `frontend/sitemap.xml` - Mapa del sitio
-- `frontend/robots.txt` - Instrucciones para crawlers
-- `frontend/.htaccess` - Configuración del servidor (si aplica)
+## Google Search Console
 
-### Rendimiento
-- Compresión GZIP
-- Cache de navegador
-- Lazy loading de imágenes
-- Bundle splitting
+1. Verificá la propiedad del sitio.
+2. Enviá el sitemap: `https://TU-DOMINIO/SantyHogar/sitemap.xml` (ajustá dominio y path).
 
-## 📱 Páginas
+## Scripts útiles (`frontend/`)
 
-- **Inicio** (`/`) - Página principal con hero y valores
-- **Nosotros** (`/nosotros`) - Historia y filosofía
-- **Productos** (`/productos`) - Catálogo de granitos
-- **Trabajos** (`/trabajos`) - Galería de ejemplos
-- **Diseños** (`/disenos`) - Diseños de interiores
-- **Contacto** (`/contacto`) - Información de contacto
-
-## 🎨 Estructura del repositorio
-
-```
-frontend/          # Vite + React
-├── src/
-│   ├── components/
-│   ├── pages/
-│   ├── data/
-│   └── main.tsx
-├── public/
-├── index.html
-└── package.json
-
-backend/           # FastAPI
-├── app/
-├── database/
-└── requirements.txt
-```
-
-## 📈 Monitoreo
-
-### Google Analytics
-Agregar el código de Google Analytics en `frontend/index.html`:
-
-```html
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'GA_MEASUREMENT_ID');
-</script>
-```
-
-### Google Search Console
-1. Verificar propiedad en Google Search Console
-2. Enviar sitemap: `https://marmoleriasantarita.com/sitemap.xml`
-3. Monitorear rendimiento de búsqueda
-
-## 🔧 Scripts Disponibles (en `frontend/`)
-
-- `npm run dev` - Servidor de desarrollo
-- `npm run build` - Construir para producción
-- `npm run preview` - Previsualizar build
-- `npm run deploy` - Construir y preparar para despliegue
-- `npm run analyze` - Analizar bundle
-- `npm run lighthouse` - Auditoría de rendimiento
-- `npm run seo-check` - Verificación de SEO
-
-## 📞 Contacto
-
-- **Teléfono**: +54 9 3549 43-4885
-- **Email**: Maximilianoopriarioo@gmail.com
-- **Ubicación**: La Rioja, Argentina
-
-## 📄 Licencia
-
-MIT License - ver archivo LICENSE para detalles.
+- `npm run dev` — desarrollo
+- `npm run build` — producción
+- `npm run preview` — previsualizar build
+- `npm run deploy` — build + mensaje de despliegue
+- `npm run analyze` — análisis del bundle
+- `npm run lighthouse` / `npm run seo-check` — Lighthouse (local)
 
 ## Backend (API FastAPI)
 
-Código en `backend/`. Variables de entorno: `backend/.env` (no se versiona; partí de `backend/.env.example`).
+Código en `backend/`. Variables de entorno: `backend/.env` (no se versiona; partí de `backend/.env.example` si existe).
+
+**Variables típicas**: `FRONTEND_URL` (CORS para el origen del front, p. ej. `http://localhost:5173`), URL de Supabase, `MERCADOPAGO_ACCESS_TOKEN`, etc.
 
 Desde la raíz del repositorio:
 
@@ -164,14 +86,22 @@ python -m venv .venv
 .venv\Scripts\pip install -r backend\requirements.txt
 ```
 
-Activá el venv y usá el directorio `backend` como cwd para imports de `app`:
+Activá el venv y usá el directorio `backend` como cwd para `uvicorn`:
 
 ```bash
 cd backend
 ..\.venv\Scripts\activate
-python -c "from app.config import get_config"
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+En el front, configurá `VITE_API_URL` (p. ej. en `frontend/.env`) apuntando al backend.
+
+**Checkout local (sin Mercado Pago):** dejá `VITE_ENABLE_MP_CHECKOUT=false` o no la definas. Los pedidos se guardan solo en el navegador. Cuando publiques y tengas token de MP en el backend, poné `VITE_ENABLE_MP_CHECKOUT=true` para redirigir al checkout de Mercado Pago.
+
+## Licencia
+
+MIT — ver archivo `LICENSE` si está presente.
 
 ---
 
-**Marmolería Santa Rita** - Especialistas en granitos y mármoles premium en La Rioja, Argentina.
+**Santy Hogar** — ecommerce de electrodomésticos, mueblería y colchonería.
