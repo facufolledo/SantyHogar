@@ -51,3 +51,49 @@ class ProductService:
             pid = UUID(str(row["id_producto"]))
             qty = int(row["cantidad"])
             await self._db.decrement_product_stock(pid, qty)
+
+    async def update_product_price(
+        self, product_id: UUID, price: float, original_price: float | None = None
+    ) -> Product:
+        """Actualiza el precio de un producto."""
+        # Verificar que el producto existe
+        rows = await self._db.get_products_by_ids([product_id])
+        if not rows:
+            raise ProductNotFoundError(f"Producto no encontrado: {product_id}")
+        
+        # Actualizar precio
+        await self._db.update_product_price(product_id, price, original_price)
+        
+        # Obtener producto actualizado
+        updated_rows = await self._db.get_products_by_ids([product_id])
+        return row_to_product(updated_rows[0])
+
+    async def create_product(self, product_data: dict) -> Product:
+        """Crea un nuevo producto."""
+        product_id = await self._db.create_product(product_data)
+        rows = await self._db.get_products_by_ids([product_id])
+        return row_to_product(rows[0])
+
+    async def update_product(self, product_id: UUID, product_data: dict) -> Product:
+        """Actualiza un producto existente."""
+        # Verificar que el producto existe
+        rows = await self._db.get_products_by_ids([product_id])
+        if not rows:
+            raise ProductNotFoundError(f"Producto no encontrado: {product_id}")
+        
+        # Actualizar producto
+        await self._db.update_product(product_id, product_data)
+        
+        # Obtener producto actualizado
+        updated_rows = await self._db.get_products_by_ids([product_id])
+        return row_to_product(updated_rows[0])
+
+    async def delete_product(self, product_id: UUID) -> None:
+        """Elimina un producto."""
+        # Verificar que el producto existe
+        rows = await self._db.get_products_by_ids([product_id])
+        if not rows:
+            raise ProductNotFoundError(f"Producto no encontrado: {product_id}")
+        
+        # Eliminar producto
+        await self._db.delete_product(product_id)

@@ -15,7 +15,7 @@ from app.exceptions import (
     MercadoPagoError,
     ProductNotFoundError,
 )
-from app.routes import orders, products, webhook
+from app.routes import customers, orders, products, webhook
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,6 +32,10 @@ async def lifespan(app: FastAPI):
         cfg.frontend_url,
         cfg.public_api_url,
     )
+    logger.info(
+        "API v%s — precios: POST /catalog/update-price (y /api/catalog/update-price)",
+        app.version,
+    )
     yield
     logger.info("Cierre de aplicación")
 
@@ -41,7 +45,8 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Santy Hogar API",
         description="Backend e-commerce: productos, órdenes y Mercado Pago.",
-        version="1.0.0",
+        # Subí este número cuando cambien rutas visibles en /docs (así ves si el proceso cargó el código nuevo).
+        version="1.0.1",
         lifespan=lifespan,
     )
 
@@ -54,7 +59,10 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(products.router)
+    # Mismo router bajo /api por si el reverse proxy o el front publican la API con prefijo (evita 404 genérico).
+    app.include_router(products.router, prefix="/api")
     app.include_router(orders.router)
+    app.include_router(customers.router)
     app.include_router(webhook.router)
 
     @app.get("/health", tags=["health"])

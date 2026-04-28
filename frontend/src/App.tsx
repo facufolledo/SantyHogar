@@ -21,6 +21,7 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminCustomers from './pages/admin/AdminCustomers';
 import BulkImport from './pages/admin/BulkImport';
+import PriceManagement from './pages/admin/PriceManagement';
 // User
 import UserLayout from './pages/user/UserLayout';
 import MyAccount from './pages/user/MyAccount';
@@ -75,6 +76,7 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="productos" element={<AdminProducts />} />
+              <Route path="precios" element={<PriceManagement />} />
               <Route path="pedidos" element={<AdminOrders />} />
               <Route path="clientes" element={<AdminCustomers />} />
               <Route path="importar" element={<BulkImport />} />

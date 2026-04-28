@@ -22,6 +22,14 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true
-  }
+    host: true,
+    proxy: {
+      // Desarrollo: VITE_API_URL=/api → mismo origen que Vite, sin CORS; reescribe a FastAPI en :8000
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '') || '/',
+      },
+    },
+  },
 });

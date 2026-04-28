@@ -69,7 +69,15 @@ export async function apiFetch<T>(
       typeof data === 'object' && data !== null && 'detail' in data
         ? String((data as { detail: unknown }).detail)
         : res.statusText;
-    throw new ApiError(detail || `HTTP ${res.status}`, res.status, data);
+    let msg = detail || `HTTP ${res.status}`;
+    if (
+      res.status === 404 &&
+      (msg === 'Not Found' || msg === 'HTTP 404') &&
+      import.meta.env.DEV
+    ) {
+      msg += `. Comprobá que el backend tenga la ruta (p. ej. /docs) y que VITE_API_URL apunte al API (${url}). Si usás proxy, probá VITE_API_URL=/api`;
+    }
+    throw new ApiError(msg, res.status, data);
   }
   return data as T;
 }

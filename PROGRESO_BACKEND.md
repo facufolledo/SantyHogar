@@ -149,6 +149,35 @@
 
 ## 🎯 Lo que FALTA POR HACER
 
+### ⚠️ PENDIENTE: Carga Masiva de Productos desde .doc
+**Estado:** 🔴 Bloqueado - Parser no funciona correctamente
+
+**Problema:**
+- El endpoint `POST /products/bulk-import` está creado
+- El parser de archivos .doc/.docx no está leyendo correctamente el formato del documento
+- Los productos no se extraen con nombre y categoría correctos
+
+**Archivos involucrados:**
+- `backend/app/services/bulk_import_service.py` - Parser del documento
+- `backend/app/routes/products.py` - Endpoint de bulk import
+- `backend/app/models/bulk_import.py` - Modelos de validación
+- `frontend/src/pages/admin/BulkImport.tsx` - Interfaz de carga
+
+**Formato esperado del documento:**
+```
+CODIGO - NOMBRE DEL PRODUCTO
+CATEGORIA - XX
+Stock: X,XX
+```
+
+**Próximos pasos cuando se retome:**
+1. Revisar el formato exacto del documento exportado
+2. Ajustar las expresiones regulares del parser
+3. Agregar logs de debug para ver qué se está leyendo
+4. Probar con diferentes formatos de documento
+
+---
+
 ### Paso 1: Poblar la Base de Datos con Productos Reales
 **Estado:** ⚠️ Pendiente
 

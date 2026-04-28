@@ -122,13 +122,14 @@ class OrderService:
             payment_line_items=payment_line_items,
         )
 
-    async def update_order_status(
+    async def update_order_status_by_preference(
         self,
         preference_id: str,
         status: str,
         *,
         payment_id: Optional[str] = None,
     ) -> None:
+        """Actualiza el estado de una orden por preference_id (webhook)."""
         await self._db.update_order_status(
             preference_id, status, payment_id=payment_id
         )
@@ -149,3 +150,85 @@ class OrderService:
 
     async def attach_preference_id(self, order_id: UUID, preference_id: str) -> None:
         await self._db.update_order_preference_id(order_id, preference_id)
+
+    async def get_all_orders(self) -> List[Any]:
+        """Obtiene todas las órdenes con información resumida."""
+        from app.models.schemas import OrderListResponse
+        
+        rows = await self._db.get_all_orders()
+        orders = []
+        
+        for row in rows:
+            # Contar items de la orden
+            items = await self._db.get_order_items(UUID(str(row["id_orden"])))
+            item_count = sum(item.get("cantidad", 0) for item in items)
+            
+            orders.append(OrderListResponse(
+                id=UUID(str(row["id_orden"])),
+                orderNumber=row.get("numero_orden", ""),
+                customerName=row.get("nombre_cliente", ""),
+                customerEmail=row.get("email_cliente", ""),
+                total=float(row.get("total", 0)),
+                status=row.get("estado", "pending"),
+                itemCount=item_count,
+                createdAt=row.get("fecha_creacion", "").isoformat() if hasattr(row.get("fecha_creacion", ""), "isoformat") else str(row.get("fecha_creacion", "")),
+            ))
+        
+        return orders
+
+    async def get_order_detail(self, order_id: UUID) -> Optional[Any]:
+        """Obtiene el detalle completo de una orden con sus items y productos."""
+        from app.models.schemas import OrderDetailResponse, OrderItemResponse
+        
+        order_row = await self._db.get_order_by_id(order_id)
+        if not order_row:
+            return None
+        
+        # Obtener items de la orden
+        items_rows = await self._db.get_order_items(order_id)
+        
+        # Obtener información de productos
+        product_ids = [UUID(str(item["id_producto"])) for item in items_rows]
+        products_rows = await self._db.get_products_by_ids(product_ids) if product_ids else []
+        products_by_id = {UUID(str(p["id_producto"])): p for p in products_rows}
+        
+        # Construir items con información de productos
+        order_items = []
+        for item in items_rows:
+            product_id = UUID(str(item["id_producto"]))
+            product = products_by_id.get(product_id, {})
+            
+            quantity = int(item.get("cantidad", 0))
+            unit_price = float(item.get("precio_unitario", 0))
+            
+            order_items.append(OrderItemResponse(
+                id=UUID(str(item["id_item"])),
+                productId=product_id,
+                productName=product.get("nombre", "Producto no encontrado"),
+                productImage=product.get("imagenes", [None])[0] if product.get("imagenes") else None,
+                productBrand=product.get("marca", ""),
+                quantity=quantity,
+                unitPrice=unit_price,
+                subtotal=quantity * unit_price,
+            ))
+        
+        return OrderDetailResponse(
+            id=UUID(str(order_row["id_orden"])),
+            orderNumber=order_row.get("numero_orden", ""),
+            userId=order_row.get("id_usuario"),
+            customerName=order_row.get("nombre_cliente", ""),
+            customerEmail=order_row.get("email_cliente", ""),
+            customerPhone=order_row.get("telefono_cliente", ""),
+            total=float(order_row.get("total", 0)),
+            paymentMethod=order_row.get("metodo_pago", "mp"),
+            status=order_row.get("estado", "pending"),
+            preferenceId=order_row.get("id_preferencia"),
+            paymentId=order_row.get("payment_id"),
+            createdAt=order_row.get("fecha_creacion", "").isoformat() if hasattr(order_row.get("fecha_creacion", ""), "isoformat") else str(order_row.get("fecha_creacion", "")),
+            updatedAt=order_row.get("fecha_actualizacion", "").isoformat() if hasattr(order_row.get("fecha_actualizacion", ""), "isoformat") else str(order_row.get("fecha_actualizacion", "")),
+            items=order_items,
+        )
+
+    async def update_order_status(self, order_id: UUID, status: str) -> None:
+        """Actualiza el estado de una orden por ID."""
+        await self._db.update_order_status_by_id(order_id, status)

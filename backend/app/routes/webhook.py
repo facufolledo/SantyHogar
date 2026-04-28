@@ -77,7 +77,7 @@ async def mercadopago_webhook(
         return {"status": "ok"}
 
     try:
-        await order_service.update_order_status(
+        await order_service.update_order_status_by_preference(
             pref_key, "paid", payment_id=info.payment_id
         )
     except Exception as e:

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Upload, ImageIcon } from 'lucide-react';
 import type { Product } from '../../data/products';
+import { createProduct, updateProduct, type CreateProductRequest, type UpdateProductRequest } from '../../api/productsApi';
 
 type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'envio';
 
@@ -15,9 +16,8 @@ const TABS: { id: Tab; label: string }[] = [
 
 interface Props {
   product: Product | null;
-  onSave: (data: Partial<Product>) => void;
+  onSave: () => void;
   onClose: () => void;
-  /** Solo lectura: datos vienen de la base vía API (no hay alta/edición en el backend aún). */
   readOnly?: boolean;
 }
 
@@ -26,20 +26,22 @@ const di = 'w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg tex
 
 export default function ProductFormModal({ product, onSave, onClose, readOnly = false }: Props) {
   const [tab, setTab] = useState<Tab>('general');
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: product?.name || '',
     description: product?.description || '',
     category: product?.category || 'electrodomesticos',
+    subcategory: product?.subcategory || '',
     brand: product?.brand || '',
     price: product?.price || 0,
     originalPrice: product?.originalPrice || 0,
     cost: Math.round((product?.price || 0) * 0.6),
     stock: product?.stock || 0,
-    sku: `SKU-${product?.id?.padStart(4, '0') || '0000'}`,
     trackStock: true,
     status: 'active',
     weight: '',
     dimensions: '',
+    images: product?.images || [],
   });
 
   const set = (key: string, val: unknown) => setForm(p => ({ ...p, [key]: val }));
@@ -49,18 +51,50 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
   const marginBg = margin >= 30 ? 'bg-green-500/10 border-green-500/30' : margin >= 10 ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-red-500/10 border-red-500/30';
   const marginBar = margin >= 30 ? 'bg-green-500' : margin >= 10 ? 'bg-yellow-500' : 'bg-red-500';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (readOnly) return;
-    onSave({
-      name: form.name,
-      description: form.description,
-      category: form.category as Product['category'],
-      brand: form.brand,
-      price: Number(form.price),
-      originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
-      stock: Number(form.stock),
-    });
+
+    setSaving(true);
+    try {
+      if (product) {
+        // Edit mode
+        const updateData: UpdateProductRequest = {
+          name: form.name,
+          description: form.description || undefined,
+          category: form.category as Product['category'],
+          subcategory: form.subcategory || undefined,
+          brand: form.brand,
+          price: Number(form.price),
+          originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
+          stock: Number(form.stock),
+          images: form.images.length > 0 ? form.images : undefined,
+        };
+        await updateProduct(product.id, updateData);
+        alert('✅ Producto actualizado correctamente');
+      } else {
+        // Create mode
+        const createData: CreateProductRequest = {
+          name: form.name,
+          category: form.category as Product['category'],
+          subcategory: form.subcategory || 'general',
+          price: Number(form.price),
+          originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
+          stock: Number(form.stock),
+          brand: form.brand,
+          description: form.description || undefined,
+          images: form.images.length > 0 ? form.images : undefined,
+        };
+        await createProduct(createData);
+        alert('✅ Producto creado correctamente');
+      }
+      onSave();
+    } catch (error) {
+      console.error('Error al guardar producto:', error);
+      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al guardar el producto'}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -187,16 +221,10 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
             {/* STOCK */}
             {tab === 'stock' && (
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Stock actual">
-                    <input type="number" value={form.stock} onChange={e => set('stock', Number(e.target.value))}
-                      placeholder="0" className={di} />
-                  </Field>
-                  <Field label="SKU">
-                    <input value={form.sku} onChange={e => set('sku', e.target.value)}
-                      placeholder="SKU-0001" className={di} />
-                  </Field>
-                </div>
+                <Field label="Stock actual">
+                  <input type="number" value={form.stock} onChange={e => set('stock', Number(e.target.value))}
+                    placeholder="0" className={di} />
+                </Field>
                 <div className="flex items-center justify-between p-4 bg-gray-800 border border-gray-700 rounded-xl">
                   <div>
                     <p className="text-sm font-medium text-gray-300">Control de stock</p>
@@ -224,28 +252,66 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
             {/* IMÁGENES */}
             {tab === 'imagenes' && (
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                <div className="border-2 border-dashed border-gray-700 hover:border-primary-500 rounded-xl p-8 text-center transition-colors cursor-pointer group">
-                  <Upload size={32} className="mx-auto text-gray-600 group-hover:text-primary-400 mb-3 transition-colors" />
-                  <p className="text-sm font-medium text-gray-400">Arrastrá imágenes o hacé click</p>
-                  <p className="text-xs text-gray-600 mt-1">PNG, JPG hasta 5MB · Máximo 8 imágenes</p>
-                  <button type="button" className="mt-3 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-colors">
-                    Seleccionar archivos
-                  </button>
-                </div>
-                {product?.images ? (
+                <Field label="URL de imagen">
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                      className={di}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const input = e.currentTarget;
+                          if (input.value.trim()) {
+                            set('images', [...form.images, input.value.trim()]);
+                            input.value = '';
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                        if (input.value.trim()) {
+                          set('images', [...form.images, input.value.trim()]);
+                          input.value = '';
+                        }
+                      }}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white text-sm rounded-lg transition-colors"
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Presioná Enter o click en Agregar para añadir la URL</p>
+                </Field>
+
+                {form.images.length > 0 ? (
                   <div className="grid grid-cols-4 gap-2">
-                    {product.images.map((img, i) => (
-                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gray-800">
+                    {form.images.map((img, i) => (
+                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gray-800 group">
                         <img src={img} alt="" className="w-full h-full object-cover" />
                         {i === 0 && <span className="absolute bottom-1 left-1 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">Principal</span>}
+                        <button
+                          type="button"
+                          onClick={() => set('images', form.images.filter((_, idx) => idx !== i))}
+                          className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <div className="flex items-center gap-2 text-xs text-gray-600 p-4 bg-gray-800 border border-gray-700 rounded-lg">
                     <ImageIcon size={14} /> <span>No hay imágenes cargadas</span>
                   </div>
                 )}
+
+                <div className="border-2 border-dashed border-gray-700 rounded-xl p-6 text-center">
+                  <Upload size={24} className="mx-auto text-gray-600 mb-2" />
+                  <p className="text-xs text-gray-600">Carga de archivos próximamente</p>
+                </div>
               </motion.div>
             )}
 
@@ -275,12 +341,12 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
               </button>
             ) : (
               <>
-                <button type="button" onClick={onClose}
-                  className="flex-1 text-sm py-2.5 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
+                <button type="button" onClick={onClose} disabled={saving}
+                  className="flex-1 text-sm py-2.5 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   Cancelar
                 </button>
-                <button type="submit" className="btn-primary flex-1 text-sm py-2.5">
-                  {product ? 'Guardar cambios' : 'Crear producto'}
+                <button type="submit" disabled={saving} className="btn-primary flex-1 text-sm py-2.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {saving ? 'Guardando...' : product ? 'Guardar cambios' : 'Crear producto'}
                 </button>
               </>
             )}

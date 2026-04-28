@@ -1,15 +1,86 @@
 """Rutas de órdenes y checkout."""
-from typing import Annotated
+from typing import Annotated, List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.deps import get_order_service, get_payment_service
 from app.exceptions import DatabaseError, InsufficientStockError, MercadoPagoError, ProductNotFoundError
-from app.models.schemas import OrderRequest, OrderResponse
+from app.models.schemas import (
+    OrderRequest,
+    OrderResponse,
+    OrderListResponse,
+    OrderDetailResponse,
+    UpdateOrderStatusRequest,
+)
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 
 router = APIRouter(tags=["orders"])
+
+
+@router.get(
+    "/orders",
+    response_model=List[OrderListResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def list_orders(
+    order_service: Annotated[OrderService, Depends(get_order_service)],
+) -> List[OrderListResponse]:
+    """Lista todas las órdenes (vista simplificada para admin)."""
+    try:
+        orders = await order_service.get_all_orders()
+        return orders
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        ) from e
+
+
+@router.get(
+    "/orders/{order_id}",
+    response_model=OrderDetailResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_order_detail(
+    order_id: UUID,
+    order_service: Annotated[OrderService, Depends(get_order_service)],
+) -> OrderDetailResponse:
+    """Obtiene el detalle completo de una orden con sus items."""
+    try:
+        order_detail = await order_service.get_order_detail(order_id)
+        if not order_detail:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Orden no encontrada",
+            )
+        return order_detail
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        ) from e
+
+
+@router.patch(
+    "/orders/{order_id}/status",
+    status_code=status.HTTP_200_OK,
+)
+async def update_order_status(
+    order_id: UUID,
+    body: UpdateOrderStatusRequest,
+    order_service: Annotated[OrderService, Depends(get_order_service)],
+) -> dict:
+    """Actualiza el estado de una orden."""
+    try:
+        await order_service.update_order_status(order_id, body.status)
+        return {"message": "Estado actualizado correctamente", "status": body.status}
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        ) from e
 
 
 @router.post(

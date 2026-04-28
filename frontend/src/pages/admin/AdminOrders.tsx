@@ -1,30 +1,89 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ChevronDown, ChevronUp, Package } from 'lucide-react';
-import { useOrders, type OrderStatus } from '../../context/OrdersContext';
 import { formatPrice } from '../../utils/format';
+import { fetchOrders, fetchOrderDetail, updateOrderStatus, type OrderStatus, type OrderList, type OrderDetail } from '../../api/ordersApi';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/20 text-yellow-400',
-  processing: 'bg-blue-500/20 text-blue-400',
-  ready: 'bg-purple-500/20 text-purple-400',
-  delivered: 'bg-green-500/20 text-green-400',
+  paid: 'bg-green-500/20 text-green-400',
   cancelled: 'bg-red-500/20 text-red-400',
 };
 const statusLabels: Record<string, string> = {
   pending: 'Pendiente',
-  processing: 'En preparación',
-  ready: 'Listo para retirar',
-  delivered: 'Retirado',
+  paid: 'Pagado',
   cancelled: 'Cancelado',
 };
-const ALL_STATUSES: OrderStatus[] = ['pending', 'processing', 'ready', 'delivered', 'cancelled'];
+const ALL_STATUSES: OrderStatus[] = ['pending', 'paid', 'cancelled'];
 
 export default function AdminOrders() {
-  const { orders, updateStatus } = useOrders();
+  const [orders, setOrders] = useState<OrderList[]>([]);
+  const [orderDetails, setOrderDetails] = useState<Record<string, OrderDetail>>({});
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error('Error al cargar órdenes:', error);
+      alert('Error al cargar las órdenes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadOrderDetail = async (orderId: string) => {
+    if (orderDetails[orderId]) return; // Ya está cargado
+    
+    try {
+      const detail = await fetchOrderDetail(orderId);
+      setOrderDetails(prev => ({ ...prev, [orderId]: detail }));
+    } catch (error) {
+      console.error('Error al cargar detalle de orden:', error);
+      alert('Error al cargar el detalle de la orden');
+    }
+  };
+
+  const handleExpand = async (orderId: string) => {
+    if (expanded === orderId) {
+      setExpanded(null);
+    } else {
+      setExpanded(orderId);
+      await loadOrderDetail(orderId);
+    }
+  };
+
+  const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
+    setUpdating(orderId);
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      // Actualizar en la lista
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      // Actualizar en el detalle si está cargado
+      if (orderDetails[orderId]) {
+        setOrderDetails(prev => ({
+          ...prev,
+          [orderId]: { ...prev[orderId], status: newStatus }
+        }));
+      }
+      alert('✅ Estado actualizado correctamente');
+    } catch (error) {
+      console.error('Error al actualizar estado:', error);
+      alert('❌ Error al actualizar el estado');
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   const filtered = orders.filter(o => {
     const matchSearch = o.customerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -32,6 +91,14 @@ export default function AdminOrders() {
     const matchStatus = statusFilter === 'all' || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  if (loading) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <p>Cargando órdenes...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -67,6 +134,7 @@ export default function AdminOrders() {
         <div className="space-y-2">
           {filtered.map((order, i) => {
             const isOpen = expanded === order.id;
+            const detail = orderDetails[order.id];
             const date = new Date(order.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
             return (
@@ -75,7 +143,7 @@ export default function AdminOrders() {
                 className="bg-gray-800 border border-gray-700/60 rounded-xl overflow-hidden">
 
                 {/* Row */}
-                <button onClick={() => setExpanded(isOpen ? null : order.id)}
+                <button onClick={() => handleExpand(order.id)}
                   className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-gray-700/40 transition-colors text-left">
                   <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-4 gap-2 items-center">
                     <div>
@@ -93,29 +161,33 @@ export default function AdminOrders() {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-white text-sm">{formatPrice(order.total)}</p>
-                      <p className="text-xs text-gray-500">{order.items.length} productos</p>
+                      <p className="text-xs text-gray-500">{order.itemCount} productos</p>
                     </div>
                   </div>
                   {isOpen ? <ChevronUp size={15} className="text-gray-500 flex-shrink-0" /> : <ChevronDown size={15} className="text-gray-500 flex-shrink-0" />}
                 </button>
 
                 {/* Detail */}
-                {isOpen && (
+                {isOpen && detail && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     className="border-t border-gray-700/60 px-4 py-4 space-y-4">
 
                     {/* Products */}
                     <div className="space-y-2">
-                      {order.items.map(({ product, quantity }) => (
-                        <div key={product.id} className="flex items-center gap-3 bg-gray-700/30 rounded-lg p-2">
-                          <img src={product.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                      {detail.items.map((item) => (
+                        <div key={item.id} className="flex items-center gap-3 bg-gray-700/30 rounded-lg p-2">
+                          {item.productImage ? (
+                            <img src={item.productImage} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0" />
+                          )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-200 line-clamp-1">{product.name}</p>
-                            <p className="text-xs text-gray-500">{product.brand}</p>
+                            <p className="text-sm font-medium text-gray-200 line-clamp-1">{item.productName}</p>
+                            <p className="text-xs text-gray-500">{item.productBrand}</p>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <p className="text-xs text-gray-500">x{quantity}</p>
-                            <p className="text-sm font-semibold text-white">{formatPrice(product.price * quantity)}</p>
+                            <p className="text-xs text-gray-500">x{item.quantity}</p>
+                            <p className="text-sm font-semibold text-white">{formatPrice(item.subtotal)}</p>
                           </div>
                         </div>
                       ))}
@@ -124,18 +196,19 @@ export default function AdminOrders() {
                     {/* Info + change status */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-gray-700/60">
                       <div className="text-sm text-gray-400 space-y-0.5">
-                        <p><span className="text-gray-500">Cliente:</span> {order.customerName} · {order.customerPhone}</p>
-                        <p><span className="text-gray-500">Pago:</span> {order.paymentMethod === 'mp' ? 'Mercado Pago' : 'Fiserv'}</p>
-                        <p><span className="text-gray-500">Retiro:</span> Depósito Santy Hogar</p>
+                        <p><span className="text-gray-500">Cliente:</span> {detail.customerName} · {detail.customerPhone}</p>
+                        <p><span className="text-gray-500">Pago:</span> {detail.paymentMethod === 'mp' ? 'Mercado Pago' : 'Fiserv'}</p>
+                        <p><span className="text-gray-500">Email:</span> {detail.customerEmail}</p>
                       </div>
 
                       {/* Change status */}
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <span className="text-xs text-gray-500">Cambiar estado:</span>
                         <select
-                          value={order.status}
-                          onChange={e => updateStatus(order.id, e.target.value as OrderStatus)}
-                          className="text-xs bg-gray-700 border border-gray-600 text-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                          value={detail.status}
+                          onChange={e => handleUpdateStatus(order.id, e.target.value as OrderStatus)}
+                          disabled={updating === order.id}
+                          className="text-xs bg-gray-700 border border-gray-600 text-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {ALL_STATUSES.map(s => (
                             <option key={s} value={s}>{statusLabels[s]}</option>

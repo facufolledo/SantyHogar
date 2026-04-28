@@ -1,7 +1,11 @@
-/** URL base del backend (sin barra final). Ej: http://localhost:8000 */
+/**
+ * URL base del backend (sin barra final).
+ * - Absoluta: `http://localhost:8000`
+ * - Relativa (recomendado en dev con proxy Vite): `/api` → mismo host que el front, Vite reenvía a :8000
+ */
 export function getApiBase(): string {
-  const raw = import.meta.env.VITE_API_URL as string | undefined;
-  return (raw || '').replace(/\/$/, '');
+  const raw = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || '';
+  return raw.replace(/\/$/, '');
 }
 
 export function isApiConfigured(): boolean {

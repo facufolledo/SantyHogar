@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Edit2, TrendingUp, Package, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp } from 'lucide-react';
 import type { Product } from '../../data/products';
 import { formatPrice } from '../../utils/format';
 import { useProducts } from '../../context/ProductsContext';
 import ProductsErrorBanner from '../../components/ProductsErrorBanner';
 import ProductFormModal from './ProductFormModal';
+import { deleteProduct } from '../../api/productsApi';
 
 const PAGE_SIZE = 20;
 
@@ -20,11 +21,13 @@ function shortId(id: string) {
 }
 
 export default function AdminProducts() {
-  const { products, loading, error } = useProducts();
+  const { products, loading, error, refetch } = useProducts();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Product | null>(null);
   const [viewing, setViewing] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const filtered = useMemo(
     () =>
@@ -44,36 +47,81 @@ export default function AdminProducts() {
     setPage(1);
   };
 
+  const handleCreate = () => {
+    setEditing(null);
+    setViewing(null);
+    setModalOpen(true);
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditing(product);
+    setViewing(null);
+    setModalOpen(true);
+  };
+
+  const handleView = (product: Product) => {
+    setViewing(product);
+    setEditing(null);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (productId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+      return;
+    }
+
+    setDeleting(productId);
+    try {
+      await deleteProduct(productId);
+      refetch();
+      alert('✅ Producto eliminado correctamente');
+    } catch (error) {
+      console.error('Error al eliminar producto:', error);
+      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al eliminar el producto'}`);
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleSave = () => {
+    setModalOpen(false);
+    setEditing(null);
+    setViewing(null);
+    refetch();
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="font-bold text-white">Productos</h2>
           <p className="text-sm text-gray-500">
-            Catálogo desde la base de datos (solo lectura).{' '}
             {loading ? 'Cargando…' : `${products.length} productos · ${products.filter(p => p.stock <= 3).length} con stock bajo`}
           </p>
         </div>
+        <button
+          onClick={handleCreate}
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus size={16} />
+          Nuevo Producto
+        </button>
       </div>
 
       <ProductsErrorBanner />
 
-      {!loading && !error && (
-        <p className="text-xs text-gray-600 rounded-lg border border-gray-700/60 bg-gray-800/50 px-3 py-2">
-          Para crear o editar productos usá la base de datos o Supabase; cuando existan endpoints de administración se podrá hacer desde acá.
-        </p>
-      )}
-
-      <div className="relative max-w-sm">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-        <input
-          type="text"
-          placeholder="Buscar productos..."
-          value={search}
-          onChange={e => handleSearch(e.target.value)}
-          disabled={loading || Boolean(error)}
-          className="w-full pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700/60 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-        />
+      <div className="flex gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Buscar productos..."
+            value={search}
+            onChange={e => handleSearch(e.target.value)}
+            disabled={loading || Boolean(error)}
+            className="w-full pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700/60 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+          />
+        </div>
       </div>
 
       <div className="bg-gray-800 border border-gray-700/60 rounded-xl overflow-hidden">
@@ -159,17 +207,33 @@ export default function AdminProducts() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setViewing(p);
-                            setModalOpen(true);
-                          }}
-                          className="p-1.5 text-gray-500 hover:text-primary-400 hover:bg-primary-500/10 rounded-lg transition-colors"
-                          title="Ver detalle"
-                        >
-                          <Eye size={15} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleView(p)}
+                            className="p-1.5 text-gray-500 hover:text-primary-400 hover:bg-primary-500/10 rounded-lg transition-colors"
+                            title="Ver detalle"
+                          >
+                            <Eye size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(p)}
+                            className="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <Edit2 size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(p.id)}
+                            disabled={deleting === p.id}
+                            className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </td>
                     </motion.tr>
                   );
@@ -223,14 +287,15 @@ export default function AdminProducts() {
       )}
 
       <AnimatePresence>
-        {modalOpen && viewing && (
+        {modalOpen && (
           <ProductFormModal
-            product={viewing}
-            readOnly
-            onSave={() => {}}
+            product={viewing || editing}
+            readOnly={Boolean(viewing)}
+            onSave={handleSave}
             onClose={() => {
               setModalOpen(false);
               setViewing(null);
+              setEditing(null);
             }}
           />
         )}

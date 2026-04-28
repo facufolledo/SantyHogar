@@ -1,5 +1,8 @@
 """Supabase client singleton."""
+from __future__ import annotations
+
 from typing import Optional
+from urllib.parse import urlparse
 
 from supabase import Client, create_client
 
@@ -12,8 +15,8 @@ _client: Optional[Client] = None
 def get_supabase_client() -> Client:
     """Cliente Supabase configurado con variables de entorno.
 
-    Requiere ``supabase-py`` 2.28+ (compatible con ``httpx`` 0.26+). Versiones viejas
-    de ``gotrue`` + ``httpx`` rompían con ``Client.__init__() got an unexpected keyword argument 'proxy'``.
+    Nota: si ves ``Client.__init__() got an unexpected keyword argument 'proxy'``,
+    tenés una combinación incompatible entre ``gotrue`` y ``httpx``.
     """
     global _client
     if _client is None:
@@ -29,6 +32,13 @@ def get_supabase_client() -> Client:
                 raise DatabaseError(
                     "Clave de Supabase inválida. Revisá SUPABASE_URL y SUPABASE_KEY en backend/.env "
                     "(Project Settings → API)."
+                ) from e
+            if "getaddrinfo failed" in err or "name or service not known" in err:
+                host = urlparse(url).hostname or "<host>"
+                raise DatabaseError(
+                    "No se pudo resolver el host de Supabase (error DNS: getaddrinfo failed). "
+                    f"Host: {host}. Revisá que SUPABASE_URL sea el Project URL correcto "
+                    "y que tu DNS/Internet esté funcionando."
                 ) from e
             raise DatabaseError(str(e)) from e
     return _client
