@@ -17,7 +17,6 @@ def _env_files() -> tuple[str, ...]:
         _BACKEND_ROOT / ".kiro" / ".env",
     ]
     found = tuple(str(p) for p in paths if p.is_file())
-    print(f"DEBUG: Archivos .env encontrados: {found}")
     return found
 
 

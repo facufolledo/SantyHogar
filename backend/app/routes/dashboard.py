@@ -3,6 +3,7 @@ from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.auth import require_admin
 from app.deps import get_dashboard_service
 from app.exceptions import DatabaseError
 from app.models.schemas import (
@@ -13,7 +14,7 @@ from app.models.schemas import (
 )
 from app.services.dashboard_service import DashboardService
 
-router = APIRouter(tags=["dashboard"])
+router = APIRouter(tags=["dashboard"], dependencies=[Depends(require_admin)])
 
 
 @router.get(

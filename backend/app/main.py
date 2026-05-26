@@ -15,7 +15,7 @@ from app.exceptions import (
     MercadoPagoError,
     ProductNotFoundError,
 )
-from app.routes import customers, dashboard, orders, products, webhook, admin_users, checkout, webhooks
+from app.routes import customers, dashboard, orders, products, webhook, admin_users, checkout
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,7 +67,6 @@ def create_app() -> FastAPI:
     app.include_router(webhook.router)
     app.include_router(admin_users.router)
     app.include_router(checkout.router, prefix="/api/checkout", tags=["checkout"])
-    app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 
     @app.get("/health", tags=["health"])
     async def health() -> dict[str, str]:

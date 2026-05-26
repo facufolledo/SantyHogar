@@ -22,7 +22,7 @@ const Footer = () => (
             <a href="#" className="w-8 h-8 bg-gray-700 hover:bg-pink-600 rounded-full flex items-center justify-center transition-colors">
               <Instagram size={15} />
             </a>
-            <a href="https://wa.me/5491140000000" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
+            <a href="https://wa.me/5493512005937" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
               <MessageCircle size={15} />
             </a>
           </div>
@@ -62,11 +62,11 @@ const Footer = () => (
           <ul className="space-y-3 text-sm">
             <li className="flex items-start gap-2">
               <Phone size={15} className="mt-0.5 text-primary-400 flex-shrink-0" />
-              <span>(011) 4000-0000</span>
+              <span>351 200-5937</span>
             </li>
             <li className="flex items-start gap-2">
               <Mail size={15} className="mt-0.5 text-primary-400 flex-shrink-0" />
-              <span>ventas@santyhogar.com.ar</span>
+              <span>Santyhogarcba@gmail.com</span>
             </li>
             <li className="flex items-start gap-2">
               <MapPin size={15} className="mt-0.5 text-primary-400 flex-shrink-0" />
@@ -87,7 +87,7 @@ const Footer = () => (
         <span>© 2025 Santy Hogar. Todos los derechos reservados.</span>
         <div className="flex items-center gap-4">
           <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.21.22/mercadopago/logo__large@2x.png" alt="Mercado Pago" className="h-5 opacity-50" />
-
+          <span className="opacity-50">Fiserv</span>
         </div>
       </div>
     </div>

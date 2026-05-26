@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 
-const WA_NUMBER = '5491140000000'; // reemplazar con número real
+const WA_NUMBER = '5493512005937';
 const WA_MESSAGE = encodeURIComponent('Hola! Quiero hacer una consulta sobre un producto.');
 
 export default function Contact() {
@@ -14,8 +14,8 @@ export default function Contact() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {[
-          { icon: Phone, title: 'Teléfono', lines: ['(011) 4000-0000'], sub: 'Lun–Vie 9:00–18:00' },
-          { icon: Mail, title: 'Email', lines: ['ventas@santyhogar.com.ar'], sub: 'Respondemos en 24hs' },
+          { icon: Phone, title: 'Teléfono', lines: ['351 200-5937'], sub: 'Lun–Vie 9:00–18:00' },
+          { icon: Mail, title: 'Email', lines: ['Santyhogarcba@gmail.com'], sub: 'Respondemos en 24hs' },
           { icon: MapPin, title: 'Ubicación', lines: ['Viamonte 1261, B° Pueyrredón'], sub: 'Córdoba, Argentina' },
           { icon: Clock, title: 'Horarios', lines: ['Lun–Vie: 9:00 – 18:00'], sub: 'Sáb: 9:00 – 13:00' },
         ].map(({ icon: Icon, title, lines, sub }, i) => (

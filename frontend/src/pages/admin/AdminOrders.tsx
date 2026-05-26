@@ -197,7 +197,7 @@ export default function AdminOrders() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-gray-700/60">
                       <div className="text-sm text-gray-400 space-y-0.5">
                         <p><span className="text-gray-500">Cliente:</span> {detail.customerName} · {detail.customerPhone}</p>
-                        <p><span className="text-gray-500">Pago:</span> Mercado Pago</p>
+                        <p><span className="text-gray-500">Pago:</span> {detail.paymentMethod === 'mp' ? 'Mercado Pago' : 'Fiserv'}</p>
                         <p><span className="text-gray-500">Email:</span> {detail.customerEmail}</p>
                       </div>
 

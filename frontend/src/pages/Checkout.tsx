@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, CreditCard, Smartphone, MapPin, Clock, Phone, Plus } from 'lucide-react';
+import { CheckCircle, Smartphone, MapPin, Clock, Phone, Plus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
@@ -30,7 +30,7 @@ const DEPOSITO = {
   address: 'Viamonte 1261, B° Pueyrredón',
   city: 'Córdoba, Argentina',
   hours: 'Lun–Vie 9:00–18:00 · Sáb 9:00–13:00',
-  phone: '(011) 4000-0000',
+  phone: '351 200-5937',
   mapsUrl: 'https://www.google.com/maps/search/Viamonte+1261+Barrio+Pueyrredon+Cordoba+Argentina',
 };
 
@@ -46,7 +46,7 @@ const Checkout = () => {
   void navigate;
 
   const [step, setStep] = useState<Step>('form');
-  const [payMethod, setPayMethod] = useState<'mp'>('mp');
+  const [payMethod] = useState<'mp'>('mp'); // Solo MercadoPago
   const [confirmedOrder, setConfirmedOrder] = useState<{ orderNumber: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -226,7 +226,10 @@ const Checkout = () => {
       return;
     }
 
-
+    if (isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'fiserv') {
+      toast('Mercado Pago es el único método con cobro online por ahora. Elegí MP o desactivá VITE_ENABLE_MP_CHECKOUT para modo local.', 'error');
+      return;
+    }
 
     // Modo local: guardar orden en localStorage Y en el backend
     setSubmitting(true);

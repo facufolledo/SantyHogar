@@ -1,9 +1,12 @@
 """Rutas para gestión de usuarios admin."""
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
-from typing import List
+from typing import Annotated, List
+
 import requests
 import urllib3
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, EmailStr
+
+from app.auth import require_admin
 from app.config import get_config
 
 # Deshabilitar advertencias de SSL (solo para desarrollo)
@@ -29,7 +32,9 @@ class AdminUserResponse(BaseModel):
 
 
 @router.get("", response_model=List[AdminUserResponse])
-async def list_admin_users():
+async def list_admin_users(
+    _admin: Annotated[dict, Depends(require_admin)],
+):
     """
     Lista todos los usuarios con rol admin.
     
@@ -47,7 +52,6 @@ async def list_admin_users():
         
         # Consultar la API de admin de Supabase
         url = f"{config.supabase_url}/auth/v1/admin/users"
-        print(f"DEBUG: Consultando {url}")
         
         response = requests.get(
             url,
@@ -55,9 +59,6 @@ async def list_admin_users():
             timeout=10,
             verify=False  # Deshabilitar verificación SSL (solo para desarrollo)
         )
-        
-        print(f"DEBUG: Status code: {response.status_code}")
-        print(f"DEBUG: Response: {response.text[:500]}")
         
         if response.status_code == 403:
             raise HTTPException(
@@ -72,12 +73,9 @@ async def list_admin_users():
         admins = []
         users = data.get('users', []) if isinstance(data, dict) else data
         
-        print(f"DEBUG: Total usuarios: {len(users)}")
-        
         for user in users:
             user_metadata = user.get('user_metadata', {})
             role = user_metadata.get('role')
-            print(f"DEBUG: Usuario {user.get('email')} - rol: {role}")
             
             if role == 'admin':
                 admins.append(AdminUserResponse(
@@ -87,7 +85,6 @@ async def list_admin_users():
                     created_at=user.get('created_at', ''),
                 ))
         
-        print(f"DEBUG: Admins encontrados: {len(admins)}")
         return admins
         
     except HTTPException:
@@ -103,7 +100,10 @@ async def list_admin_users():
 
 
 @router.post("", response_model=AdminUserResponse)
-async def create_admin_user(request: CreateAdminRequest):
+async def create_admin_user(
+    request: CreateAdminRequest,
+    _admin: Annotated[dict, Depends(require_admin)],
+):
     """Crea un nuevo usuario con rol admin."""
     try:
         config = get_config()
@@ -179,7 +179,10 @@ async def create_admin_user(request: CreateAdminRequest):
 
 
 @router.delete("/{user_id}")
-async def delete_admin_user(user_id: str):
+async def delete_admin_user(
+    user_id: str,
+    _admin: Annotated[dict, Depends(require_admin)],
+):
     """Elimina un usuario admin."""
     try:
         config = get_config()

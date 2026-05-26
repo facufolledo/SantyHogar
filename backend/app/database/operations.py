@@ -95,6 +95,7 @@ class DatabaseOperations:
     def _decrement_product_stock_sync(self, product_id: UUID, quantity: int) -> None:
         pid = str(product_id)
         try:
+            # Leer stock actual
             res = (
                 self._client().table("productos")
                 .select("stock")
@@ -108,9 +109,22 @@ class DatabaseOperations:
             current = int(rows[0]["stock"])
             ensure_stock_available(current, quantity)
             new_stock = current - quantity
-            self._client().table("productos").update({"stock": new_stock}).eq(
-                "id_producto", pid
-            ).execute()
+            
+            # Update atómico: solo actualiza si el stock sigue siendo >= quantity
+            # Esto previene race conditions: si otro request ya decrementó el stock,
+            # el filtro .gte("stock", quantity) no matchea y no se actualiza nada.
+            update_res = (
+                self._client().table("productos")
+                .update({"stock": new_stock})
+                .eq("id_producto", pid)
+                .gte("stock", quantity)
+                .execute()
+            )
+            
+            if not update_res.data:
+                # El stock cambió entre el SELECT y el UPDATE — stock insuficiente
+                raise InsufficientStockError(pid, current, quantity)
+                
         except InsufficientStockError:
             raise
         except DatabaseError:

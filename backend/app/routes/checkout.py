@@ -135,11 +135,6 @@ async def create_checkout_preference(request: CheckoutRequest):
     failure_url = f"{config.frontend_url}/checkout/failure"
     pending_url = f"{config.frontend_url}/checkout/pending"
     
-    print(f"🔍 URLs configuradas:")
-    print(f"  - Success: {success_url}")
-    print(f"  - Failure: {failure_url}")
-    print(f"  - Pending: {pending_url}")
-    
     # Crear preferencia
     # NOTA: No usamos auto_return porque el SDK de Python tiene un bug
     # El usuario verá un botón "Volver al sitio" en MercadoPago
@@ -158,7 +153,7 @@ async def create_checkout_preference(request: CheckoutRequest):
             "pending": pending_url,
         },
         # NO incluir auto_return - causa error 400 con el SDK de Python
-        "notification_url": f"{config.public_api_url}/api/webhooks/mercadopago",
+        "notification_url": f"{config.public_api_url}/webhook",
         "statement_descriptor": "SANTYHOGAR",
         "external_reference": external_reference,
         "metadata": {
@@ -169,14 +164,10 @@ async def create_checkout_preference(request: CheckoutRequest):
         }
     }
     
-    print(f"🔍 Preference data completo: {preference_data}")
     
     try:
         preference_response = sdk.preference().create(preference_data)
         preference = preference_response["response"]
-        
-        print(f"🔍 MercadoPago response status: {preference_response.get('status')}")
-        print(f"🔍 MercadoPago response: {preference_response}")
         
         if preference_response["status"] not in [200, 201]:
             raise HTTPException(500, "Error al crear preferencia de pago")
@@ -188,7 +179,7 @@ async def create_checkout_preference(request: CheckoutRequest):
             "external_reference": external_reference,
         }
     except Exception as e:
-        print(f"❌ Error detallado en MercadoPago: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception("Error en MercadoPago: %s", e)
         raise HTTPException(500, f"Error en MercadoPago: {str(e)}")

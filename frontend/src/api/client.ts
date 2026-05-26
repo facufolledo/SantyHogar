@@ -1,4 +1,5 @@
 import { getApiBase } from './config';
+import { supabase } from '../lib/supabase';
 
 /** Si el backend no responde (colgado en Supabase, etc.), cortamos para no dejar la UI en carga infinita. */
 const FETCH_TIMEOUT_MS = 25_000;
@@ -14,6 +15,18 @@ export class ApiError extends Error {
   }
 }
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      return { Authorization: `Bearer ${session.access_token}` };
+    }
+  } catch {
+    // Si falla, continuar sin auth
+  }
+  return {};
+}
+
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit
@@ -27,6 +40,9 @@ export async function apiFetch<T>(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
+  // Obtener headers de auth
+  const authHeaders = await getAuthHeaders();
+
   let res: Response;
   try {
     res = await fetch(url, {
@@ -34,6 +50,7 @@ export async function apiFetch<T>(
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
         ...init?.headers,
       },
     });

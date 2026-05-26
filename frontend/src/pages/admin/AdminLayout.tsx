@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Bell, Settings, Store, Upload, LayoutDashboard, Package, ShoppingBag, Users, LogOut, ChevronRight, DollarSign, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -95,7 +95,20 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
+
+  // Redirect si no es admin
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-950">
+        <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
 
   const currentLabel = navItems.find(n =>
     n.exact ? location.pathname === n.to : location.pathname.startsWith(n.to)

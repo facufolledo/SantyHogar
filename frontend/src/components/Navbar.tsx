@@ -96,7 +96,7 @@ const Navbar = () => {
     <>
       {/* Top bar */}
       <div className="bg-gray-900 text-gray-300 text-xs py-1.5 px-4 text-center hidden md:block">
-        Envíos a todo el país · Cuotas sin interés · Atención al cliente: (011) 4000-0000
+        Envíos a todo el país · Cuotas sin interés · Atención al cliente: 351 200-5937
       </div>
 
       <header className={`sticky top-0 z-50 bg-gray-900 transition-shadow duration-300 ${scrolled ? 'shadow-xl' : ''}`}>

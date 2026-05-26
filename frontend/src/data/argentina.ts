@@ -21,7 +21,7 @@ export const PROVINCES: Province[] = [
   { id: 'CHA', name: 'Chaco' },
   { id: 'CHU', name: 'Chubut' },
   { id: 'COR', name: 'Córdoba' },
-  { id: 'CORR', name: 'Corrientes' },
+  { id: 'COR', name: 'Corrientes' },
   { id: 'ER', name: 'Entre Ríos' },
   { id: 'FOR', name: 'Formosa' },
   { id: 'JUJ', name: 'Jujuy' },
@@ -121,11 +121,11 @@ export const CITIES: City[] = [
   { id: 'COR-10', name: 'Jesús María', provinceId: 'COR' },
 
   // Corrientes
-  { id: 'CORR-1', name: 'Corrientes', provinceId: 'CORR' },
-  { id: 'CORR-2', name: 'Goya', provinceId: 'CORR' },
-  { id: 'CORR-3', name: 'Paso de los Libres', provinceId: 'CORR' },
-  { id: 'CORR-4', name: 'Mercedes', provinceId: 'CORR' },
-  { id: 'CORR-5', name: 'Curuzú Cuatiá', provinceId: 'CORR' },
+  { id: 'CORR-1', name: 'Corrientes', provinceId: 'COR' },
+  { id: 'CORR-2', name: 'Goya', provinceId: 'COR' },
+  { id: 'CORR-3', name: 'Paso de los Libres', provinceId: 'COR' },
+  { id: 'CORR-4', name: 'Mercedes', provinceId: 'COR' },
+  { id: 'CORR-5', name: 'Curuzú Cuatiá', provinceId: 'COR' },
 
   // Entre Ríos
   { id: 'ER-1', name: 'Paraná', provinceId: 'ER' },

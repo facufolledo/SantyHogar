@@ -11,7 +11,7 @@ export interface Order {
   customerPhone: string;
   items: CartItem[];
   total: number;
-  paymentMethod: 'mp';
+  paymentMethod: 'mp' | 'fiserv';
   status: OrderStatus;
   createdAt: string;
   orderNumber: string;
