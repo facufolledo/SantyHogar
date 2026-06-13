@@ -1,0 +1,7 @@
+frontend/
+.venv/
+.vscode/
+.hypothesis/
+.kiro/
+*.md
+!backend/

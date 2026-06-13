@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Sitemap (ajustá el dominio en producción si difiere)
+Sitemap: https://www.santyhogar.com/SantyHogar/sitemap.xml
+
+Crawl-delay: 1
+
+# Áreas privadas / panel
+Disallow: /SantyHogar/admin/
+Disallow: /SantyHogar/cuenta/
