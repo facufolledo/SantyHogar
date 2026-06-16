@@ -65,6 +65,10 @@ export async function fetchOrders(): Promise<OrderList[]> {
   return apiFetch<OrderList[]>('/orders', { method: 'GET' });
 }
 
+export async function fetchOrdersByEmail(email: string): Promise<OrderList[]> {
+  return apiFetch<OrderList[]>(`/orders?email=${encodeURIComponent(email)}`, { method: 'GET' });
+}
+
 export async function fetchOrderDetail(orderId: string): Promise<OrderDetail> {
   return apiFetch<OrderDetail>(`/orders/${orderId}`, { method: 'GET' });
 }
