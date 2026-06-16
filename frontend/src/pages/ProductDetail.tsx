@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/format';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
+import InstallmentCalculator from '../components/InstallmentCalculator';
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -122,9 +123,9 @@ const ProductDetail = () => {
               <p className="text-sm text-gray-400 line-through">{formatPrice(product.originalPrice)}</p>
             )}
             <p className="text-3xl font-black text-gray-900">{formatPrice(product.price)}</p>
-            <p className="text-sm text-green-600 font-medium mt-1">
-              12 cuotas de {formatPrice(Math.round(product.price / 12))} sin interés
-            </p>
+            <div className="mt-2">
+              <InstallmentCalculator price={product.price} showDetails={false} />
+            </div>
           </div>
 
           {/* Stock */}
@@ -148,6 +149,13 @@ const ProductDetail = () => {
                   <Plus size={14} />
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Installment options */}
+          {product.stock > 0 && (
+            <div className="mb-5">
+              <InstallmentCalculator price={product.price * qty} showDetails={true} />
             </div>
           )}
 

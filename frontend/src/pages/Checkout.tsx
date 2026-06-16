@@ -147,6 +147,17 @@ const Checkout = () => {
         ))}
       </div>
 
+      {/* Alerta de restricción de envíos */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3">
+        <MapPin size={20} className="text-blue-600 flex-shrink-0" />
+        <div className="text-sm">
+          <p className="font-medium text-blue-900">Envíos solo a Córdoba</p>
+          <p className="text-blue-700/80 text-xs mt-0.5">
+            Por el momento realizamos retiros en nuestro depósito ubicado en Córdoba capital.
+          </p>
+        </div>
+      </div>
+
       <AnimatePresence mode="wait">
 
         {/* ── STEP 1: Datos ── */}
