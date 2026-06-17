@@ -8,14 +8,40 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import ssl
+import warnings
 from typing import Any, Optional
 
 import requests
+import urllib3
+from requests.adapters import HTTPAdapter
+from urllib3.poolmanager import PoolManager
+
+# Deshabilitar SSL warnings en desarrollo
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings('ignore', message='Unverified HTTPS request')
+
+# Variables de entorno para deshabilitar SSL en desarrollo
+os.environ['PYTHONHTTPSVERIFY'] = '0'
+os.environ['CURL_CA_BUNDLE'] = ''
+os.environ['REQUESTS_CA_BUNDLE'] = ''
 
 from app.config import get_config
 from app.exceptions import MercadoPagoError
 
 logger = logging.getLogger(__name__)
+
+
+class SSLAdapter(HTTPAdapter):
+    """Adaptador que deshabilita verificación SSL para desarrollo."""
+    
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs['ssl_version'] = ssl.PROTOCOL_TLS
+        kwargs['cert_reqs'] = ssl.CERT_NONE
+        kwargs['assert_hostname'] = False
+        kwargs['check_hostname'] = False
+        return super().init_poolmanager(*args, **kwargs)
 
 
 class InstallmentsService:
@@ -70,16 +96,19 @@ class InstallmentsService:
                     f"bin={bin_number}, method={payment_method_id}"
                 )
 
-                # En desarrollo (debug=True), deshabilitar verificación SSL
-                # En producción (debug=False), usar SSL verification normal
-                verify_ssl = not self.debug
-
-                response = requests.get(
+                # Crear sesión con adaptador custom
+                session = requests.Session()
+                
+                if self.debug:
+                    # En desarrollo, usar adaptador sin verificación SSL
+                    session.mount('https://', SSLAdapter())
+                    session.verify = False
+                
+                response = session.get(
                     url,
                     params=params,
                     headers=headers,
                     timeout=10,
-                    verify=verify_ssl,
                 )
 
                 response.raise_for_status()
