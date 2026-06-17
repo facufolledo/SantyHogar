@@ -1,6 +1,15 @@
 """Aplicación FastAPI: CORS, rutas, logging y manejo de errores."""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Añadir el directorio base del backend al sys.path para soportar importaciones absolutas de 'app'
+# cuando el servidor se arranca desde la raíz del repositorio.
+_backend_dir = str(Path(__file__).resolve().parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 import logging
 from contextlib import asynccontextmanager
 
