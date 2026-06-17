@@ -22,6 +22,7 @@ class Config(BaseSettings):
         env_file=_env_files() or (str(_BACKEND_ROOT / ".env"),),
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",  # Ignore extra fields from .env
     )
     
     # Supabase
@@ -30,7 +31,11 @@ class Config(BaseSettings):
     
     # MercadoPago
     mercadopago_access_token: str = Field(..., description="MercadoPago access token")
+    mercadopago_public_key: Optional[str] = Field(None, description="MercadoPago public key (optional, for frontend)")
     mercadopago_webhook_secret: Optional[str] = Field(None, description="MercadoPago webhook secret")
+    
+    # Admin
+    admin_master_password: Optional[str] = Field(None, description="Master password for admin creation")
     
     # CORS
     frontend_url: str = Field(default="http://localhost:5173", description="Frontend URL for CORS")
