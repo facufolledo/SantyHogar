@@ -1,4 +1,9 @@
-"""Servicio para calcular cuotas con Mercado Pago."""
+"""Servicio para calcular cuotas con Mercado Pago.
+
+En desarrollo (DEBUG=true en .env), la verificación SSL se deshabilita automáticamente
+para evitar problemas con certificados en Windows local. En producción (DEBUG=false),
+se usa verificación SSL normal (recomendado).
+"""
 from __future__ import annotations
 
 import asyncio
@@ -20,6 +25,7 @@ class InstallmentsService:
         cfg = get_config()
         self.access_token = access_token or cfg.mercadopago_access_token
         self.base_url = "https://api.mercadopago.com"
+        self.debug = cfg.debug  # Usar debug mode para SSL verification
 
     async def get_installments(
         self,
@@ -64,12 +70,16 @@ class InstallmentsService:
                     f"bin={bin_number}, method={payment_method_id}"
                 )
 
+                # En desarrollo (debug=True), deshabilitar verificación SSL
+                # En producción (debug=False), usar SSL verification normal
+                verify_ssl = not self.debug
+
                 response = requests.get(
                     url,
                     params=params,
                     headers=headers,
                     timeout=10,
-                    verify=False,  # Deshabilitar verificación SSL para desarrollo
+                    verify=verify_ssl,
                 )
 
                 response.raise_for_status()
