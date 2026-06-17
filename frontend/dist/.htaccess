@@ -1,5 +1,5 @@
 RewriteEngine On
-RewriteBase /
+RewriteBase /SantyHogar/
 
 # Redirigir todo al index.html para React Router
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -29,4 +29,4 @@ RewriteRule ^ index.html [L]
 </IfModule>
 
 Options -Indexes
-ErrorDocument 404 /index.html
+ErrorDocument 404 /SantyHogar/index.html
