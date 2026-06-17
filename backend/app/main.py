@@ -5,7 +5,7 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -125,8 +125,36 @@ def create_app() -> FastAPI:
     frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     
     if frontend_dist.exists():
-        # Servir archivos estáticos
-        app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+        from fastapi.responses import FileResponse
+        
+        # Servir assets
+        app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
+        
+        # Servir archivos estáticos (robots.txt, sitemap.xml, etc)
+        app.mount("/public", StaticFiles(directory=frontend_dist, html=False), name="public")
+        
+        # Fallback para SPA: cualquier ruta que no sea /api o /static sirve index.html
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def serve_spa(full_path: str):
+            """Fallback para SPA: si la ruta no existe, servir index.html"""
+            # Si es una ruta de API, rechazar (ya fue manejada arriba)
+            if full_path.startswith("api") or full_path.startswith("webhook"):
+                raise HTTPException(status_code=404, detail="Not Found")
+            
+            index_file = frontend_dist / "index.html"
+            if index_file.exists():
+                return FileResponse(index_file, media_type="text/html")
+            raise HTTPException(status_code=404, detail="Frontend index not found")
+        
+        # Root también sirve index.html
+        @app.get("/", include_in_schema=False)
+        async def serve_root():
+            """Servir index.html en la raíz"""
+            index_file = frontend_dist / "index.html"
+            if index_file.exists():
+                return FileResponse(index_file, media_type="text/html")
+            raise HTTPException(status_code=404, detail="Frontend index not found")
+        
         logger.info(f"Frontend servido desde {frontend_dist}")
     else:
         logger.warning(f"Frontend dist no encontrado en {frontend_dist}")
