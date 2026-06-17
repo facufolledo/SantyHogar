@@ -15,7 +15,7 @@ from app.exceptions import (
     MercadoPagoError,
     ProductNotFoundError,
 )
-from app.routes import customers, orders, products, webhook
+from app.routes import customers, installments, orders, products, webhook
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(products.router, prefix="/api")
     app.include_router(orders.router)
     app.include_router(customers.router)
+    app.include_router(installments.router)
     app.include_router(webhook.router)
 
     @app.get("/health", tags=["health"])
