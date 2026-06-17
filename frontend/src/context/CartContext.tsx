@@ -55,9 +55,6 @@ interface CartContextType {
   clearCart: () => void;
   total: number;
   count: number;
-  isSidebarOpen: boolean;
-  openSidebar: () => void;
-  closeSidebar: () => void;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -74,8 +71,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
   });
 
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
@@ -83,23 +78,15 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const total = state.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const count = state.items.reduce((sum, i) => sum + i.quantity, 0);
 
-  const addItem = (product: Product) => {
-    dispatch({ type: 'ADD_ITEM', product });
-    setIsSidebarOpen(true); // Open sidebar when adding item
-  };
-
   return (
     <CartContext.Provider value={{
       items: state.items,
-      addItem,
+      addItem: (product) => dispatch({ type: 'ADD_ITEM', product }),
       removeItem: (id) => dispatch({ type: 'REMOVE_ITEM', id }),
       updateQty: (id, quantity) => dispatch({ type: 'UPDATE_QTY', id, quantity }),
       clearCart: () => dispatch({ type: 'CLEAR' }),
       total,
       count,
-      isSidebarOpen,
-      openSidebar: () => setIsSidebarOpen(true),
-      closeSidebar: () => setIsSidebarOpen(false),
     }}>
       {children}
     </CartContext.Provider>

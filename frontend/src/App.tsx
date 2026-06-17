@@ -1,33 +1,25 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CartProvider, useCart } from './context/CartContext';
+import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import { OrdersProvider } from './context/OrdersContext';
 import { ProductsProvider } from './context/ProductsContext';
-import { FavoritesProvider } from './context/FavoritesContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import ScrollToTop from './components/ScrollToTop';
-import CartSidebar from './components/CartSidebar';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
-import CheckoutSuccess from './pages/CheckoutSuccess';
-import CheckoutFailure from './pages/CheckoutFailure';
-import CheckoutPending from './pages/CheckoutPending';
 import Contact from './pages/Contact';
-import AuthCallback from './pages/AuthCallback';
 // Admin
 import AdminLayout from './pages/admin/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminCustomers from './pages/admin/AdminCustomers';
-import AdminUsers from './pages/admin/AdminUsers';
 import BulkImport from './pages/admin/BulkImport';
 import PriceManagement from './pages/admin/PriceManagement';
 // User
@@ -51,7 +43,6 @@ const PageWrap = ({ children }: { children: React.ReactNode }) => (
 
 const MainLayout = () => {
   const location = useLocation();
-  
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -63,9 +54,6 @@ const MainLayout = () => {
             <Route path="/producto/:slug" element={<PageWrap><ProductDetail /></PageWrap>} />
             <Route path="/carrito" element={<PageWrap><Cart /></PageWrap>} />
             <Route path="/checkout" element={<PageWrap><Checkout /></PageWrap>} />
-            <Route path="/checkout/success" element={<PageWrap><CheckoutSuccess /></PageWrap>} />
-            <Route path="/checkout/failure" element={<PageWrap><CheckoutFailure /></PageWrap>} />
-            <Route path="/checkout/pending" element={<PageWrap><CheckoutPending /></PageWrap>} />
             <Route path="/contacto" element={<PageWrap><Contact /></PageWrap>} />
           </Routes>
         </AnimatePresence>
@@ -75,29 +63,15 @@ const MainLayout = () => {
   );
 };
 
-// Wrapper para CartSidebar que usa useCart
-const CartSidebarWrapper = () => {
-  const { isSidebarOpen, closeSidebar } = useCart();
-  return <CartSidebar isOpen={isSidebarOpen} onClose={closeSidebar} />;
-};
-
 function App() {
-  const basename = import.meta.env.MODE === 'production' ? '/SantyHogar' : '';
-  
   return (
-    <BrowserRouter basename={basename}>
-      <ScrollToTop />
+    <BrowserRouter basename="/SantyHogar">
       <AuthProvider>
         <OrdersProvider>
         <ProductsProvider>
-        <FavoritesProvider>
         <CartProvider>
           <ToastProvider>
-          <CartSidebarWrapper />
           <Routes>
-            {/* Auth callback */}
-            <Route path="/auth/callback" element={<AuthCallback />} />
-
             {/* Admin — sin Navbar/Footer */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
@@ -105,7 +79,6 @@ function App() {
               <Route path="precios" element={<PriceManagement />} />
               <Route path="pedidos" element={<AdminOrders />} />
               <Route path="clientes" element={<AdminCustomers />} />
-              <Route path="usuarios" element={<AdminUsers />} />
               <Route path="importar" element={<BulkImport />} />
             </Route>
 
@@ -125,7 +98,6 @@ function App() {
           </Routes>
         </ToastProvider>
         </CartProvider>
-        </FavoritesProvider>
         </ProductsProvider>
         </OrdersProvider>
       </AuthProvider>

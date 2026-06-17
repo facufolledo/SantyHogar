@@ -36,91 +36,10 @@ export interface BulkImportResponse {
       categoria: string;
       subcategoria: string;
       marca: string;
-      descripcion?: string;
-      imagen?: string | null;
     };
     errors: string[];
   }>;
   message: string;
-}
-
-export interface BulkImportPreviewResponse {
-  total_rows: number;
-  valid_rows: number;
-  invalid_rows: number;
-  validations: Array<{
-    row_number: number;
-    valid: boolean;
-    data?: {
-      nombre: string;
-      precio: number;
-      stock: number;
-      categoria: string;
-      subcategoria: string;
-      marca: string;
-      descripcion?: string;
-      imagen?: string | null;
-    };
-    errors: string[];
-  }>;
-}
-
-export interface BulkImportConfirmRow {
-  nombre: string;
-  precio: number;
-  stock: number;
-  categoria: string;
-  subcategoria?: string;
-  marca?: string;
-  descripcion?: string;
-  imagen?: string | null;
-}
-
-export async function bulkImportPreview(file: File): Promise<BulkImportPreviewResponse> {
-  const base = getApiBase();
-  if (!base) {
-    throw new Error('VITE_API_URL no está configurada');
-  }
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const root = base.replace(/\/$/, '');
-  const url = `${root}/products/bulk-import/preview`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Error desconocido' }));
-    throw new Error(error.detail || 'Error al procesar el archivo');
-  }
-
-  return response.json();
-}
-
-export async function bulkImportConfirm(rows: BulkImportConfirmRow[]): Promise<BulkImportResponse> {
-  const base = getApiBase();
-  if (!base) {
-    throw new Error('VITE_API_URL no está configurada');
-  }
-
-  const root = base.replace(/\/$/, '');
-  const url = `${root}/products/bulk-import/confirm`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rows }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Error desconocido' }));
-    throw new Error(error.detail || 'Error al importar productos');
-  }
-
-  return response.json();
 }
 
 export async function bulkImportProducts(file: File): Promise<BulkImportResponse> {
@@ -230,33 +149,4 @@ export async function deleteProduct(productId: string): Promise<void> {
   await apiFetch(`/products/${productId}`, {
     method: 'DELETE',
   });
-}
-
-export interface ImageUploadResponse {
-  url: string;
-  filename: string;
-}
-
-export async function uploadProductImage(file: File): Promise<ImageUploadResponse> {
-  const base = getApiBase();
-  if (!base) {
-    throw new Error('VITE_API_URL no está configurada');
-  }
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const root = base.replace(/\/$/, '');
-  const url = `${root}/products/upload-image`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Error desconocido' }));
-    throw new Error(error.detail || 'Error al subir imagen');
-  }
-
-  return response.json();
 }

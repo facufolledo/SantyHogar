@@ -1,15 +1,6 @@
 """Aplicación FastAPI: CORS, rutas, logging y manejo de errores."""
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-# Añadir el directorio base del backend al sys.path para soportar importaciones absolutas de 'app'
-# cuando el servidor se arranca desde la raíz del repositorio.
-_backend_dir = str(Path(__file__).resolve().parent.parent)
-if _backend_dir not in sys.path:
-    sys.path.insert(0, _backend_dir)
-
 import logging
 from contextlib import asynccontextmanager
 
@@ -24,7 +15,7 @@ from app.exceptions import (
     MercadoPagoError,
     ProductNotFoundError,
 )
-from app.routes import customers, dashboard, orders, products, webhook, admin_users, checkout, webhooks
+from app.routes import customers, orders, products, webhook
 
 logging.basicConfig(
     level=logging.INFO,
@@ -72,11 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(products.router, prefix="/api")
     app.include_router(orders.router)
     app.include_router(customers.router)
-    app.include_router(dashboard.router)
     app.include_router(webhook.router)
-    app.include_router(admin_users.router)
-    app.include_router(checkout.router, prefix="/api/checkout", tags=["checkout"])
-    app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 
     @app.get("/health", tags=["health"])
     async def health() -> dict[str, str]:

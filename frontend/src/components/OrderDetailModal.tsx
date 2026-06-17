@@ -135,7 +135,7 @@ export default function OrderDetailModal({ orderId, onClose }: OrderDetailModalP
                   <div>
                     <p className="text-sm font-medium text-gray-900">Método de Pago</p>
                     <p className="text-sm text-gray-600">
-                      Mercado Pago
+                      {order.paymentMethod === 'mp' ? 'Mercado Pago' : 'Fiserv'}
                     </p>
                   </div>
                 </div>

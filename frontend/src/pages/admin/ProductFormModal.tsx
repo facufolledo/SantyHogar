@@ -1,8 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Upload, ImageIcon, AlertCircle, GripVertical } from 'lucide-react';
+import { X, Upload, ImageIcon } from 'lucide-react';
 import type { Product } from '../../data/products';
-import { createProduct, updateProduct, uploadProductImage, type CreateProductRequest, type UpdateProductRequest } from '../../api/productsApi';
+import { createProduct, updateProduct, type CreateProductRequest, type UpdateProductRequest } from '../../api/productsApi';
 
 type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'envio';
 
@@ -103,6 +103,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6"
+      onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.93, opacity: 0, y: 20 }}
@@ -250,12 +251,68 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
 
             {/* IMÁGENES */}
             {tab === 'imagenes' && (
-              <ImagenesTab
-                images={form.images}
-                setImages={(imgs) => set('images', imgs)}
-                readOnly={readOnly}
-                di={di}
-              />
+              <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                <Field label="URL de imagen">
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                      className={di}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const input = e.currentTarget;
+                          if (input.value.trim()) {
+                            set('images', [...form.images, input.value.trim()]);
+                            input.value = '';
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                        if (input.value.trim()) {
+                          set('images', [...form.images, input.value.trim()]);
+                          input.value = '';
+                        }
+                      }}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white text-sm rounded-lg transition-colors"
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Presioná Enter o click en Agregar para añadir la URL</p>
+                </Field>
+
+                {form.images.length > 0 ? (
+                  <div className="grid grid-cols-4 gap-2">
+                    {form.images.map((img, i) => (
+                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gray-800 group">
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                        {i === 0 && <span className="absolute bottom-1 left-1 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">Principal</span>}
+                        <button
+                          type="button"
+                          onClick={() => set('images', form.images.filter((_, idx) => idx !== i))}
+                          className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-gray-600 p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                    <ImageIcon size={14} /> <span>No hay imágenes cargadas</span>
+                  </div>
+                )}
+
+                <div className="border-2 border-dashed border-gray-700 rounded-xl p-6 text-center">
+                  <Upload size={24} className="mx-auto text-gray-600 mb-2" />
+                  <p className="text-xs text-gray-600">Carga de archivos próximamente</p>
+                </div>
+              </motion.div>
             )}
 
             {/* ENVÍO */}
@@ -296,293 +353,6 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
           </div>
         </form>
       </motion.div>
-    </motion.div>
-  );
-}
-
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
-
-interface ImagenesTabProps {
-  images: string[];
-  setImages: (imgs: string[]) => void;
-  readOnly: boolean;
-  di: string;
-}
-
-function ImagenesTab({ images, setImages, readOnly, di }: ImagenesTabProps) {
-  const [dragOver, setDragOver] = useState(false);
-  const [uploading, setUploading] = useState<{ name: string; progress: number }[]>([]);
-  const [errors, setErrors] = useState<string[]>([]);
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return `"${file.name}" no es una imagen válida. Solo se aceptan JPEG, PNG y WebP.`;
-    }
-    if (file.size > MAX_SIZE) {
-      return `"${file.name}" excede 5 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`;
-    }
-    return null;
-  };
-
-  const handleFiles = useCallback(async (files: FileList | File[]) => {
-    if (readOnly) return;
-    const fileArray = Array.from(files);
-    const newErrors: string[] = [];
-    const validFiles: File[] = [];
-
-    for (const file of fileArray) {
-      const error = validateFile(file);
-      if (error) {
-        newErrors.push(error);
-      } else {
-        validFiles.push(file);
-      }
-    }
-
-    setErrors(newErrors);
-    if (validFiles.length === 0) return;
-
-    // Start uploading valid files
-    const uploadEntries = validFiles.map(f => ({ name: f.name, progress: 0 }));
-    setUploading(prev => [...prev, ...uploadEntries]);
-
-    const newUrls: string[] = [];
-
-    for (let i = 0; i < validFiles.length; i++) {
-      const file = validFiles[i];
-      try {
-        // Simulate progress (actual upload doesn't provide progress events with fetch)
-        setUploading(prev =>
-          prev.map(u => u.name === file.name ? { ...u, progress: 50 } : u)
-        );
-
-        const result = await uploadProductImage(file);
-        newUrls.push(result.url);
-
-        setUploading(prev =>
-          prev.map(u => u.name === file.name ? { ...u, progress: 100 } : u)
-        );
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Error desconocido';
-        setErrors(prev => [...prev, `Error al subir "${file.name}": ${msg}`]);
-      }
-    }
-
-    // Remove completed uploads after a short delay
-    setTimeout(() => {
-      setUploading(prev => prev.filter(u => u.progress < 100));
-    }, 800);
-
-    if (newUrls.length > 0) {
-      setImages([...images, ...newUrls]);
-    }
-  }, [images, setImages, readOnly]);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    if (readOnly) return;
-    if (e.dataTransfer.files.length > 0) {
-      handleFiles(e.dataTransfer.files);
-    }
-  }, [handleFiles, readOnly]);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!readOnly) setDragOver(true);
-  }, [readOnly]);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-  }, []);
-
-  // Reorder drag handlers
-  const handleReorderDragStart = (idx: number) => {
-    setDragIdx(idx);
-  };
-
-  const handleReorderDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    setDragOverIdx(idx);
-  };
-
-  const handleReorderDrop = (e: React.DragEvent, targetIdx: number) => {
-    e.preventDefault();
-    if (dragIdx === null || dragIdx === targetIdx) {
-      setDragIdx(null);
-      setDragOverIdx(null);
-      return;
-    }
-    const reordered = [...images];
-    const [moved] = reordered.splice(dragIdx, 1);
-    reordered.splice(targetIdx, 0, moved);
-    setImages(reordered);
-    setDragIdx(null);
-    setDragOverIdx(null);
-  };
-
-  const handleReorderDragEnd = () => {
-    setDragIdx(null);
-    setDragOverIdx(null);
-  };
-
-  const removeImage = (idx: number) => {
-    setImages(images.filter((_, i) => i !== idx));
-  };
-
-  return (
-    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-      {/* URL input - preserved */}
-      <Field label="URL de imagen">
-        <div className="flex gap-2">
-          <input
-            type="url"
-            placeholder="https://ejemplo.com/imagen.jpg"
-            className={di}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const input = e.currentTarget;
-                if (input.value.trim()) {
-                  setImages([...images, input.value.trim()]);
-                  input.value = '';
-                }
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={(e) => {
-              const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-              if (input.value.trim()) {
-                setImages([...images, input.value.trim()]);
-                input.value = '';
-              }
-            }}
-            className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white text-sm rounded-lg transition-colors"
-          >
-            Agregar
-          </button>
-        </div>
-        <p className="text-xs text-gray-600 mt-1">Presioná Enter o click en Agregar para añadir la URL</p>
-      </Field>
-
-      {/* Drag & Drop zone */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={() => !readOnly && fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-          dragOver
-            ? 'border-primary-500 bg-primary-500/10'
-            : 'border-gray-700 hover:border-gray-500'
-        } ${readOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files) {
-              handleFiles(e.target.files);
-              e.target.value = '';
-            }
-          }}
-        />
-        <Upload size={24} className={`mx-auto mb-2 ${dragOver ? 'text-primary-400' : 'text-gray-600'}`} />
-        <p className={`text-sm ${dragOver ? 'text-primary-400' : 'text-gray-400'}`}>
-          Arrastrá imágenes aquí o hacé click para seleccionar
-        </p>
-        <p className="text-xs text-gray-600 mt-1">JPEG, PNG o WebP · Máximo 5 MB por archivo</p>
-      </div>
-
-      {/* Upload progress */}
-      {uploading.length > 0 && (
-        <div className="space-y-2">
-          {uploading.map((u, i) => (
-            <div key={i} className="flex items-center gap-3 p-2 bg-gray-800 border border-gray-700 rounded-lg">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-300 truncate">{u.name}</p>
-                <div className="mt-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary-500 rounded-full transition-all duration-300"
-                    style={{ width: `${u.progress}%` }}
-                  />
-                </div>
-              </div>
-              <span className="text-xs text-gray-500">{u.progress}%</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Validation errors */}
-      {errors.length > 0 && (
-        <div className="space-y-1">
-          {errors.map((err, i) => (
-            <div key={i} className="flex items-start gap-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <AlertCircle size={14} className="text-red-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-red-400">{err}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Image grid with reorder */}
-      {images.length > 0 ? (
-        <div className="grid grid-cols-4 gap-2">
-          {images.map((img, i) => (
-            <div
-              key={`${img}-${i}`}
-              draggable={!readOnly}
-              onDragStart={() => handleReorderDragStart(i)}
-              onDragOver={(e) => handleReorderDragOver(e, i)}
-              onDrop={(e) => handleReorderDrop(e, i)}
-              onDragEnd={handleReorderDragEnd}
-              className={`relative aspect-square rounded-lg overflow-hidden bg-gray-800 group transition-all ${
-                dragIdx === i ? 'opacity-40 scale-95' : ''
-              } ${dragOverIdx === i && dragIdx !== null && dragIdx !== i ? 'ring-2 ring-primary-500' : ''}`}
-            >
-              <img src={img} alt="" className="w-full h-full object-cover" />
-              {i === 0 && (
-                <span className="absolute bottom-1 left-1 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">
-                  Principal
-                </span>
-              )}
-              {!readOnly && (
-                <>
-                  <div className="absolute top-1 left-1 p-1 bg-black/50 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-                    <GripVertical size={12} />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X size={12} />
-                  </button>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 text-xs text-gray-600 p-4 bg-gray-800 border border-gray-700 rounded-lg">
-          <ImageIcon size={14} /> <span>No hay imágenes cargadas</span>
-        </div>
-      )}
-
-      {images.length > 1 && !readOnly && (
-        <p className="text-xs text-gray-600">💡 Arrastrá las imágenes para reordenarlas. La primera es la imagen principal.</p>
-      )}
     </motion.div>
   );
 }

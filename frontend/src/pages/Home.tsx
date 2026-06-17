@@ -6,7 +6,6 @@ import { buildCategoryCards } from '../data/products';
 import { useProducts } from '../context/ProductsContext';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import ProductCard from '../components/ProductCard';
-import { ProductCardSkeleton } from '../components/SkeletonLoader';
 
 // Hero slides
 const slides = [
@@ -46,7 +45,7 @@ const trust = [
 const Home = () => {
   const { products, loading } = useProducts();
   const [slide, setSlide] = useState(0);
-  const [promoOpen, setPromoOpen] = useState(false);
+  const [promoOpen, setPromoOpen] = useState(true);
   const categories = useMemo(() => buildCategoryCards(products), [products]);
   const featured = useMemo(
     () => products.filter(p => p.featured).slice(0, 8),
@@ -71,6 +70,7 @@ const Home = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+            onClick={() => setPromoOpen(false)}
           >
             <motion.div
               initial={{ scale: 0.85, opacity: 0 }}
@@ -191,11 +191,7 @@ const Home = () => {
         </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {loading && products.length === 0 ? (
-            <>
-              {[1, 2, 3].map(i => (
-                <div key={i} className="aspect-[4/3] bg-gray-200 rounded-2xl animate-pulse" />
-              ))}
-            </>
+            <p className="col-span-full text-center text-gray-500 py-8">Cargando categorías…</p>
           ) : (
           categories.map((cat, i) => (
             <motion.div
@@ -247,11 +243,7 @@ const Home = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {loading && featured.length === 0 ? (
-              <>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <ProductCardSkeleton key={i} />
-                ))}
-              </>
+              <p className="col-span-full text-center text-gray-500 py-12">Cargando productos…</p>
             ) : (
             featured.map((p, i) => (
               <motion.div

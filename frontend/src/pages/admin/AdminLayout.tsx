@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Bell, Settings, Store, Upload, LayoutDashboard, Package, ShoppingBag, Users, LogOut, ChevronRight, DollarSign, Shield } from 'lucide-react';
+import { Menu, X, Bell, Settings, Store, Upload, LayoutDashboard, Package, ShoppingBag, Users, LogOut, ChevronRight, DollarSign } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
@@ -10,7 +10,6 @@ const navItems = [
   { to: '/admin/precios', label: 'Gestión de Precios', icon: DollarSign },
   { to: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
   { to: '/admin/clientes', label: 'Clientes', icon: Users },
-  { to: '/admin/usuarios', label: 'Usuarios Admin', icon: Shield },
   { to: '/admin/importar', label: 'Importar Stock', icon: Upload },
 ];
 

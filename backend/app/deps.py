@@ -7,8 +7,6 @@ from app.database import get_database_operations
 from app.database.connection import get_supabase_client
 from app.database.operations import DatabaseOperations
 from app.services.customer_service import CustomerService
-from app.services.dashboard_service import DashboardService
-from app.services.image_service import ImageService
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 from app.services.product_service import ProductService
@@ -43,15 +41,3 @@ def get_customer_service(
     db: Annotated[DatabaseOperations, Depends(get_database_operations)],
 ) -> CustomerService:
     return CustomerService(db)
-
-
-def get_image_service() -> ImageService:
-    """Retorna instancia de ImageService."""
-    return ImageService()
-
-
-def get_dashboard_service(
-    db: Annotated[DatabaseOperations, Depends(get_database_operations)],
-) -> DashboardService:
-    """Retorna instancia de DashboardService."""
-    return DashboardService(db)

@@ -151,14 +151,11 @@ class OrderService:
     async def attach_preference_id(self, order_id: UUID, preference_id: str) -> None:
         await self._db.update_order_preference_id(order_id, preference_id)
 
-    async def get_all_orders(self, email: Optional[str] = None) -> List[Any]:
-        """Obtiene todas las órdenes con información resumida. Si email se proporciona, filtra por email_cliente."""
+    async def get_all_orders(self) -> List[Any]:
+        """Obtiene todas las órdenes con información resumida."""
         from app.models.schemas import OrderListResponse
         
-        if email:
-            rows = await self._db.get_orders_by_email(email)
-        else:
-            rows = await self._db.get_all_orders()
+        rows = await self._db.get_all_orders()
         orders = []
         
         for row in rows:

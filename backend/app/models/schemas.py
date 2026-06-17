@@ -279,7 +279,6 @@ class CustomerListResponse(BaseModel):
 class CreateCustomerRequest(BaseModel):
     """Request to create a new customer."""
     
-    id: Optional[UUID] = None  # Opcional: para usuarios de Supabase Auth
     name: str = Field(min_length=1, max_length=255)
     email: EmailStr
     phone: Optional[str] = Field(default=None, max_length=50)
@@ -304,56 +303,6 @@ class UpdateCustomerRequest(BaseModel):
     active: Optional[bool] = None
 
 
-class ImageUploadResponse(BaseModel):
-    """Response after uploading an image to Supabase Storage."""
-
-    url: str
-    filename: str
-
-
-# ------------------------------------------------------------------ #
-# Dashboard
-# ------------------------------------------------------------------ #
-
-class DashboardStats(BaseModel):
-    """Dashboard statistics response."""
-
-    sales_day: float
-    sales_week: float
-    sales_month: float
-    order_count: int
-    order_count_paid: int
-    order_count_pending: int
-    avg_ticket: float
-    active_products: int
-    low_stock_products: int
-    new_customers_month: int
-
-
-class SalesChartPoint(BaseModel):
-    """Single data point for the sales chart."""
-
-    date: str
-    total: float
-
-
-class TopProduct(BaseModel):
-    """Top selling product."""
-
-    name: str
-    quantity_sold: int
-    total_revenue: float
-
-
-class TopCustomer(BaseModel):
-    """Top customer by total spent."""
-
-    name: str
-    email: str
-    total_spent: float
-    order_count: int
-
-
 class Customer(BaseModel):
     """Customer loaded from the database."""
     
@@ -371,58 +320,3 @@ class Customer(BaseModel):
     order_count: int
     notes: Optional[str] = None
     active: bool
-
-
-# ------------------------------------------------------------------ #
-# Direcciones (Addresses)
-# ------------------------------------------------------------------ #
-
-class AddressResponse(BaseModel):
-    """Address as returned to the frontend."""
-
-    id: UUID
-    label: str
-    street: str
-    city: str
-    province: str
-    zip: str
-    isPrimary: bool
-
-
-class CreateAddressRequest(BaseModel):
-    """Request to create a new address."""
-
-    label: str = Field(min_length=1, max_length=50)
-    street: str = Field(min_length=1)
-    city: str = Field(min_length=1, max_length=100)
-    province: str = Field(min_length=1, max_length=100)
-    zip: str = Field(min_length=1, max_length=20)
-    isPrimary: bool = False
-
-
-class UpdateAddressRequest(BaseModel):
-    """Request to update an existing address."""
-
-    label: Optional[str] = Field(default=None, min_length=1, max_length=50)
-    street: Optional[str] = Field(default=None, min_length=1)
-    city: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    province: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    zip: Optional[str] = Field(default=None, min_length=1, max_length=20)
-    isPrimary: Optional[bool] = None
-
-
-# ------------------------------------------------------------------ #
-# Favoritos (Favorites)
-# ------------------------------------------------------------------ #
-
-class FavoriteRequest(BaseModel):
-    """Request to add a product to favorites."""
-
-    productId: UUID
-
-
-class FavoriteResponse(BaseModel):
-    """Favorite as returned to the frontend."""
-
-    productId: UUID
-    addedAt: str

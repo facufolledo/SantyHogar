@@ -87,56 +87,6 @@ export default function PriceManagement() {
     }
   };
 
-  const handleSaveAll = async () => {
-    const pendingChanges = Object.entries(editingPrices).filter(([_, price]) => price > 0);
-    
-    if (pendingChanges.length === 0) {
-      alert('No hay cambios pendientes para guardar');
-      return;
-    }
-
-    const confirmSave = window.confirm(
-      `¿Guardar ${pendingChanges.length} cambio${pendingChanges.length !== 1 ? 's' : ''} de precio?`
-    );
-    
-    if (!confirmSave) return;
-
-    // Marcar todos como guardando
-    setSavingIds(new Set(pendingChanges.map(([id]) => id)));
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    // Guardar todos los precios en paralelo
-    await Promise.all(
-      pendingChanges.map(async ([productId, price]) => {
-        try {
-          await updateProductPrice(productId, { price });
-          successCount++;
-        } catch (error) {
-          console.error(`Error al actualizar precio de ${productId}:`, error);
-          errorCount++;
-        }
-      })
-    );
-
-    // Limpiar estados
-    setSavingIds(new Set());
-    setEditingPrices({});
-    
-    // Refrescar productos
-    await refetch();
-
-    // Mostrar resultado
-    if (errorCount === 0) {
-      alert(`✅ ${successCount} precio${successCount !== 1 ? 's' : ''} actualizado${successCount !== 1 ? 's' : ''} correctamente`);
-    } else {
-      alert(`⚠️ ${successCount} actualizados, ${errorCount} con errores`);
-    }
-  };
-
-  const pendingChangesCount = Object.keys(editingPrices).filter(id => editingPrices[id] > 0).length;
-
   const noPriceCount = products.filter(p => p.price === 0 || p.price === null).length;
 
   return (
@@ -354,41 +304,10 @@ export default function PriceManagement() {
       {!loading && filtered.length > 0 && (
         <div className="text-xs text-gray-600 rounded-lg border border-gray-700/60 bg-gray-800/50 px-3 py-2">
           <p>
-            💡 <strong>Tip:</strong> Escribí los nuevos precios y hacé click en "Guardar todos" para aplicar todos los cambios de una vez,
-            o guardá individualmente con el botón de cada fila.
+            💡 <strong>Tip:</strong> Escribí el nuevo precio y hacé click en "Guardar" para cada producto.
+            Los cambios se aplicarán inmediatamente.
           </p>
         </div>
-      )}
-
-      {/* Botón flotante "Guardar todos" */}
-      {pendingChangesCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-6 right-6 z-50"
-        >
-          <button
-            onClick={handleSaveAll}
-            disabled={savingIds.size > 0}
-            className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold rounded-2xl shadow-2xl shadow-primary-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {savingIds.size > 0 ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Guardando...</span>
-              </>
-            ) : (
-              <>
-                <TrendingUp size={20} />
-                <div>
-                  <p className="text-sm">Guardar todos los cambios</p>
-                  <p className="text-xs opacity-90">{pendingChangesCount} precio{pendingChangesCount !== 1 ? 's' : ''} modificado{pendingChangesCount !== 1 ? 's' : ''}</p>
-                </div>
-              </>
-            )}
-          </button>
-        </motion.div>
       )}
     </div>
   );

@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp } from 'lucide-react';
 import type { Product } from '../../data/products';
 import { formatPrice } from '../../utils/format';
 import { useProducts } from '../../context/ProductsContext';
 import ProductsErrorBanner from '../../components/ProductsErrorBanner';
 import ProductFormModal from './ProductFormModal';
 import { deleteProduct } from '../../api/productsApi';
-import { TableRowSkeleton } from '../../components/SkeletonLoader';
 
 const PAGE_SIZE = 20;
 
@@ -16,9 +15,6 @@ const catColors: Record<string, string> = {
   muebleria: 'bg-purple-500/20 text-purple-400',
   colchoneria: 'bg-green-500/20 text-green-400',
 };
-
-type SortField = 'name' | 'category' | 'price' | 'stock' | 'brand';
-type SortDirection = 'asc' | 'desc';
 
 function shortId(id: string) {
   return id.length > 14 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
@@ -32,55 +28,16 @@ export default function AdminProducts() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [viewing, setViewing] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<SortField>('name');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      // Cambiar dirección si es el mismo campo
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      // Nuevo campo, ordenar ascendente por defecto
-      setSortField(field);
-      setSortDirection('asc');
-    }
-    setPage(1); // Volver a la primera página
-  };
-
-  const filtered = useMemo(() => {
-    let result = products.filter(
-      p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.brand.toLowerCase().includes(search.toLowerCase())
-    );
-
-    // Ordenar según el campo seleccionado
-    result.sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortField) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case 'category':
-          comparison = a.category.localeCompare(b.category);
-          break;
-        case 'price':
-          comparison = a.price - b.price;
-          break;
-        case 'stock':
-          comparison = a.stock - b.stock;
-          break;
-        case 'brand':
-          comparison = a.brand.localeCompare(b.brand);
-          break;
-      }
-
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-
-    return result;
-  }, [products, search, sortField, sortDirection]);
+  const filtered = useMemo(
+    () =>
+      products.filter(
+        p =>
+          p.name.toLowerCase().includes(search.toLowerCase()) ||
+          p.brand.toLowerCase().includes(search.toLowerCase())
+      ),
+    [products, search]
+  );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -169,70 +126,18 @@ export default function AdminProducts() {
 
       <div className="bg-gray-800 border border-gray-700/60 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
-          {loading ? (
+          {loading && (
+            <div className="text-center py-16 text-gray-500">
+              <p>Cargando productos desde la API…</p>
+            </div>
+          )}
+          {!loading && (
             <table className="w-full text-sm">
               <thead className="border-b border-gray-700/60">
                 <tr>
-                  {[
-                    { label: 'Producto' },
-                    { label: 'Categoría' },
-                    { label: 'Precio' },
-                    { label: 'Margen' },
-                    { label: 'Stock' },
-                    { label: 'Estado' },
-                    { label: '' },
-                  ].map(({ label }) => (
-                    <th
-                      key={label}
-                      className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3"
-                    >
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-700/40">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <TableRowSkeleton key={i} />
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="border-b border-gray-700/60">
-                <tr>
-                  {[
-                    { label: 'Producto', field: 'name' as SortField },
-                    { label: 'Categoría', field: 'category' as SortField },
-                    { label: 'Precio', field: 'price' as SortField },
-                    { label: 'Margen', field: null },
-                    { label: 'Stock', field: 'stock' as SortField },
-                    { label: 'Estado', field: null },
-                    { label: '', field: null },
-                  ].map(({ label, field }) => (
-                    <th
-                      key={label}
-                      className={`text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 ${
-                        field ? 'cursor-pointer hover:text-gray-300 transition-colors select-none' : ''
-                      }`}
-                      onClick={() => field && handleSort(field)}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        {label}
-                        {field && (
-                          <span className="text-gray-600">
-                            {sortField === field ? (
-                              sortDirection === 'asc' ? (
-                                <ArrowUp size={12} className="text-primary-400" />
-                              ) : (
-                                <ArrowDown size={12} className="text-primary-400" />
-                              )
-                            ) : (
-                              <ArrowUpDown size={12} />
-                            )}
-                          </span>
-                        )}
-                      </div>
+                  {['Producto', 'Categoría', 'Precio', 'Margen', 'Stock', 'Estado', ''].map(h => (
+                    <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">
+                      {h}
                     </th>
                   ))}
                 </tr>
@@ -257,8 +162,8 @@ export default function AdminProducts() {
                           ) : (
                             <div className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0" />
                           )}
-                          <div className="min-w-0">
-                            <p className="font-medium text-gray-200 break-words">{p.name}</p>
+                          <div>
+                            <p className="font-medium text-gray-200 line-clamp-1 max-w-[180px]">{p.name}</p>
                             <p className="text-xs text-gray-500">
                               {p.brand} · {shortId(p.id)}
                             </p>

@@ -1,25 +1,8 @@
 """Supabase client singleton."""
 from __future__ import annotations
 
-import os
-import ssl
 from typing import Optional
 from urllib.parse import urlparse
-
-# Deshabilitar verificación SSL para desarrollo (Python 3.14 en Windows)
-os.environ['PYTHONHTTPSVERIFY'] = '0'
-os.environ['CURL_CA_BUNDLE'] = ''
-os.environ['REQUESTS_CA_BUNDLE'] = ''
-
-# Monkey patch httpx para deshabilitar SSL antes de importar supabase
-import httpx
-_original_client_init = httpx.Client.__init__
-
-def _patched_client_init(self, *args, **kwargs):
-    kwargs['verify'] = False
-    return _original_client_init(self, *args, **kwargs)
-
-httpx.Client.__init__ = _patched_client_init
 
 from supabase import Client, create_client
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
+import { NavLink, useLocation, Routes, Route, Navigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import MyAccount from './MyAccount';
@@ -18,6 +19,7 @@ const navItems = [
 
 export default function UserLayout() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
   const { user, isLogged } = useAuth();
 
   if (!isLogged) return <Navigate to="/" replace />;
@@ -75,13 +77,23 @@ export default function UserLayout() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <Routes>
-            <Route index element={<MyAccount />} />
-            <Route path="pedidos" element={<MyOrders />} />
-            <Route path="direcciones" element={<MyAddresses />} />
-            <Route path="favoritos" element={<MyFavorites />} />
-            <Route path="seguridad" element={<MySecurity />} />
-          </Routes>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Routes>
+                <Route index element={<MyAccount />} />
+                <Route path="pedidos" element={<MyOrders />} />
+                <Route path="direcciones" element={<MyAddresses />} />
+                <Route path="favoritos" element={<MyFavorites />} />
+                <Route path="seguridad" element={<MySecurity />} />
+              </Routes>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>

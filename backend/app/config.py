@@ -10,15 +10,9 @@ _REPO_ROOT = _BACKEND_ROOT.parent
 
 
 def _env_files() -> tuple[str, ...]:
-    """Busca .env en múltiples ubicaciones (el último gana)."""
-    paths: list[Path] = [
-        _REPO_ROOT / ".env",
-        _BACKEND_ROOT / ".env",
-        _BACKEND_ROOT / ".kiro" / ".env",
-    ]
-    found = tuple(str(p) for p in paths if p.is_file())
-    print(f"DEBUG: Archivos .env encontrados: {found}")
-    return found
+    """Raíz del monorepo primero, luego backend/.env (el último gana)."""
+    paths: list[Path] = [_REPO_ROOT / ".env", _BACKEND_ROOT / ".env"]
+    return tuple(str(p) for p in paths if p.is_file())
 
 
 class Config(BaseSettings):
@@ -28,7 +22,6 @@ class Config(BaseSettings):
         env_file=_env_files() or (str(_BACKEND_ROOT / ".env"),),
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore",
     )
     
     # Supabase
@@ -37,7 +30,6 @@ class Config(BaseSettings):
     
     # MercadoPago
     mercadopago_access_token: str = Field(..., description="MercadoPago access token")
-    mercadopago_public_key: str = Field(default="", description="MercadoPago public key")
     mercadopago_webhook_secret: Optional[str] = Field(None, description="MercadoPago webhook secret")
     
     # CORS
@@ -52,12 +44,6 @@ class Config(BaseSettings):
     public_api_url: str = Field(
         default="http://localhost:8000",
         description="URL pública del backend (webhook Mercado Pago, back_urls si aplica)",
-    )
-    
-    # Admin Security
-    admin_master_password: str = Field(
-        default="",
-        description="Contraseña maestra para crear nuevos usuarios admin"
     )
     
     @field_validator('supabase_url')
@@ -86,6 +72,4 @@ def get_config() -> Config:
     global _config
     if _config is None:
         _config = Config()
-        # Debug: verificar que se cargó la contraseña maestra
-        print(f"DEBUG CONFIG: admin_master_password = '{_config.admin_master_password}' (len={len(_config.admin_master_password)})")
     return _config

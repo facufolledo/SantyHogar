@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Menu, X, ChevronDown, LogOut, Lock } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { useProducts } from '../context/ProductsContext';
 import AuthModal from './AuthModal';
 
 const Navbar = () => {
@@ -12,27 +11,13 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const { count } = useCart();
   const { user, isAdmin, isLogged, logout } = useAuth();
-  const { products } = useProducts();
   const location = useLocation();
   const navigate = useNavigate();
-  const searchRef = useRef<HTMLDivElement>(null);
-
-  // Filtrar productos según búsqueda
-  const searchResults = searchQuery.trim().length > 0
-    ? products.filter(p => 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 5)
-    : [];
-
-  const showSearchDropdown = searchFocused && searchQuery.trim().length > 0;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -42,32 +27,13 @@ const Navbar = () => {
 
   useEffect(() => { setMobileOpen(false); setUserMenuOpen(false); }, [location]);
 
-  // Cerrar dropdown de búsqueda al hacer click fuera
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setSearchFocused(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/tienda?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchOpen(false);
-      setSearchFocused(false);
       setSearchQuery('');
     }
-  };
-
-  const handleProductClick = (slug: string) => {
-    navigate(`/producto/${slug}`);
-    setSearchQuery('');
-    setSearchFocused(false);
-    setSearchOpen(false);
   };
 
   const handleAccountClick = () => {
@@ -110,76 +76,15 @@ const Navbar = () => {
 
             {/* Search bar - desktop */}
             <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-4">
-              <div ref={searchRef} className="relative w-full">
+              <div className="relative w-full">
                 <input
-                  type="text" 
-                  value={searchQuery} 
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onFocus={() => setSearchFocused(true)}
+                  type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                   placeholder="¿Qué estás buscando?"
                   className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <button type="submit" className="absolute right-0 top-0 h-full px-4 bg-primary-600 hover:bg-primary-700 rounded-r-lg text-white transition-colors">
                   <Search size={18} />
                 </button>
-
-                {/* Search dropdown */}
-                <AnimatePresence>
-                  {showSearchDropdown && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50"
-                    >
-                      {searchResults.length > 0 ? (
-                        <>
-                          <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-                            <p className="text-xs text-gray-500 font-medium">
-                              {searchResults.length} {searchResults.length === 1 ? 'resultado' : 'resultados'}
-                            </p>
-                          </div>
-                          <div className="max-h-[400px] overflow-y-auto">
-                            {searchResults.map(product => (
-                              <button
-                                key={product.id}
-                                onClick={() => handleProductClick(product.slug)}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                              >
-                                <img 
-                                  src={product.images[0]} 
-                                  alt={product.name}
-                                  className="w-12 h-12 object-cover rounded-lg bg-gray-100 flex-shrink-0"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                                  <p className="text-xs text-gray-500">{product.brand}</p>
-                                </div>
-                                <div className="text-right flex-shrink-0">
-                                  <p className="text-sm font-bold text-gray-900">${product.price.toLocaleString()}</p>
-                                  {product.stock === 0 && (
-                                    <p className="text-xs text-red-500">Sin stock</p>
-                                  )}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            onClick={handleSearch}
-                            className="w-full px-3 py-2.5 bg-gray-50 hover:bg-gray-100 text-sm text-primary-600 font-medium transition-colors border-t border-gray-100"
-                          >
-                            Ver todos los resultados →
-                          </button>
-                        </>
-                      ) : (
-                        <div className="px-4 py-8 text-center">
-                          <p className="text-sm text-gray-500">No se encontraron productos</p>
-                          <p className="text-xs text-gray-400 mt-1">Intenta con otras palabras</p>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             </form>
 

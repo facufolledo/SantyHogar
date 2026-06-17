@@ -1,8 +1,8 @@
 """Rutas de órdenes y checkout."""
-from typing import Annotated, List, Optional
+from typing import Annotated, List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.deps import get_order_service, get_payment_service
 from app.exceptions import DatabaseError, InsufficientStockError, MercadoPagoError, ProductNotFoundError
@@ -26,11 +26,10 @@ router = APIRouter(tags=["orders"])
 )
 async def list_orders(
     order_service: Annotated[OrderService, Depends(get_order_service)],
-    email: Optional[str] = Query(None, description="Filtrar órdenes por email del cliente"),
 ) -> List[OrderListResponse]:
-    """Lista todas las órdenes. Si se pasa `email`, filtra por email_cliente."""
+    """Lista todas las órdenes (vista simplificada para admin)."""
     try:
-        orders = await order_service.get_all_orders(email=email)
+        orders = await order_service.get_all_orders()
         return orders
     except DatabaseError as e:
         raise HTTPException(
@@ -94,8 +93,11 @@ async def create_order(
     order_service: Annotated[OrderService, Depends(get_order_service)],
     payment_service: Annotated[PaymentService, Depends(get_payment_service)],
 ) -> OrderResponse:
-    # Solo validar MP si el método de pago es "mp"
-    use_mercadopago = body.paymentMethod == "mp"
+    if body.paymentMethod != "mp":
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Solo está habilitado el método de pago Mercado Pago (mp).",
+        )
 
     try:
         created = await order_service.create_order(body)
@@ -115,53 +117,35 @@ async def create_order(
             detail="Error al crear la orden.",
         ) from e
 
-    # Si es Mercado Pago, crear preferencia de pago
-    if use_mercadopago:
-        try:
-            pref = await payment_service.create_preference(
-                created.order, created.payment_line_items
-            )
-        except MercadoPagoError as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=e.message or "Error al crear el link de pago.",
-            ) from e
-
-        try:
-            await order_service.attach_preference_id(created.order.id, pref.preference_id)
-        except DatabaseError as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error al guardar la preferencia de pago.",
-            ) from e
-
-        order = await order_service.get_order_by_id(created.order.id)
-        if not order:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Orden no encontrada tras crear el pago.",
-            )
-
-        return OrderResponse(
-            id=order.id,
-            orderNumber=order.orderNumber,
-            init_point=pref.init_point,
-            status=order.status,
-            createdAt=order.createdAt.isoformat(),
+    try:
+        pref = await payment_service.create_preference(
+            created.order, created.payment_line_items
         )
-    else:
-        # Modo local: sin Mercado Pago, solo retornar la orden
-        order = await order_service.get_order_by_id(created.order.id)
-        if not order:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Orden no encontrada tras crearla.",
-            )
+    except MercadoPagoError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=e.message or "Error al crear el link de pago.",
+        ) from e
 
-        return OrderResponse(
-            id=order.id,
-            orderNumber=order.orderNumber,
-            init_point="",  # Sin init_point en modo local
-            status=order.status,
-            createdAt=order.createdAt.isoformat(),
+    try:
+        await order_service.attach_preference_id(created.order.id, pref.preference_id)
+    except DatabaseError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al guardar la preferencia de pago.",
+        ) from e
+
+    order = await order_service.get_order_by_id(created.order.id)
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Orden no encontrada tras crear el pago.",
         )
+
+    return OrderResponse(
+        id=order.id,
+        orderNumber=order.orderNumber,
+        init_point=pref.init_point,
+        status=order.status,
+        createdAt=order.createdAt.isoformat(),
+    )

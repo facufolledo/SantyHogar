@@ -87,7 +87,7 @@ const Footer = () => (
         <span>© 2025 Santy Hogar. Todos los derechos reservados.</span>
         <div className="flex items-center gap-4">
           <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.21.22/mercadopago/logo__large@2x.png" alt="Mercado Pago" className="h-5 opacity-50" />
-
+          <span className="opacity-50">Fiserv</span>
         </div>
       </div>
     </div>

@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Star, Lock, Heart } from 'lucide-react';
+import { ShoppingCart, Star, Lock } from 'lucide-react';
 import type { Product } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { useFavorites } from '../context/FavoritesContext';
 import { useToast } from '../context/ToastContext';
 import { formatPrice, discountPercent } from '../utils/format';
 import AuthModal from './AuthModal';
@@ -17,10 +16,8 @@ interface Props {
 const ProductCard = ({ product }: Props) => {
   const { addItem } = useCart();
   const { isLogged } = useAuth();
-  const { isFavorite, toggleFavorite } = useFavorites();
   const { toast } = useToast();
   const [showAuth, setShowAuth] = useState(false);
-  const [togglingFav, setTogglingFav] = useState(false);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -30,31 +27,10 @@ const ProductCard = ({ product }: Props) => {
       return;
     }
     addItem(product);
-    // El sidebar se abre automáticamente
-  };
-
-  const handleToggleFavorite = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!isLogged) {
-      setShowAuth(true);
-      return;
-    }
-
-    setTogglingFav(true);
-    try {
-      await toggleFavorite(product.id);
-      toast(isFavorite(product.id) ? 'Eliminado de favoritos' : 'Agregado a favoritos');
-    } catch (error: any) {
-      toast(error?.message || 'Error al actualizar favoritos', 'error');
-    } finally {
-      setTogglingFav(false);
-    }
+    toast(`${product.name} agregado al carrito`);
   };
 
   const discount = product.originalPrice ? discountPercent(product.originalPrice, product.price) : null;
-  const isFav = isFavorite(product.id);
 
   return (
     <>
@@ -72,31 +48,13 @@ const ProductCard = ({ product }: Props) => {
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
             />
-            
-            {/* Favorite button */}
-            <button
-              onClick={handleToggleFavorite}
-              disabled={togglingFav}
-              className="absolute top-2 right-2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:bg-white transition-all duration-200 active:scale-95 disabled:opacity-50 z-10"
-              title={isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-            >
-              <Heart 
-                size={16} 
-                className={`transition-all duration-200 ${
-                  isFav 
-                    ? 'text-red-500 fill-red-500' 
-                    : 'text-gray-400 hover:text-red-500'
-                }`}
-              />
-            </button>
-            
             {discount && (
               <span className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
                 -{discount}%
               </span>
             )}
             {product.stock <= 3 && product.stock > 0 && (
-              <span className="absolute bottom-2 right-2 bg-orange-100 text-orange-700 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
+              <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 bg-orange-100 text-orange-700 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
                 ¡Últimas!
               </span>
             )}
@@ -157,7 +115,7 @@ const ProductCard = ({ product }: Props) => {
           onSuccess={() => {
             setShowAuth(false);
             addItem(product);
-            // El sidebar se abre automáticamente
+            toast(`${product.name} agregado al carrito`);
           }}
         />
       )}

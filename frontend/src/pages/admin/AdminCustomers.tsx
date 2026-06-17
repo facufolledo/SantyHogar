@@ -1,22 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Eye } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import { fetchCustomers, deleteCustomer, type CustomerList } from '../../api/customersApi';
-import type { CustomerDetail } from '../../api/customersApi';
-import CustomerFormModal from './CustomerFormModal';
-
-type ModalState =
-  | { open: false }
-  | { open: true; mode: 'create'; customer: null }
-  | { open: true; mode: 'edit' | 'view'; customer: { id: string; name: string; email: string } };
 
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState<CustomerList[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [modal, setModal] = useState<ModalState>({ open: false });
 
   useEffect(() => {
     loadCustomers();
@@ -53,57 +44,6 @@ export default function AdminCustomers() {
     }
   };
 
-  const handleOpenCreate = () => {
-    setModal({ open: true, mode: 'create', customer: null });
-  };
-
-  const handleOpenEdit = (c: CustomerList) => {
-    setModal({ open: true, mode: 'edit', customer: { id: c.id, name: c.name, email: c.email } });
-  };
-
-  const handleOpenView = (c: CustomerList) => {
-    setModal({ open: true, mode: 'view', customer: { id: c.id, name: c.name, email: c.email } });
-  };
-
-  const handleModalClose = () => {
-    setModal({ open: false });
-  };
-
-  const handleModalSave = (saved: CustomerDetail) => {
-    if (modal.open && modal.mode === 'create') {
-      // Add new customer to the list without reloading
-      const newEntry: CustomerList = {
-        id: saved.id,
-        name: saved.name,
-        email: saved.email,
-        phone: saved.phone,
-        totalSpent: saved.totalSpent,
-        orderCount: saved.orderCount,
-        registeredAt: saved.registeredAt,
-        active: saved.active,
-      };
-      setCustomers(prev => [newEntry, ...prev]);
-    } else if (modal.open && modal.mode === 'edit') {
-      // Update existing customer in the list without reloading
-      setCustomers(prev =>
-        prev.map(c =>
-          c.id === saved.id
-            ? {
-                ...c,
-                name: saved.name,
-                email: saved.email,
-                phone: saved.phone,
-                totalSpent: saved.totalSpent,
-                orderCount: saved.orderCount,
-                active: saved.active,
-              }
-            : c
-        )
-      );
-    }
-    setModal({ open: false });
-  };
-
   const filtered = customers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.email.toLowerCase().includes(search.toLowerCase())
@@ -137,7 +77,6 @@ export default function AdminCustomers() {
           <p className="text-sm text-gray-500">{customers.length} clientes registrados</p>
         </div>
         <button
-          onClick={handleOpenCreate}
           className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Plus size={16} />
@@ -195,7 +134,6 @@ export default function AdminCustomers() {
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
-                          onClick={() => handleOpenView(c)}
                           className="p-1.5 text-gray-500 hover:text-primary-400 hover:bg-primary-500/10 rounded-lg transition-colors"
                           title="Ver detalle"
                         >
@@ -203,7 +141,6 @@ export default function AdminCustomers() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleOpenEdit(c)}
                           className="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
                           title="Editar"
                         >
@@ -227,18 +164,6 @@ export default function AdminCustomers() {
           </table>
         </div>
       </div>
-
-      {/* Customer Form Modal */}
-      <AnimatePresence>
-        {modal.open && (
-          <CustomerFormModal
-            customer={modal.customer}
-            mode={modal.mode}
-            onSave={handleModalSave}
-            onClose={handleModalClose}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -4,21 +4,19 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, UploadFile, status, HTTPException
 
-from app.deps import get_image_service, get_product_service, get_supabase
+from app.deps import get_product_service, get_supabase
 from app.exceptions import ProductNotFoundError
 from app.mappers import product_to_response
-from app.models.bulk_import import BulkImportResponse, ExcelImportConfirmRequest, ExcelImportPreview
+from app.models.bulk_import import BulkImportResponse
 from app.models.schemas import (
     CreateProductRequest,
-    ImageUploadResponse,
     ProductResponse,
     UpdatePriceByProductBody,
     UpdatePriceRequest,
     UpdatePriceResponse,
     UpdateProductRequest,
 )
-from app.services.bulk_import_service import parse_xlsx_file, process_bulk_import, process_xlsx_import
-from app.services.image_service import ImageService, ImageValidationError
+from app.services.bulk_import_service import process_bulk_import
 from app.services.product_service import ProductService
 
 router = APIRouter(tags=["products"])
@@ -37,196 +35,42 @@ async def list_products(
 
 
 @router.post(
-    "/products/upload-image",
-    response_model=ImageUploadResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def upload_product_image(
-    file: UploadFile = File(...),
-    image_service: ImageService = Depends(get_image_service),
-) -> ImageUploadResponse:
-    """Sube una imagen de producto a Supabase Storage.
-
-    Valida tipo (JPEG, PNG, WebP) y tamaño (≤5 MB).
-    Retorna la URL pública y el nombre del archivo generado.
-    """
-    try:
-        url, filename = await image_service.upload_image(file)
-        return ImageUploadResponse(url=url, filename=filename)
-    except ImageValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from e
-
-
-@router.post(
-    "/products/bulk-import/preview",
-    response_model=ExcelImportPreview,
-    status_code=status.HTTP_200_OK,
-)
-async def bulk_import_preview(
-    file: UploadFile = File(...),
-) -> ExcelImportPreview:
-    """
-    Preview de importación masiva desde archivo .xlsx.
-    
-    Parsea el archivo y retorna las validaciones sin insertar en la BD.
-    El frontend muestra esta preview para que el admin seleccione qué filas importar.
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"=== BULK IMPORT PREVIEW === Archivo: {file.filename}")
-    
-    # Validar tipo de archivo
-    if not file.filename or not file.filename.endswith('.xlsx'):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo debe ser .xlsx"
-        )
-    
-    # Leer contenido del archivo
-    content = await file.read()
-    logger.info(f"Archivo leído: {len(content)} bytes")
-    
-    if len(content) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo está vacío"
-        )
-    
-    # Parsear el archivo
-    validations = parse_xlsx_file(content)
-    
-    # Verificar si hay datos
-    if not validations or (len(validations) == 1 and not validations[0].valid and validations[0].row_number == 0):
-        error_msg = validations[0].errors[0] if validations and validations[0].errors else "El archivo no contiene productos para importar"
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=error_msg
-        )
-    
-    valid_rows = [v for v in validations if v.valid]
-    invalid_rows = [v for v in validations if not v.valid]
-    
-    return ExcelImportPreview(
-        total_rows=len(validations),
-        valid_rows=len(valid_rows),
-        invalid_rows=len(invalid_rows),
-        validations=validations,
-    )
-
-
-@router.post(
     "/products/bulk-import",
     response_model=BulkImportResponse,
     status_code=status.HTTP_200_OK,
 )
 async def bulk_import_products(
-    file: UploadFile = File(None),
+    file: UploadFile = File(...),
     supabase = Depends(get_supabase),
 ) -> BulkImportResponse:
     """
-    Importación masiva de productos desde archivo .xlsx.
+    Importación masiva de productos desde archivo .doc
     
-    Acepta un archivo .xlsx, lo parsea e importa los productos válidos.
-    Para el flujo de dos pasos, usar primero /bulk-import/preview y luego /bulk-import/confirm.
+    Formato esperado del documento:
+    - Código del producto
+    - Nombre/Descripción
+    - Categoría
+    - Stock (a la derecha)
     """
     import logging
     logger = logging.getLogger(__name__)
-    
-    if file is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Se requiere un archivo .xlsx"
-        )
-    
     logger.info(f"=== BULK IMPORT INICIADO === Archivo: {file.filename}")
     
-    # Validar tipo de archivo - ahora acepta .xlsx
-    if not file.filename or not file.filename.endswith('.xlsx'):
+    # Validar tipo de archivo
+    if not file.filename or not (file.filename.endswith('.doc') or file.filename.endswith('.docx')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo debe ser .xlsx"
+            detail="El archivo debe ser .doc o .docx"
         )
     
     # Leer contenido del archivo
     content = await file.read()
     logger.info(f"Archivo leído: {len(content)} bytes")
     
-    # Parsear el archivo Excel
-    validations = parse_xlsx_file(content)
+    # Procesar importación
+    result = await process_bulk_import(content, supabase)
+    logger.info(f"Importación completada: {result.imported_count} productos importados")
     
-    # Verificar si hay datos
-    if not validations or (len(validations) == 1 and not validations[0].valid and validations[0].row_number == 0):
-        error_msg = validations[0].errors[0] if validations and validations[0].errors else "El archivo no contiene productos para importar"
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=error_msg
-        )
-    
-    # Importar filas válidas
-    valid_rows = [v for v in validations if v.valid]
-    invalid_rows = [v for v in validations if not v.valid]
-    imported_count = 0
-    
-    for validation in valid_rows:
-        if validation.data:
-            try:
-                product_data = {
-                    'nombre': validation.data.nombre,
-                    'slug': validation.data.slug,
-                    'categoria': validation.data.categoria,
-                    'subcategoria': validation.data.subcategoria,
-                    'precio': validation.data.precio,
-                    'precio_original': None,
-                    'stock': validation.data.stock,
-                    'marca': validation.data.marca,
-                    'descripcion': validation.data.descripcion or '',
-                    'imagenes': [validation.data.imagen] if validation.data.imagen else [],
-                    'especificaciones': {},
-                    'destacado': False,
-                    'calificacion': 0.0,
-                    'cantidad_resenas': 0,
-                }
-                
-                result = supabase.table('productos').insert(product_data).execute()
-                
-                if result.data:
-                    imported_count += 1
-            except Exception as e:
-                validation.valid = False
-                validation.errors.append(f"Error al insertar: {str(e)}")
-    
-    return BulkImportResponse(
-        total_rows=len(validations),
-        valid_rows=len(valid_rows),
-        invalid_rows=len(invalid_rows),
-        imported_count=imported_count,
-        validations=validations,
-        message=f"Importación completada: {imported_count} productos importados de {len(valid_rows)} válidos",
-    )
-
-
-@router.post(
-    "/products/bulk-import/confirm",
-    response_model=BulkImportResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def bulk_import_confirm(
-    body: ExcelImportConfirmRequest,
-    supabase = Depends(get_supabase),
-) -> BulkImportResponse:
-    """
-    Confirma la importación de filas seleccionadas del preview.
-    
-    Recibe la lista de productos confirmados (posiblemente editados) y los inserta en la BD.
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"=== BULK IMPORT CONFIRM === {len(body.rows)} filas a importar")
-    
-    result = await process_xlsx_import(body.rows, supabase)
     return result
 
 

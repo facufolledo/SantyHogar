@@ -16,7 +16,6 @@ class ProductImportRow(BaseModel):
     descripcion: Optional[str] = Field(default="", max_length=5000)
     marca: Optional[str] = Field(default="Sin marca", max_length=100)
     slug: Optional[str] = None  # Se genera automáticamente si no se provee
-    imagen: Optional[str] = None  # URL de imagen asociada (opcional)
 
 
 class ProductImportValidation(BaseModel):
@@ -37,31 +36,3 @@ class BulkImportResponse(BaseModel):
     imported_count: int
     validations: List[ProductImportValidation]
     message: str
-
-
-class ExcelImportPreview(BaseModel):
-    """Respuesta del endpoint de preview de importación Excel."""
-
-    total_rows: int
-    valid_rows: int
-    invalid_rows: int
-    validations: List[ProductImportValidation]
-
-
-class ExcelImportConfirmRow(BaseModel):
-    """Fila confirmada para importar con datos posiblemente editados."""
-
-    nombre: str = Field(min_length=1, max_length=255)
-    precio: float = Field(default=0.0, ge=0)
-    stock: int = Field(ge=0, default=0)
-    categoria: str = Field(pattern="^(electrodomesticos|muebleria|colchoneria)$")
-    subcategoria: Optional[str] = Field(default="General", max_length=100)
-    descripcion: Optional[str] = Field(default="", max_length=5000)
-    marca: Optional[str] = Field(default="Sin marca", max_length=100)
-    imagen: Optional[str] = None
-
-
-class ExcelImportConfirmRequest(BaseModel):
-    """Request para confirmar importación de filas seleccionadas."""
-
-    rows: List[ExcelImportConfirmRow] = Field(min_length=1)

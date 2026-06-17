@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from typing import Any, List, Optional
 from urllib.parse import urlparse
 from uuid import UUID
@@ -390,24 +389,6 @@ class DatabaseOperations:
             logger.exception("get_all_orders")
             self._raise_db_error(e)
 
-    async def get_orders_by_email(self, email: str) -> List[dict[str, Any]]:
-        """Obtiene órdenes filtradas por email_cliente."""
-        return await asyncio.to_thread(self._get_orders_by_email_sync, email)
-
-    def _get_orders_by_email_sync(self, email: str) -> List[dict[str, Any]]:
-        try:
-            res = (
-                self._client().table("ordenes")
-                .select("*")
-                .eq("email_cliente", email)
-                .order("fecha_creacion", desc=True)
-                .execute()
-            )
-            return list(res.data or [])
-        except Exception as e:
-            logger.exception("get_orders_by_email")
-            self._raise_db_error(e)
-
     async def update_order_status_by_id(self, order_id: UUID, status: str) -> None:
         """Actualiza el estado de una orden por ID."""
         await asyncio.to_thread(self._update_order_status_by_id_sync, order_id, status)
@@ -427,60 +408,28 @@ class DatabaseOperations:
 
     async def get_all_customers(self) -> List[dict[str, Any]]:
         """Obtiene todos los clientes."""
-        t_start = time.time()
-        logger.info("get_all_customers: iniciando consulta a Supabase")
         try:
-            result = await asyncio.wait_for(
+            return await asyncio.wait_for(
                 asyncio.to_thread(self._get_all_customers_sync),
                 timeout=20.0,
             )
-            elapsed = time.time() - t_start
-            logger.info(
-                "get_all_customers: consulta exitosa en %.3fs — %d registros",
-                elapsed,
-                len(result),
-            )
-            return result
         except asyncio.TimeoutError:
-            elapsed = time.time() - t_start
-            logger.error(
-                "get_all_customers: timeout esperando a Supabase (%.3fs). "
-                "Posibles causas: latencia de red, políticas RLS bloqueantes, "
-                "o DNS lento. Host: %s",
-                elapsed,
-                urlparse(get_config().supabase_url).hostname or "<desconocido>",
-            )
+            logger.error("get_all_customers: timeout esperando a Supabase (20s)")
             raise DatabaseError(
-                "La base de datos no respondió a tiempo al consultar clientes"
+                "La base de datos no respondió a tiempo al consultar clientes. Revisá Supabase, la red o SUPABASE_KEY."
             ) from None
 
     def _get_all_customers_sync(self) -> List[dict[str, Any]]:
-        t_start = time.time()
         try:
-            t_client = time.time()
-            client = self._client()
-            logger.debug(
-                "get_all_customers: cliente obtenido en %.3fs",
-                time.time() - t_client,
-            )
-
-            t_query = time.time()
             res = (
-                client.table("clientes")
+                self._client().table("clientes")
                 .select("*")
                 .order("fecha_registro", desc=True)
                 .execute()
             )
-            logger.debug(
-                "get_all_customers: query ejecutada en %.3fs",
-                time.time() - t_query,
-            )
             return list(res.data or [])
         except Exception as e:
-            elapsed = time.time() - t_start
-            logger.exception(
-                "get_all_customers: error después de %.3fs — %s", elapsed, e
-            )
+            logger.exception("get_all_customers")
             self._raise_db_error(e)
 
     async def get_customer_by_id(self, customer_id: UUID) -> Optional[dict[str, Any]]:
@@ -543,24 +492,6 @@ class DatabaseOperations:
             return customer_id
         except Exception as e:
             logger.exception("create_customer")
-            self._raise_db_error(e)
-
-    async def create_customer_with_id(self, customer_data: dict[str, Any]) -> None:
-        """Crea un nuevo cliente con un ID específico (para usuarios de Supabase Auth)."""
-        await asyncio.to_thread(self._create_customer_with_id_sync, customer_data)
-
-    def _create_customer_with_id_sync(self, customer_data: dict[str, Any]) -> None:
-        try:
-            customer_data.setdefault("total_gastado", 0.0)
-            customer_data.setdefault("cantidad_ordenes", 0)
-            customer_data.setdefault("activo", True)
-            
-            res = self._client().table("clientes").insert(customer_data).execute()
-            
-            if not res.data:
-                raise DatabaseError("No se pudo crear el cliente")
-        except Exception as e:
-            logger.exception("create_customer_with_id")
             self._raise_db_error(e)
 
     async def update_customer(self, customer_id: UUID, customer_data: dict[str, Any]) -> None:
@@ -643,141 +574,4 @@ class DatabaseOperations:
             }).eq("id_cliente", cid).execute()
         except Exception as e:
             logger.exception("update_customer_stats")
-            self._raise_db_error(e)
-
-    # ------------------------------------------------------------------ #
-    # Direcciones (Addresses)
-    # ------------------------------------------------------------------ #
-
-    async def get_customer_addresses(self, customer_id: UUID) -> List[dict[str, Any]]:
-        """Obtiene todas las direcciones de un cliente."""
-        return await asyncio.to_thread(self._get_customer_addresses_sync, customer_id)
-
-    def _get_customer_addresses_sync(self, customer_id: UUID) -> List[dict[str, Any]]:
-        try:
-            res = (
-                self._client().table("direcciones")
-                .select("*")
-                .eq("id_cliente", str(customer_id))
-                .order("fecha_creacion", desc=False)
-                .execute()
-            )
-            return list(res.data or [])
-        except Exception as e:
-            logger.exception("get_customer_addresses")
-            self._raise_db_error(e)
-
-    async def create_address(self, address_data: dict[str, Any]) -> UUID:
-        """Crea una nueva dirección."""
-        return await asyncio.to_thread(self._create_address_sync, address_data)
-
-    def _create_address_sync(self, address_data: dict[str, Any]) -> UUID:
-        try:
-            from uuid import uuid4
-            address_id = uuid4()
-            address_data["id_direccion"] = str(address_id)
-
-            self._client().table("direcciones").insert(address_data).execute()
-            return address_id
-        except Exception as e:
-            logger.exception("create_address")
-            self._raise_db_error(e)
-
-    async def update_address(self, address_id: UUID, address_data: dict[str, Any]) -> None:
-        """Actualiza una dirección existente."""
-        await asyncio.to_thread(self._update_address_sync, address_id, address_data)
-
-    def _update_address_sync(self, address_id: UUID, address_data: dict[str, Any]) -> None:
-        try:
-            update_data = {k: v for k, v in address_data.items() if v is not None}
-            if not update_data:
-                return
-            self._client().table("direcciones").update(update_data).eq(
-                "id_direccion", str(address_id)
-            ).execute()
-        except Exception as e:
-            logger.exception("update_address")
-            self._raise_db_error(e)
-
-    async def delete_address(self, address_id: UUID) -> None:
-        """Elimina una dirección."""
-        await asyncio.to_thread(self._delete_address_sync, address_id)
-
-    def _delete_address_sync(self, address_id: UUID) -> None:
-        try:
-            self._client().table("direcciones").delete().eq(
-                "id_direccion", str(address_id)
-            ).execute()
-        except Exception as e:
-            logger.exception("delete_address")
-            self._raise_db_error(e)
-
-    async def get_address_by_id(self, address_id: UUID) -> Optional[dict[str, Any]]:
-        """Obtiene una dirección por ID."""
-        return await asyncio.to_thread(self._get_address_by_id_sync, address_id)
-
-    def _get_address_by_id_sync(self, address_id: UUID) -> Optional[dict[str, Any]]:
-        try:
-            res = (
-                self._client().table("direcciones")
-                .select("*")
-                .eq("id_direccion", str(address_id))
-                .limit(1)
-                .execute()
-            )
-            rows = res.data or []
-            return rows[0] if rows else None
-        except Exception as e:
-            logger.exception("get_address_by_id")
-            self._raise_db_error(e)
-
-    # ------------------------------------------------------------------ #
-    # Favoritos (Favorites)
-    # ------------------------------------------------------------------ #
-
-    async def get_customer_favorites(self, customer_id: UUID) -> List[dict[str, Any]]:
-        """Obtiene todos los favoritos de un cliente."""
-        return await asyncio.to_thread(self._get_customer_favorites_sync, customer_id)
-
-    def _get_customer_favorites_sync(self, customer_id: UUID) -> List[dict[str, Any]]:
-        try:
-            res = (
-                self._client().table("favoritos")
-                .select("*")
-                .eq("id_cliente", str(customer_id))
-                .order("fecha_creacion", desc=True)
-                .execute()
-            )
-            return list(res.data or [])
-        except Exception as e:
-            logger.exception("get_customer_favorites")
-            self._raise_db_error(e)
-
-    async def add_favorite(self, customer_id: UUID, product_id: UUID) -> None:
-        """Agrega un producto a favoritos."""
-        await asyncio.to_thread(self._add_favorite_sync, customer_id, product_id)
-
-    def _add_favorite_sync(self, customer_id: UUID, product_id: UUID) -> None:
-        try:
-            self._client().table("favoritos").insert({
-                "id_cliente": str(customer_id),
-                "id_producto": str(product_id),
-            }).execute()
-        except Exception as e:
-            logger.exception("add_favorite")
-            self._raise_db_error(e)
-
-    async def remove_favorite(self, customer_id: UUID, product_id: UUID) -> None:
-        """Elimina un producto de favoritos."""
-        await asyncio.to_thread(self._remove_favorite_sync, customer_id, product_id)
-
-    def _remove_favorite_sync(self, customer_id: UUID, product_id: UUID) -> None:
-        try:
-            self._client().table("favoritos").delete().eq(
-                "id_cliente", str(customer_id)
-            ).eq(
-                "id_producto", str(product_id)
-            ).execute()
-        except Exception as e:
-            logger.exception("remove_favorite")
             self._raise_db_error(e)
