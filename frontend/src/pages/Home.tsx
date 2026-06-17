@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Truck, CreditCard, Shield, RefreshCw, X, ChevronLeft } from 'lucide-react';
+import { ChevronRight, Truck, CreditCard, Shield, RefreshCw, ChevronLeft } from 'lucide-react';
 import { buildCategoryCards } from '../data/products';
 import { useProducts } from '../context/ProductsContext';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
@@ -45,7 +45,6 @@ const trust = [
 const Home = () => {
   const { products, loading } = useProducts();
   const [slide, setSlide] = useState(0);
-  const [promoOpen, setPromoOpen] = useState(true);
   const categories = useMemo(() => buildCategoryCards(products), [products]);
   const featured = useMemo(
     () => products.filter(p => p.featured).slice(0, 8),
@@ -62,44 +61,6 @@ const Home = () => {
 
   return (
     <div>
-      {/* Promo popup */}
-      <AnimatePresence>
-        {promoOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
-            onClick={() => setPromoOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.85, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.85, opacity: 0 }}
-              onClick={e => e.stopPropagation()}
-              className="relative bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl overflow-hidden max-w-sm w-full shadow-2xl"
-            >
-              <button onClick={() => setPromoOpen(false)} className="absolute top-3 right-3 bg-white/20 hover:bg-white/30 rounded-full p-1 text-white z-10">
-                <X size={18} />
-              </button>
-              <div className="p-8 text-white text-center">
-                <p className="text-sm font-medium uppercase tracking-widest mb-2 opacity-80">Oferta especial</p>
-                <h2 className="text-4xl font-black leading-tight mb-2">HASTA<br />40% OFF</h2>
-                <p className="text-lg font-semibold mb-1">en electrodomésticos</p>
-                <p className="text-sm opacity-80 mb-6">Válido hasta agotar stock</p>
-                <Link
-                  to="/tienda?cat=electrodomesticos"
-                  onClick={() => setPromoOpen(false)}
-                  className="inline-block bg-white text-orange-600 font-bold px-8 py-3 rounded-xl hover:bg-orange-50 transition-colors"
-                >
-                  Ver ofertas
-                </Link>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Hero */}
       <section className="relative overflow-hidden bg-gray-900 h-[420px] md:h-[500px]">
         <AnimatePresence mode="wait">
