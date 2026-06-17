@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_config
 from app.exceptions import (
@@ -117,6 +119,17 @@ def create_app() -> FastAPI:
                 "detail": exc.message or "Error al comunicarse con Mercado Pago.",
             },
         )
+
+    # Servir frontend (SPA)
+    # Buscar el directorio dist del frontend
+    frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+    
+    if frontend_dist.exists():
+        # Servir archivos estáticos
+        app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+        logger.info(f"Frontend servido desde {frontend_dist}")
+    else:
+        logger.warning(f"Frontend dist no encontrado en {frontend_dist}")
 
     return app
 
