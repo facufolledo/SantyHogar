@@ -1,4 +1,7 @@
 #!/bin/bash
-cd "$(dirname "$0")/backend" || exit 1
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+set -e
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR/backend"
+export PYTHONPATH="$SCRIPT_DIR/backend:$PYTHONPATH"
+exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+
