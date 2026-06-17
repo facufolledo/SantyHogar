@@ -7,6 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
 import { useToast } from '../context/ToastContext';
 import { isApiConfigured, isMpCheckoutEnabled } from '../api/config';
+import CardBINInput from '../components/CardBINInput';
+import InstallmentsCalculator from '../components/InstallmentsCalculator';
 
 /** Sin MP online: pedido solo en el navegador (o API sin checkout MP). */
 function isLocalCheckoutMode(): boolean {
@@ -44,6 +46,7 @@ const Checkout = () => {
   const [payMethod, setPayMethod] = useState<'mp' | 'fiserv'>('mp');
   const [confirmedOrder, setConfirmedOrder] = useState<{ orderNumber: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [binNumber, setBinNumber] = useState('');
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -278,6 +281,25 @@ const Checkout = () => {
                       </p>
                     )}
                   </div>
+
+                  {/* Calculadora de cuotas para MP */}
+                  {mercadoPagoOnline && (
+                    <div className="mb-5 bg-primary-50 border border-primary-100 rounded-xl p-4">
+                      <CardBINInput
+                        onBINChange={setBinNumber}
+                        onCardTypeDetected={(type) => {
+                          console.log('Tarjeta detectada:', type);
+                        }}
+                      />
+                      <InstallmentsCalculator
+                        amount={grandTotal}
+                        binNumber={binNumber}
+                        onInstallmentSelected={(option) => {
+                          console.log('Cuota seleccionada:', option);
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* Recordatorio retiro */}
                   <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5">
