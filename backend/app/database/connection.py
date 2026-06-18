@@ -25,6 +25,23 @@ def get_supabase_client() -> Client:
         key = (cfg.supabase_key or "").strip()
 
         try:
+            # En desarrollo, deshabilitar SSL verification en httpx
+            if cfg.debug:
+                import httpx
+                import ssl
+                
+                # Crear contexto SSL sin verificación
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                
+                # Monkey patch httpx para no verificar SSL
+                original_client_init = httpx.Client.__init__
+                def patched_init(self, *args, **kwargs):
+                    kwargs['verify'] = False
+                    original_client_init(self, *args, **kwargs)
+                httpx.Client.__init__ = patched_init
+            
             _client = create_client(url, key)
         except Exception as e:
             err = str(e).lower()

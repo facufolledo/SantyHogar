@@ -72,6 +72,11 @@ class InstallmentsService:
         """
 
         def _call() -> dict[str, Any]:
+            # En desarrollo, retornar datos mock para evitar problemas de SSL
+            if self.debug:
+                logger.info(f"🔧 DEBUG MODE: Retornando cuotas mock para ${amount}")
+                return self._get_mock_installments(amount)
+            
             params = {
                 "amount": str(amount),
                 "access_token": self.access_token,
@@ -98,11 +103,8 @@ class InstallmentsService:
 
                 # Crear sesión con adaptador custom
                 session = requests.Session()
-                
-                if self.debug:
-                    # En desarrollo, usar adaptador sin verificación SSL
-                    session.mount('https://', SSLAdapter())
-                    session.verify = False
+                session.mount('https://', SSLAdapter())
+                session.verify = False
                 
                 response = session.get(
                     url,
@@ -125,6 +127,101 @@ class InstallmentsService:
                 )
 
         return await asyncio.to_thread(_call)
+    
+    def _get_mock_installments(self, amount: float) -> list[dict[str, Any]]:
+        """Retorna datos mock de cuotas para desarrollo local."""
+        return [
+            {
+                "payment_method_id": "visa",
+                "payment_type_id": "credit_card",
+                "name": "Visa",
+                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/visa.gif",
+                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/visa.gif",
+                "payer_costs": [
+                    {
+                        "installments": 1,
+                        "installment_amount": round(amount, 2),
+                        "total_amount": round(amount, 2),
+                        "interest_rate": 0,
+                        "labels": [],
+                    },
+                    {
+                        "installments": 3,
+                        "installment_amount": round(amount / 3, 2),
+                        "total_amount": round(amount, 2),
+                        "interest_rate": 0,
+                        "labels": ["CFT_0%"],
+                    },
+                    {
+                        "installments": 6,
+                        "installment_amount": round(amount / 6, 2),
+                        "total_amount": round(amount, 2),
+                        "interest_rate": 0,
+                        "labels": ["CFT_0%"],
+                    },
+                ],
+            },
+            {
+                "payment_method_id": "master",
+                "payment_type_id": "credit_card",
+                "name": "Mastercard",
+                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/master.gif",
+                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/master.gif",
+                "payer_costs": [
+                    {
+                        "installments": 1,
+                        "installment_amount": round(amount, 2),
+                        "total_amount": round(amount, 2),
+                        "interest_rate": 0,
+                        "labels": [],
+                    },
+                    {
+                        "installments": 3,
+                        "installment_amount": round(amount / 3 * 1.05, 2),
+                        "total_amount": round(amount * 1.05, 2),
+                        "interest_rate": 0.05,
+                        "labels": ["CFT_5%"],
+                    },
+                    {
+                        "installments": 6,
+                        "installment_amount": round(amount / 6 * 1.10, 2),
+                        "total_amount": round(amount * 1.10, 2),
+                        "interest_rate": 0.10,
+                        "labels": ["CFT_10%"],
+                    },
+                    {
+                        "installments": 12,
+                        "installment_amount": round(amount / 12 * 1.15, 2),
+                        "total_amount": round(amount * 1.15, 2),
+                        "interest_rate": 0.15,
+                        "labels": ["CFT_15%"],
+                    },
+                ],
+            },
+            {
+                "payment_method_id": "amex",
+                "payment_type_id": "credit_card",
+                "name": "American Express",
+                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/amex.gif",
+                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/amex.gif",
+                "payer_costs": [
+                    {
+                        "installments": 1,
+                        "installment_amount": round(amount, 2),
+                        "total_amount": round(amount, 2),
+                        "interest_rate": 0,
+                        "labels": [],
+                    },
+                    {
+                        "installments": 3,
+                        "installment_amount": round(amount / 3, 2),
+                        "total_amount": round(amount, 2),
+                        "interest_rate": 0,
+                        "labels": ["CFT_0%"],
+                    },
+                ],
+            },
+        ]
 
     async def get_installments_by_card(
         self,

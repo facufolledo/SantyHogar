@@ -1,12 +1,9 @@
 RewriteEngine On
 RewriteBase /SantyHogar/
 
-# No reescribir si es un archivo real
+# Redirigir todo al index.html para React Router
 RewriteCond %{REQUEST_FILENAME} !-f
-# No reescribir si es un directorio real
 RewriteCond %{REQUEST_FILENAME} !-d
-
-# Redirigir todo lo demás a index.html para React Router
 RewriteRule ^ index.html [L]
 
 # Seguridad

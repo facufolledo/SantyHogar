@@ -131,9 +131,10 @@ async def create_checkout_preference(request: CheckoutRequest):
     external_reference = f"ORDER-{timestamp}"
     
     # Asegurar que las URLs estén correctamente formateadas
-    success_url = f"{config.frontend_url}/checkout/success"
-    failure_url = f"{config.frontend_url}/checkout/failure"
-    pending_url = f"{config.frontend_url}/checkout/pending"
+    base_url = config.frontend_url if config.frontend_url else "https://santyhogar.com.ar"
+    success_url = f"{base_url}/checkout/success"
+    failure_url = f"{base_url}/checkout/failure"
+    pending_url = f"{base_url}/checkout/pending"
     
     print(f"🔍 URLs configuradas:")
     print(f"  - Success: {success_url}")
@@ -158,7 +159,7 @@ async def create_checkout_preference(request: CheckoutRequest):
             "pending": pending_url,
         },
         # NO incluir auto_return - causa error 400 con el SDK de Python
-        "notification_url": f"{config.public_api_url}/api/webhooks/mercadopago",
+        "notification_url": f"{config.public_api_url}/webhook",
         "statement_descriptor": "SANTYHOGAR",
         "external_reference": external_reference,
         "metadata": {

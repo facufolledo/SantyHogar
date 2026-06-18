@@ -7,8 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
 import { useToast } from '../context/ToastContext';
 import { isApiConfigured, isMpCheckoutEnabled } from '../api/config';
-import CardBINInput from '../components/CardBINInput';
-import InstallmentsCalculator from '../components/InstallmentsCalculator';
+import PaymentMethodsModal from '../components/PaymentMethodsModal';
 
 /** Sin MP online: pedido solo en el navegador (o API sin checkout MP). */
 function isLocalCheckoutMode(): boolean {
@@ -46,7 +45,7 @@ const Checkout = () => {
   const [payMethod, setPayMethod] = useState<'mp' | 'fiserv'>('mp');
   const [confirmedOrder, setConfirmedOrder] = useState<{ orderNumber: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [binNumber, setBinNumber] = useState('');
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -282,23 +281,16 @@ const Checkout = () => {
                     )}
                   </div>
 
-                  {/* Calculadora de cuotas para MP */}
+                  {/* Ver medios de pago para MP */}
                   {mercadoPagoOnline && (
-                    <div className="mb-5 bg-primary-50 border border-primary-100 rounded-xl p-4">
-                      <CardBINInput
-                        onBINChange={setBinNumber}
-                        onCardTypeDetected={(type) => {
-                          console.log('Tarjeta detectada:', type);
-                        }}
-                      />
-                      <InstallmentsCalculator
-                        amount={grandTotal}
-                        binNumber={binNumber}
-                        onInstallmentSelected={(option) => {
-                          console.log('Cuota seleccionada:', option);
-                        }}
-                      />
-                    </div>
+                    <button
+                      onClick={() => setShowPaymentMethods(true)}
+                      type="button"
+                      className="mb-5 w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-50 border border-primary-200 text-primary-700 hover:bg-primary-100 font-semibold rounded-xl transition-all"
+                    >
+                      <CreditCard size={18} />
+                      Ver medios de pago y cuotas
+                    </button>
                   )}
 
                   {/* Recordatorio retiro */}
@@ -364,6 +356,13 @@ const Checkout = () => {
         )}
 
       </AnimatePresence>
+
+      {/* Payment methods modal */}
+      <PaymentMethodsModal
+        amount={grandTotal}
+        isOpen={showPaymentMethods}
+        onClose={() => setShowPaymentMethods(false)}
+      />
     </div>
   );
 };

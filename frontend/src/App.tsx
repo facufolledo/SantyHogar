@@ -65,7 +65,7 @@ const MainLayout = () => {
 
 function App() {
   return (
-    <BrowserRouter basename="/SantyHogar">
+    <BrowserRouter basename="/">
       <AuthProvider>
         <OrdersProvider>
         <ProductsProvider>

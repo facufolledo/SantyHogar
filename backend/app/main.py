@@ -1,7 +1,11 @@
 """Aplicación FastAPI: CORS, rutas, logging y manejo de errores."""
 from __future__ import annotations
 
+# IMPORTANTE: Importar SSL fix PRIMERO (antes de cualquier import de requests/mercadopago)
+import app.ssl_fix  # noqa: F401
+
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, ChevronRight, Star, Truck, Shield, RefreshCw, Minus, Plus, Lock } from 'lucide-react';
+import { ShoppingCart, ChevronRight, Star, Truck, Shield, RefreshCw, Minus, Plus, Lock, CreditCard } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import { useCart } from '../context/CartContext';
@@ -10,7 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/format';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
-import InstallmentCalculator from '../components/InstallmentCalculator';
+import PaymentMethodsModal from '../components/PaymentMethodsModal';
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -19,6 +19,7 @@ const ProductDetail = () => {
   const [activeImg, setActiveImg] = useState(0);
   const [qty, setQty] = useState(1);
   const [showAuth, setShowAuth] = useState(false);
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const { addItem } = useCart();
   const { isLogged } = useAuth();
   const { toast } = useToast();
@@ -123,9 +124,6 @@ const ProductDetail = () => {
               <p className="text-sm text-gray-400 line-through">{formatPrice(product.originalPrice)}</p>
             )}
             <p className="text-3xl font-black text-gray-900">{formatPrice(product.price)}</p>
-            <div className="mt-2">
-              <InstallmentCalculator price={product.price} showDetails={false} />
-            </div>
           </div>
 
           {/* Stock */}
@@ -152,11 +150,15 @@ const ProductDetail = () => {
             </div>
           )}
 
-          {/* Installment options */}
+          {/* Payment options button */}
           {product.stock > 0 && (
-            <div className="mb-5">
-              <InstallmentCalculator price={product.price * qty} showDetails={true} />
-            </div>
+            <button
+              onClick={() => setShowPaymentMethods(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 font-semibold rounded-xl transition-all mb-5"
+            >
+              <CreditCard size={18} />
+              Ver medios de pago y cuotas
+            </button>
           )}
 
           {/* CTAs */}
@@ -219,6 +221,13 @@ const ProductDetail = () => {
       {showAuth && (
         <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)} />
       )}
+
+      {/* Payment methods modal */}
+      <PaymentMethodsModal
+        amount={product.price * qty}
+        isOpen={showPaymentMethods}
+        onClose={() => setShowPaymentMethods(false)}
+      />
     </div>
   );
 };

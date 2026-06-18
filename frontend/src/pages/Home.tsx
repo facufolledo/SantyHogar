@@ -72,14 +72,18 @@ const Home = () => {
             transition={{ duration: 0.6 }}
             className="absolute inset-0"
           >
-            {/* Full background image */}
             <img
               src={slides[slide].image}
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
             />
-            {/* Dark overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-900/80 to-gray-900/20" />
+            {/* Continuidad con navbar — mismo gray-900, menos intenso */}
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-900/85 from-0% via-gray-900/50 via-35% to-transparent to-100%" />
+            <div className="absolute inset-0 bg-gradient-to-r from-gray-900/65 via-gray-900/35 to-gray-900/20" />
+            {/* Azul muy sutil en bordes */}
+            <div className="absolute inset-y-0 left-0 w-2/5 bg-gradient-to-r from-[#0c1528]/50 to-transparent" />
+            <div className="absolute inset-y-0 right-0 w-2/5 bg-gradient-to-l from-[#0c1528]/35 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/45 via-transparent to-transparent" />
           </motion.div>
         </AnimatePresence>
 
@@ -91,14 +95,17 @@ const Home = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 40 }}
               transition={{ duration: 0.5 }}
-              className="max-w-lg"
+              className="max-w-xl"
             >
-              <h1 className="text-4xl md:text-6xl font-black text-white leading-tight mb-2">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-3 drop-shadow-lg">
                 {slides[slide].title}<br />
-                <span className="text-accent">{slides[slide].highlight}</span>
+                <span className="text-orange-400 drop-shadow-lg">{slides[slide].highlight}</span>
               </h1>
-              <p className="text-gray-300 text-lg mb-6">{slides[slide].subtitle}</p>
-              <Link to={slides[slide].link} className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-3.5 rounded-xl transition-all duration-200 active:scale-95">
+              <p className="text-white/90 text-lg mb-6 drop-shadow-md">{slides[slide].subtitle}</p>
+              <Link
+                to={slides[slide].link}
+                className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 shadow-lg shadow-orange-500/30 cursor-pointer"
+              >
                 {slides[slide].cta} <ChevronRight size={18} />
               </Link>
             </motion.div>
@@ -106,33 +113,48 @@ const Home = () => {
         </div>
 
         {/* Arrows */}
-        <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition-colors">
+        <button
+          onClick={prev}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-full p-2.5 transition-all cursor-pointer"
+        >
           <ChevronLeft size={20} />
         </button>
-        <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition-colors">
+        <button
+          onClick={next}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-full p-2.5 transition-all cursor-pointer"
+        >
           <ChevronRight size={20} />
         </button>
 
         {/* Dots */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
           {slides.map((_, i) => (
-            <button key={i} onClick={() => setSlide(i)} className={`w-2 h-2 rounded-full transition-all ${i === slide ? 'bg-white w-6' : 'bg-white/40'}`} />
+            <button
+              key={i}
+              onClick={() => setSlide(i)}
+              className={`transition-all duration-200 cursor-pointer ${
+                i === slide ? 'bg-orange-500 w-8 h-2.5 rounded-full' : 'bg-white/40 hover:bg-white/60 w-2.5 h-2.5 rounded-full'
+              }`}
+            />
           ))}
         </div>
       </section>
 
       {/* Trust bar */}
       <section className="bg-gray-100 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {trust.map(({ icon: Icon, label, sub }) => (
-              <div key={label} className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full border-2 border-primary-600 flex items-center justify-center flex-shrink-0">
-                  <Icon size={18} className="text-primary-600" />
+              <div 
+                key={label} 
+                className="flex items-center gap-3"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
+                  <Icon size={18} className="text-white" />
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-800 uppercase leading-tight">{label}</p>
-                  <p className="text-xs text-gray-500">{sub}</p>
+                  <p className="text-xs text-gray-600">{sub}</p>
                 </div>
               </div>
             ))}
@@ -143,14 +165,22 @@ const Home = () => {
       <ProductsErrorBanner />
 
       {/* Categories */}
-      <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Categorías</h2>
-          <Link to="/tienda" className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1">
-            Ver todo <ChevronRight size={16} />
-          </Link>
-        </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section className="bg-white py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-2">Categorías</h2>
+              <p className="text-gray-600">Explorá nuestra variedad de productos para el hogar</p>
+            </div>
+            <Link 
+              to="/tienda" 
+              className="group flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold transition-colors duration-200 cursor-pointer"
+            >
+              Ver todas las categorías 
+              <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform duration-200" />
+            </Link>
+          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {loading && products.length === 0 ? (
             <p className="col-span-full text-center text-gray-500 py-8">Cargando categorías…</p>
           ) : (
@@ -162,10 +192,23 @@ const Home = () => {
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
             >
-              <Link to={`/tienda?cat=${cat.id}`} className="group relative overflow-hidden rounded-2xl block aspect-[4/3]">
-                <img src={cat.image} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-5">
+              <Link 
+                to={`/tienda?cat=${cat.id}`} 
+                className="group relative overflow-hidden rounded-2xl block aspect-[4/3] shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer"
+              >
+                <img 
+                  src={cat.image} 
+                  alt={cat.name} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                />
+
+                {/* Overlay oscuro solo en hover */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                {/* Gradiente suave siempre visible para el texto */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent group-hover:opacity-0 transition-opacity duration-300" />
+
+                <div className="absolute bottom-0 left-0 p-5 w-full">
                   <div className="w-8 h-8 mb-2 text-white opacity-90">
                     {cat.id === 'electrodomesticos' && (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -185,24 +228,39 @@ const Home = () => {
                   </div>
                   <h3 className="text-white text-xl font-bold">{cat.name}</h3>
                   <p className="text-gray-300 text-sm">{cat.count} productos</p>
+
+                  {/* Detalle extra solo en hover */}
+                  <p className="text-gray-300 text-xs mt-2 max-h-0 overflow-hidden opacity-0 group-hover:max-h-10 group-hover:opacity-100 transition-all duration-300">
+                    {cat.id === 'electrodomesticos' && 'Heladeras, cocinas y lavarropas'}
+                    {cat.id === 'muebleria' && 'Muebles modernos y funcionales'}
+                    {cat.id === 'colchoneria' && 'Colchones y sommiers de calidad'}
+                  </p>
                 </div>
               </Link>
             </motion.div>
           ))
           )}
         </div>
+        </div>
       </section>
 
       {/* Featured products */}
-      <section className="bg-gray-50 py-12">
+      <section className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Productos destacados</h2>
-            <Link to="/tienda" className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1">
-              Ver todos <ChevronRight size={16} />
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-2">Productos destacados</h2>
+              <p className="text-gray-600">Los mejores productos seleccionados para vos</p>
+            </div>
+            <Link 
+              to="/tienda" 
+              className="group flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold transition-colors duration-200 cursor-pointer"
+            >
+              Ver todos los productos 
+              <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform duration-200" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {loading && featured.length === 0 ? (
               <p className="col-span-full text-center text-gray-500 py-12">Cargando productos…</p>
             ) : (
@@ -223,13 +281,28 @@ const Home = () => {
       </section>
 
       {/* Banner CTA */}
-      <section className="bg-primary-600 py-12">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-black text-white mb-2">¿Necesitás financiación?</h2>
-          <p className="text-primary-100 mb-6">Hasta 12 cuotas sin interés con todos los bancos</p>
-          <Link to="/tienda" className="inline-block bg-white text-primary-600 font-bold px-8 py-3 rounded-xl hover:bg-primary-50 transition-colors">
-            Ver productos
-          </Link>
+      <section className="relative overflow-hidden py-20 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900">
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-300 rounded-full blur-3xl" />
+        </div>
+        
+        <div className="relative max-w-4xl mx-auto px-6 text-center">
+          <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-10 border border-white/20 shadow-2xl">
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
+              ¿Necesitás financiación?
+            </h2>
+            <p className="text-blue-100 text-lg md:text-xl mb-8 font-medium">
+              Hasta 12 cuotas sin interés con todos los bancos
+            </p>
+            <Link 
+              to="/tienda" 
+              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-10 py-4 rounded-xl transition-all duration-200 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              Ver productos <ChevronRight size={20} />
+            </Link>
+          </div>
         </div>
       </section>
     </div>

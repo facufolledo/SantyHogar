@@ -21,13 +21,54 @@ async def calculate_installments(
     """
     Calcula opciones de cuotas disponibles para un monto.
     
-    Parámetros:
-    - amount: Monto total en ARS (obligatorio)
-    - bin_number: Primeros 6 dígitos de la tarjeta (opcional, formato: 6 dígitos)
-    
-    Ejemplo:
-    GET /api/installments/calculate?amount=10000&bin_number=453036
+    En DEBUG mode retorna datos mock sin llamar a MP.
     """
+    from app.config import get_config
+    cfg = get_config()
+    
+    # En desarrollo, retornar datos MOCK
+    if cfg.debug:
+        logger.info(f"🔧 DEBUG: Retornando cuotas mock para ${amount}")
+        return [
+            {
+                "payment_method_id": "visa",
+                "payment_type_id": "credit_card",
+                "name": "Visa",
+                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/visa.gif",
+                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/visa.gif",
+                "payer_costs": [
+                    {"installments": 1, "installment_amount": round(amount, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": []},
+                    {"installments": 3, "installment_amount": round(amount / 3, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["CFT_0%"]},
+                    {"installments": 6, "installment_amount": round(amount / 6, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["CFT_0%"]},
+                    {"installments": 12, "installment_amount": round(amount / 12, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["CFT_0%"]},
+                ],
+            },
+            {
+                "payment_method_id": "master",
+                "payment_type_id": "credit_card",
+                "name": "Mastercard",
+                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/master.gif",
+                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/master.gif",
+                "payer_costs": [
+                    {"installments": 1, "installment_amount": round(amount, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": []},
+                    {"installments": 3, "installment_amount": round(amount / 3 * 1.05, 2), "total_amount": round(amount * 1.05, 2), "interest_rate": 0.05, "labels": ["CFT_5%"]},
+                    {"installments": 6, "installment_amount": round(amount / 6 * 1.10, 2), "total_amount": round(amount * 1.10, 2), "interest_rate": 0.10, "labels": ["CFT_10%"]},
+                    {"installments": 12, "installment_amount": round(amount / 12 * 1.20, 2), "total_amount": round(amount * 1.20, 2), "interest_rate": 0.20, "labels": ["CFT_20%"]},
+                ],
+            },
+            {
+                "payment_method_id": "amex",
+                "payment_type_id": "credit_card",
+                "name": "American Express",
+                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/amex.gif",
+                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/amex.gif",
+                "payer_costs": [
+                    {"installments": 1, "installment_amount": round(amount, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": []},
+                    {"installments": 3, "installment_amount": round(amount / 3, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["CFT_0%"]},
+                ],
+            },
+        ]
+    
     try:
         service = InstallmentsService()
         result = await service.get_installments(
