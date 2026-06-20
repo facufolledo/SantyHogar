@@ -13,6 +13,10 @@ import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
+import CheckoutSuccess from './pages/CheckoutSuccess';
+import CheckoutFailure from './pages/CheckoutFailure';
+import CheckoutPending from './pages/CheckoutPending';
+import AuthCallback from './pages/AuthCallback';
 import Contact from './pages/Contact';
 // Admin
 import AdminLayout from './pages/admin/AdminLayout';
@@ -54,6 +58,10 @@ const MainLayout = () => {
             <Route path="/producto/:slug" element={<PageWrap><ProductDetail /></PageWrap>} />
             <Route path="/carrito" element={<PageWrap><Cart /></PageWrap>} />
             <Route path="/checkout" element={<PageWrap><Checkout /></PageWrap>} />
+            <Route path="/checkout/success" element={<PageWrap><CheckoutSuccess /></PageWrap>} />
+            <Route path="/checkout/failure" element={<PageWrap><CheckoutFailure /></PageWrap>} />
+            <Route path="/checkout/pending" element={<PageWrap><CheckoutPending /></PageWrap>} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/contacto" element={<PageWrap><Contact /></PageWrap>} />
           </Routes>
         </AnimatePresence>

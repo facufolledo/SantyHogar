@@ -12,16 +12,43 @@ interface Props {
 
 type Mode = 'login' | 'register';
 
+// Google icon SVG
+const GoogleIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+    <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
+    <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+    <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+  </svg>
+);
+
 export default function AuthModal({ onClose, onSuccess }: Props) {
   const [mode, setMode] = useState<Mode>('login');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
   const { toast } = useToast();
 
   const set = (k: string, v: string) => { setForm(p => ({ ...p, [k]: v })); setError(''); };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    setError('');
+
+    const result = await loginWithGoogle();
+
+    if (!result.ok) {
+      setError(result.error || 'Error al iniciar sesión con Google');
+      setGoogleLoading(false);
+      return;
+    }
+
+    // Google OAuth will redirect, so we don't need to do anything here
+    // The loading state will remain until the redirect happens
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +106,31 @@ export default function AuthModal({ onClose, onSuccess }: Props) {
 
         {/* Form */}
         <div className="px-6 py-5">
+          {/* Google Sign In Button */}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading || loading}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-xl font-medium text-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+          >
+            {googleLoading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <GoogleIcon />
+            )}
+            Continuar con Google
+          </button>
+
+          {/* Divider */}
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-white text-gray-500">O continuar con email</span>
+            </div>
+          </div>
+
           {/* Hint for demo */}
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 text-xs text-blue-700">
             <p className="font-semibold mb-0.5">Cuentas de prueba:</p>
