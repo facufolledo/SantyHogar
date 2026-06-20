@@ -1,35 +1,71 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileSpreadsheet, CheckCircle, AlertCircle, X, Upload } from 'lucide-react';
+import { FileSpreadsheet, CheckCircle, AlertCircle, X, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
-import { bulkImportProducts, type BulkImportResponse } from '../../api/productsApi';
+import { useProducts } from '../../context/ProductsContext';
+import { bulkImportPreview, bulkImportConfirm, uploadProductImage, type BulkImportPreviewResponse, type BulkImportResponse } from '../../api/productsApi';
+
+interface PreviewRow {
+  row_number: number;
+  valid: boolean;
+  selected: boolean;
+  nombre: string;
+  categoria: string;
+  subcategoria: string;
+  precio: number;
+  stock: number;
+  marca: string;
+  descripcion: string;
+  imagen: string | null;
+  errors: string[];
+}
 
 export default function BulkImport() {
-  const [result, setResult] = useState<BulkImportResponse | null>(null);
+  const [previewData, setPreviewData] = useState<PreviewRow[]>([]);
+  const [importResult, setImportResult] = useState<BulkImportResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [imported, setImported] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [step, setStep] = useState<'upload' | 'preview' | 'done'>('upload');
+  const [summary, setSummary] = useState<{ total: number; valid: number; invalid: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { refetch } = useProducts();
 
   const handleFile = async (file: File) => {
-    if (!file.name.match(/\.(doc|docx)$/)) {
-      toast('Solo se aceptan archivos Word (.doc, .docx)', 'error');
+    if (!file.name.endsWith('.xlsx')) {
+      toast('Solo se aceptan archivos Excel (.xlsx)', 'error');
       return;
     }
-    
+
     setLoading(true);
     try {
-      const response = await bulkImportProducts(file);
-      setResult(response);
+      const response = await bulkImportPreview(file);
       
-      if (response.imported_count > 0) {
-        setImported(true);
-        toast(response.message, 'success');
-      } else {
-        toast('No se pudo importar ningún producto', 'error');
-      }
+      // Convertir validaciones a filas de preview
+      const rows: PreviewRow[] = response.validations.map((v) => ({
+        row_number: v.row_number,
+        valid: v.valid,
+        selected: v.valid, // Solo seleccionar las v├ílidas por defecto
+        nombre: v.data?.nombre || '',
+        categoria: v.data?.categoria || 'electrodomesticos',
+        subcategoria: v.data?.subcategoria || 'General',
+        precio: v.data?.precio || 0,
+        stock: v.data?.stock || 0,
+        marca: v.data?.marca || 'Sin marca',
+        descripcion: v.data?.descripcion || '',
+        imagen: v.data?.imagen || null,
+        errors: v.errors,
+      }));
+
+      setPreviewData(rows);
+      setSummary({
+        total: response.total_rows,
+        valid: response.valid_rows,
+        invalid: response.invalid_rows,
+      });
+      setStep('preview');
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Error al importar productos', 'error');
+      toast(error instanceof Error ? error.message : 'Error al procesar el archivo', 'error');
     }
     setLoading(false);
   };
@@ -40,30 +76,117 @@ export default function BulkImport() {
     if (f) handleFile(f);
   };
 
-  const validCount = result?.valid_rows || 0;
-  const errorCount = result?.invalid_rows || 0;
+  const toggleRow = (index: number) => {
+    setPreviewData(prev => prev.map((row, i) =>
+      i === index ? { ...row, selected: !row.selected } : row
+    ));
+  };
+
+  const toggleAll = () => {
+    const allValidSelected = previewData.filter(r => r.valid).every(r => r.selected);
+    setPreviewData(prev => prev.map(row =>
+      row.valid ? { ...row, selected: !allValidSelected } : row
+    ));
+  };
+
+  const handleImageDrop = useCallback(async (e: React.DragEvent, rowIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) {
+      toast('Solo se aceptan archivos de imagen', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast('La imagen no debe exceder 5 MB', 'error');
+      return;
+    }
+
+    try {
+      const result = await uploadProductImage(file);
+      setPreviewData(prev => prev.map((row, i) =>
+        i === rowIndex ? { ...row, imagen: result.url } : row
+      ));
+      toast('Imagen subida correctamente', 'success');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Error al subir imagen', 'error');
+    }
+  }, [toast]);
+
+  const removeImage = (rowIndex: number) => {
+    setPreviewData(prev => prev.map((row, i) =>
+      i === rowIndex ? { ...row, imagen: null } : row
+    ));
+  };
+
+  const handleConfirm = async () => {
+    const selectedRows = previewData.filter(r => r.selected && r.valid);
+    if (selectedRows.length === 0) {
+      toast('Seleccion├í al menos una fila para importar', 'error');
+      return;
+    }
+
+    setConfirming(true);
+    try {
+      const rows = selectedRows.map(r => ({
+        nombre: r.nombre,
+        precio: r.precio,
+        stock: r.stock,
+        categoria: r.categoria,
+        subcategoria: r.subcategoria,
+        marca: r.marca,
+        descripcion: r.descripcion,
+        imagen: r.imagen,
+      }));
+
+      const result = await bulkImportConfirm(rows);
+      setImportResult(result);
+      setStep('done');
+      toast(result.message, 'success');
+      
+      // Refrescar la lista de productos
+      await refetch();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Error al importar productos', 'error');
+    }
+    setConfirming(false);
+  };
+
+  const reset = () => {
+    setPreviewData([]);
+    setImportResult(null);
+    setSummary(null);
+    setStep('upload');
+  };
+
+  const selectedCount = previewData.filter(r => r.selected && r.valid).length;
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-bold text-white">Importación masiva de stock</h2>
-          <p className="text-sm text-gray-500">Subí un archivo Word (.doc) para importar productos con stock</p>
+          <h2 className="font-bold text-white">Importaci├│n masiva de productos</h2>
+          <p className="text-sm text-gray-500">Sub├¡ un archivo Excel (.xlsx) para importar productos</p>
         </div>
+        {step !== 'upload' && (
+          <button onClick={reset} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-300">
+            <X size={14} /> Nueva importaci├│n
+          </button>
+        )}
       </div>
 
       <div className="text-xs text-gray-600 rounded-lg border border-gray-700/60 bg-gray-800/50 px-3 py-2">
-        <p className="mb-1">📄 <strong>Formato esperado del documento:</strong></p>
+        <p className="mb-1">­ƒôè <strong>Formato esperado del Excel (.xlsx):</strong></p>
         <ul className="list-disc list-inside space-y-0.5 ml-2">
-          <li>Línea 1: Código del producto</li>
-          <li>Línea 2: Nombre/Descripción</li>
-          <li>Línea 3: Categoría</li>
-          <li>Derecha: Stock disponible</li>
+          <li>Primera fila: encabezados (nombre, categor├¡a, subcategor├¡a, precio, stock, marca, descripci├│n)</li>
+          <li>Filas siguientes: datos de productos</li>
+          <li>Las columnas se detectan autom├íticamente por nombre</li>
         </ul>
-        <p className="mt-2 text-yellow-500">⚠️ Los productos se crearán con precio $0. Usá "Gestión de Precios" para asignarlos después.</p>
+        <p className="mt-2 text-blue-400">­ƒÆí Pod├®s arrastrar im├ígenes a cada fila en la vista previa antes de confirmar.</p>
       </div>
 
-      {!result && (
+      {/* Step 1: Upload */}
+      {step === 'upload' && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -75,7 +198,7 @@ export default function BulkImport() {
           <input
             ref={inputRef}
             type="file"
-            accept=".doc,.docx"
+            accept=".xlsx"
             className="hidden"
             onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
@@ -87,49 +210,54 @@ export default function BulkImport() {
             )}
           </div>
           <p className="font-semibold text-gray-300 mb-1">
-            {loading ? 'Procesando archivo...' : 'Arrastrá tu archivo Word o hacé click'}
+            {loading ? 'Procesando archivo...' : 'Arrastr├í tu archivo Excel o hac├® click'}
           </p>
-          <p className="text-sm text-gray-600">Formatos: .doc, .docx</p>
+          <p className="text-sm text-gray-600">Formato: .xlsx</p>
         </motion.div>
       )}
 
+      {/* Step 2: Preview */}
       <AnimatePresence>
-        {result && !imported && (
+        {step === 'preview' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className="space-y-4"
           >
+            {/* Summary badges */}
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
-                <CheckCircle size={15} /> {validCount} válidos
+              <div className="flex items-center gap-2 bg-blue-500/10 text-blue-400 px-3 py-2 rounded-lg text-sm font-medium">
+                <FileSpreadsheet size={15} /> {summary?.total} filas
               </div>
-              {errorCount > 0 && (
+              <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
+                <CheckCircle size={15} /> {summary?.valid} v├ílidas
+              </div>
+              {(summary?.invalid || 0) > 0 && (
                 <div className="flex items-center gap-2 bg-red-500/10 text-red-400 px-3 py-2 rounded-lg text-sm font-medium">
-                  <AlertCircle size={15} /> {errorCount} con errores
+                  <AlertCircle size={15} /> {summary?.invalid} con errores
                 </div>
               )}
-              <div className="flex items-center gap-2 bg-blue-500/10 text-blue-400 px-3 py-2 rounded-lg text-sm font-medium">
-                <Upload size={15} /> {result.imported_count} importados
+              <div className="flex items-center gap-2 bg-purple-500/10 text-purple-400 px-3 py-2 rounded-lg text-sm font-medium">
+                <Upload size={15} /> {selectedCount} seleccionadas
               </div>
-              <button
-                onClick={() => {
-                  setResult(null);
-                  setImported(false);
-                }}
-                className="ml-auto flex items-center gap-1 text-sm text-gray-500 hover:text-gray-300"
-              >
-                <X size={14} /> Limpiar
-              </button>
             </div>
 
+            {/* Preview table */}
             <div className="bg-gray-800 border border-gray-700/60 rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="border-b border-gray-700/60">
                     <tr>
-                      {['', 'Fila', 'Nombre', 'Categoría', 'Stock', 'Estado'].map(h => (
+                      <th className="text-left px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={previewData.filter(r => r.valid).every(r => r.selected)}
+                          onChange={toggleAll}
+                          className="rounded border-gray-600"
+                        />
+                      </th>
+                      {['Fila', 'Nombre', 'Categor├¡a', 'Precio', 'Stock', 'Marca', 'Imagen', 'Estado'].map(h => (
                         <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">
                           {h}
                         </th>
@@ -137,38 +265,59 @@ export default function BulkImport() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700/40">
-                    {result.validations.map((validation, i) => (
-                      <tr key={i} className={validation.valid ? 'hover:bg-gray-700/30' : 'bg-red-500/5'}>
+                    {previewData.map((row, i) => (
+                      <tr key={i} className={`${row.valid ? 'hover:bg-gray-700/30' : 'bg-red-500/5'} ${row.selected ? '' : 'opacity-50'}`}>
                         <td className="px-4 py-3">
-                          {validation.valid ? (
-                            <CheckCircle size={15} className="text-green-400" />
-                          ) : (
-                            <AlertCircle size={15} className="text-red-400" />
-                          )}
+                          <input
+                            type="checkbox"
+                            checked={row.selected}
+                            onChange={() => toggleRow(i)}
+                            disabled={!row.valid}
+                            className="rounded border-gray-600"
+                          />
                         </td>
-                        <td className="px-4 py-3 text-gray-500">#{validation.row_number}</td>
-                        <td className="px-4 py-3 font-medium text-gray-200">
-                          {validation.data?.nombre || (
-                            <span className="text-red-400 italic">sin nombre</span>
-                          )}
+                        <td className="px-4 py-3 text-gray-500">#{row.row_number}</td>
+                        <td className="px-4 py-3 font-medium text-gray-200 max-w-[200px] truncate">
+                          {row.nombre || <span className="text-red-400 italic">sin nombre</span>}
                         </td>
                         <td className="px-4 py-3">
-                          {validation.data ? (
-                            <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">
-                              {validation.data.categoria}
-                            </span>
-                          ) : (
-                            <span className="text-gray-600">-</span>
-                          )}
+                          <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">
+                            {row.categoria}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-gray-300">
-                          {validation.data?.stock ?? '-'}
+                          {row.precio > 0 ? `$${row.precio.toLocaleString()}` : <span className="text-gray-600">$0</span>}
+                        </td>
+                        <td className="px-4 py-3 text-gray-300">{row.stock}</td>
+                        <td className="px-4 py-3 text-gray-300 max-w-[100px] truncate">{row.marca}</td>
+                        <td className="px-4 py-3">
+                          {row.imagen ? (
+                            <div className="flex items-center gap-1">
+                              <img src={row.imagen} alt="" className="w-8 h-8 rounded object-cover" />
+                              <button
+                                onClick={() => removeImage(i)}
+                                className="text-red-400 hover:text-red-300 p-0.5"
+                                title="Quitar imagen"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              onDrop={(e) => handleImageDrop(e, i)}
+                              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                              className="w-8 h-8 border border-dashed border-gray-600 rounded flex items-center justify-center hover:border-primary-500 cursor-pointer transition-colors"
+                              title="Arrastr├í una imagen aqu├¡"
+                            >
+                              <ImageIcon size={12} className="text-gray-600" />
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3">
-                          {validation.valid ? (
-                            <span className="text-xs text-green-400">✓ OK</span>
+                          {row.valid ? (
+                            <span className="text-xs text-green-400">Ô£ô OK</span>
                           ) : (
-                            <span className="text-xs text-red-400">{validation.errors.join(', ')}</span>
+                            <span className="text-xs text-red-400">{row.errors.join(', ')}</span>
                           )}
                         </td>
                       </tr>
@@ -178,34 +327,54 @@ export default function BulkImport() {
               </div>
             </div>
 
-            <p className="text-sm text-gray-500">
-              {result.message}
-            </p>
+            {/* Confirm button */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                {selectedCount} producto{selectedCount !== 1 ? 's' : ''} seleccionado{selectedCount !== 1 ? 's' : ''} para importar
+              </p>
+              <button
+                onClick={handleConfirm}
+                disabled={confirming || selectedCount === 0}
+                className="btn-primary text-sm px-6 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {confirming ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Importando...
+                  </>
+                ) : (
+                  <>
+                    <Upload size={16} />
+                    Confirmar importaci├│n ({selectedCount})
+                  </>
+                )}
+              </button>
+            </div>
           </motion.div>
         )}
 
-        {imported && (
+        {/* Step 3: Done */}
+        {step === 'done' && importResult && (
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="text-center py-12"
           >
             <CheckCircle size={56} className="mx-auto text-green-400 mb-3" />
-            <h3 className="font-bold text-white text-lg mb-1">¡Importación exitosa!</h3>
+            <h3 className="font-bold text-white text-lg mb-1">┬íImportaci├│n exitosa!</h3>
             <p className="text-gray-500 text-sm mb-2">
-              {result?.imported_count} productos fueron agregados al catálogo.
+              {importResult.imported_count} productos fueron agregados al cat├ílogo.
             </p>
+            {importResult.invalid_rows > 0 && (
+              <p className="text-yellow-500 text-sm mb-2">
+                ÔÜá´©Å {importResult.invalid_rows} fila{importResult.invalid_rows !== 1 ? 's' : ''} no se pudieron importar.
+              </p>
+            )}
             <p className="text-yellow-500 text-sm mb-5">
-              ⚠️ Recordá asignar precios en "Gestión de Precios"
+              ÔÜá´©Å Record├í asignar precios en "Gesti├│n de Precios" si importaste con precio $0
             </p>
-            <button
-              onClick={() => {
-                setResult(null);
-                setImported(false);
-              }}
-              className="btn-primary text-sm px-6 py-2.5"
-            >
-              Nueva importación
+            <button onClick={reset} className="btn-primary text-sm px-6 py-2.5">
+              Nueva importaci├│n
             </button>
           </motion.div>
         )}

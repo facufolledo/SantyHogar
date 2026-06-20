@@ -1,22 +1,24 @@
-"""Rutas de productos."""
+﻿"""Rutas de productos."""
 from typing import Annotated, List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, UploadFile, status, HTTPException
 
-from app.deps import get_product_service, get_supabase
+from app.deps import get_image_service, get_product_service, get_supabase
 from app.exceptions import ProductNotFoundError
 from app.mappers import product_to_response
-from app.models.bulk_import import BulkImportResponse
+from app.models.bulk_import import BulkImportResponse, ExcelImportConfirmRequest, ExcelImportPreview
 from app.models.schemas import (
     CreateProductRequest,
+    ImageUploadResponse,
     ProductResponse,
     UpdatePriceByProductBody,
     UpdatePriceRequest,
     UpdatePriceResponse,
     UpdateProductRequest,
 )
-from app.services.bulk_import_service import process_bulk_import
+from app.services.bulk_import_service import parse_xlsx_file, process_bulk_import, process_xlsx_import
+from app.services.image_service import ImageService, ImageValidationError
 from app.services.product_service import ProductService
 
 router = APIRouter(tags=["products"])
@@ -35,42 +37,196 @@ async def list_products(
 
 
 @router.post(
+    "/products/upload-image",
+    response_model=ImageUploadResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_product_image(
+    file: UploadFile = File(...),
+    image_service: ImageService = Depends(get_image_service),
+) -> ImageUploadResponse:
+    """Sube una imagen de producto a Supabase Storage.
+
+    Valida tipo (JPEG, PNG, WebP) y tama├▒o (Ôëñ5 MB).
+    Retorna la URL p├║blica y el nombre del archivo generado.
+    """
+    try:
+        url, filename = await image_service.upload_image(file)
+        return ImageUploadResponse(url=url, filename=filename)
+    except ImageValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+
+
+@router.post(
+    "/products/bulk-import/preview",
+    response_model=ExcelImportPreview,
+    status_code=status.HTTP_200_OK,
+)
+async def bulk_import_preview(
+    file: UploadFile = File(...),
+) -> ExcelImportPreview:
+    """
+    Preview de importaci├│n masiva desde archivo .xlsx.
+    
+    Parsea el archivo y retorna las validaciones sin insertar en la BD.
+    El frontend muestra esta preview para que el admin seleccione qu├® filas importar.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== BULK IMPORT PREVIEW === Archivo: {file.filename}")
+    
+    # Validar tipo de archivo
+    if not file.filename or not file.filename.endswith('.xlsx'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El archivo debe ser .xlsx"
+        )
+    
+    # Leer contenido del archivo
+    content = await file.read()
+    logger.info(f"Archivo le├¡do: {len(content)} bytes")
+    
+    if len(content) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El archivo est├í vac├¡o"
+        )
+    
+    # Parsear el archivo
+    validations = parse_xlsx_file(content)
+    
+    # Verificar si hay datos
+    if not validations or (len(validations) == 1 and not validations[0].valid and validations[0].row_number == 0):
+        error_msg = validations[0].errors[0] if validations and validations[0].errors else "El archivo no contiene productos para importar"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg
+        )
+    
+    valid_rows = [v for v in validations if v.valid]
+    invalid_rows = [v for v in validations if not v.valid]
+    
+    return ExcelImportPreview(
+        total_rows=len(validations),
+        valid_rows=len(valid_rows),
+        invalid_rows=len(invalid_rows),
+        validations=validations,
+    )
+
+
+@router.post(
     "/products/bulk-import",
     response_model=BulkImportResponse,
     status_code=status.HTTP_200_OK,
 )
 async def bulk_import_products(
-    file: UploadFile = File(...),
+    file: UploadFile = File(None),
     supabase = Depends(get_supabase),
 ) -> BulkImportResponse:
     """
-    Importación masiva de productos desde archivo .doc
+    Importaci├│n masiva de productos desde archivo .xlsx.
     
-    Formato esperado del documento:
-    - Código del producto
-    - Nombre/Descripción
-    - Categoría
-    - Stock (a la derecha)
+    Acepta un archivo .xlsx, lo parsea e importa los productos v├ílidos.
+    Para el flujo de dos pasos, usar primero /bulk-import/preview y luego /bulk-import/confirm.
     """
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"=== BULK IMPORT INICIADO === Archivo: {file.filename}")
     
-    # Validar tipo de archivo
-    if not file.filename or not (file.filename.endswith('.doc') or file.filename.endswith('.docx')):
+    if file is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo debe ser .doc o .docx"
+            detail="Se requiere un archivo .xlsx"
+        )
+    
+    logger.info(f"=== BULK IMPORT INICIADO === Archivo: {file.filename}")
+    
+    # Validar tipo de archivo - ahora acepta .xlsx
+    if not file.filename or not file.filename.endswith('.xlsx'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El archivo debe ser .xlsx"
         )
     
     # Leer contenido del archivo
     content = await file.read()
-    logger.info(f"Archivo leído: {len(content)} bytes")
+    logger.info(f"Archivo le├¡do: {len(content)} bytes")
     
-    # Procesar importación
-    result = await process_bulk_import(content, supabase)
-    logger.info(f"Importación completada: {result.imported_count} productos importados")
+    # Parsear el archivo Excel
+    validations = parse_xlsx_file(content)
     
+    # Verificar si hay datos
+    if not validations or (len(validations) == 1 and not validations[0].valid and validations[0].row_number == 0):
+        error_msg = validations[0].errors[0] if validations and validations[0].errors else "El archivo no contiene productos para importar"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg
+        )
+    
+    # Importar filas v├ílidas
+    valid_rows = [v for v in validations if v.valid]
+    invalid_rows = [v for v in validations if not v.valid]
+    imported_count = 0
+    
+    for validation in valid_rows:
+        if validation.data:
+            try:
+                product_data = {
+                    'nombre': validation.data.nombre,
+                    'slug': validation.data.slug,
+                    'categoria': validation.data.categoria,
+                    'subcategoria': validation.data.subcategoria,
+                    'precio': validation.data.precio,
+                    'precio_original': None,
+                    'stock': validation.data.stock,
+                    'marca': validation.data.marca,
+                    'descripcion': validation.data.descripcion or '',
+                    'imagenes': [validation.data.imagen] if validation.data.imagen else [],
+                    'especificaciones': {},
+                    'destacado': False,
+                    'calificacion': 0.0,
+                    'cantidad_resenas': 0,
+                }
+                
+                result = supabase.table('productos').insert(product_data).execute()
+                
+                if result.data:
+                    imported_count += 1
+            except Exception as e:
+                validation.valid = False
+                validation.errors.append(f"Error al insertar: {str(e)}")
+    
+    return BulkImportResponse(
+        total_rows=len(validations),
+        valid_rows=len(valid_rows),
+        invalid_rows=len(invalid_rows),
+        imported_count=imported_count,
+        validations=validations,
+        message=f"Importaci├│n completada: {imported_count} productos importados de {len(valid_rows)} v├ílidos",
+    )
+
+
+@router.post(
+    "/products/bulk-import/confirm",
+    response_model=BulkImportResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def bulk_import_confirm(
+    body: ExcelImportConfirmRequest,
+    supabase = Depends(get_supabase),
+) -> BulkImportResponse:
+    """
+    Confirma la importaci├│n de filas seleccionadas del preview.
+    
+    Recibe la lista de productos confirmados (posiblemente editados) y los inserta en la BD.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== BULK IMPORT CONFIRM === {len(body.rows)} filas a importar")
+    
+    result = await process_xlsx_import(body.rows, supabase)
     return result
 
 
@@ -83,7 +239,7 @@ async def update_product_price_by_body(
     body: UpdatePriceByProductBody,
     product_service: Annotated[ProductService, Depends(get_product_service)],
 ) -> UpdatePriceResponse:
-    """Misma lógica que PATCH/POST `/products/{id}/price`, pero sin path param (evita 404 en proxies raros)."""
+    """Misma l├│gica que PATCH/POST `/products/{id}/price`, pero sin path param (evita 404 en proxies raros)."""
     try:
         product = await product_service.update_product_price(
             body.product_id,
@@ -230,65 +386,4 @@ async def delete_product(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
-        )
-
-
-@router.post(
-    "/products/upload-image",
-    status_code=status.HTTP_200_OK,
-)
-async def upload_product_image(
-    file: UploadFile = File(...),
-    supabase = Depends(get_supabase),
-):
-    """Sube una imagen de producto a Supabase Storage."""
-    import logging
-    from datetime import datetime
-    
-    logger = logging.getLogger(__name__)
-    
-    # Validar tipo de archivo
-    allowed_types = {"image/jpeg", "image/png", "image/webp"}
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Solo se aceptan imágenes JPEG, PNG y WebP"
-        )
-    
-    # Validar tamaño (5 MB máximo)
-    max_size = 5 * 1024 * 1024  # 5 MB
-    content = await file.read()
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La imagen no debe exceder 5 MB"
-        )
-    
-    try:
-        # Generar nombre único para la imagen
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        ext = file.filename.split(".")[-1] if file.filename else "jpg"
-        unique_filename = f"products/{timestamp}_{file.filename or 'image'}"
-        
-        # Subir a Supabase Storage al bucket 'product-images'
-        response = supabase.storage.from_("product-images").upload(
-            unique_filename,
-            content,
-            {"content-type": file.content_type}
-        )
-        
-        # Obtener URL pública
-        public_url = supabase.storage.from_("product-images").get_public_url(unique_filename)
-        
-        logger.info(f"Imagen subida exitosamente: {unique_filename}")
-        
-        return {
-            "url": public_url,
-            "filename": unique_filename
-        }
-    except Exception as e:
-        logger.error(f"Error al subir imagen: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al subir imagen: {str(e)}"
         )
