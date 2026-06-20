@@ -280,7 +280,8 @@ def _validate_product(row_number: int, data: dict) -> ProductImportValidation:
             categoria=categoria,
             subcategoria=subcategoria,
             marca=marca,
-            slug=generate_slug(data['nombre'])
+            slug=generate_slug(data['nombre']),
+            imagen=data.get('imagen')  # URL de imagen del Excel
         )
         
         return ProductImportValidation(
@@ -335,7 +336,7 @@ async def process_bulk_import(
                     'stock': validation.data.stock,
                     'marca': validation.data.marca,
                     'descripcion': validation.data.descripcion or '',
-                    'imagenes': [],  # Sin imágenes por defecto
+                    'imagenes': [validation.data.imagen] if validation.data.imagen else [],  # Imagen del Excel
                     'especificaciones': {},
                     'destacado': False,
                     'calificacion': 0.0,

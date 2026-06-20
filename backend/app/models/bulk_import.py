@@ -16,6 +16,7 @@ class ProductImportRow(BaseModel):
     descripcion: Optional[str] = Field(default="", max_length=5000)
     marca: Optional[str] = Field(default="Sin marca", max_length=100)
     slug: Optional[str] = None  # Se genera automáticamente si no se provee
+    imagen: Optional[str] = None  # URL de imagen asociada (opcional)
 
 
 class ProductImportValidation(BaseModel):
@@ -25,6 +26,7 @@ class ProductImportValidation(BaseModel):
     valid: bool
     data: Optional[ProductImportRow] = None
     errors: List[str] = Field(default_factory=list)
+    imagen: Optional[str] = None  # URL de imagen procesada
 
 
 class BulkImportResponse(BaseModel):
