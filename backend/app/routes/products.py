@@ -231,3 +231,64 @@ async def delete_product(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
+
+
+@router.post(
+    "/products/upload-image",
+    status_code=status.HTTP_200_OK,
+)
+async def upload_product_image(
+    file: UploadFile = File(...),
+    supabase = Depends(get_supabase),
+):
+    """Sube una imagen de producto a Supabase Storage."""
+    import logging
+    from datetime import datetime
+    
+    logger = logging.getLogger(__name__)
+    
+    # Validar tipo de archivo
+    allowed_types = {"image/jpeg", "image/png", "image/webp"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se aceptan imágenes JPEG, PNG y WebP"
+        )
+    
+    # Validar tamaño (5 MB máximo)
+    max_size = 5 * 1024 * 1024  # 5 MB
+    content = await file.read()
+    if len(content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La imagen no debe exceder 5 MB"
+        )
+    
+    try:
+        # Generar nombre único para la imagen
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ext = file.filename.split(".")[-1] if file.filename else "jpg"
+        unique_filename = f"products/{timestamp}_{file.filename or 'image'}"
+        
+        # Subir a Supabase Storage al bucket 'product-images'
+        response = supabase.storage.from_("product-images").upload(
+            unique_filename,
+            content,
+            {"content-type": file.content_type}
+        )
+        
+        # Obtener URL pública
+        public_url = supabase.storage.from_("product-images").get_public_url(unique_filename)
+        
+        logger.info(f"Imagen subida exitosamente: {unique_filename}")
+        
+        return {
+            "url": public_url,
+            "filename": unique_filename
+        }
+    except Exception as e:
+        logger.error(f"Error al subir imagen: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al subir imagen: {str(e)}"
+        )
