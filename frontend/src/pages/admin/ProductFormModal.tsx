@@ -248,7 +248,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
               </motion.div>
             )}
 
-            {/* IM├üGENES */}
+            {/* IMÁGENES */}
             {tab === 'imagenes' && (
               <ImagenesTab
                 images={form.images}
@@ -258,7 +258,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
               />
             )}
 
-            {/* ENV├ìO */}
+            {/* ENVÍO */}
             {tab === 'envio' && (
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                 <Field label="Peso (kg)">
@@ -267,7 +267,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                 </Field>
                 <Field label="Dimensiones (cm)">
                   <input value={form.dimensions} onChange={e => set('dimensions', e.target.value)}
-                    placeholder="Largo x Ancho x Alto ┬À Ej: 60x40x30" className={di} />
+                    placeholder="Largo x Ancho x Alto • Ej: 60x40x30" className={di} />
                 </Field>
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-sm text-blue-400">
                   ℹ️ Estos datos se usan para calcular el costo de envío automáticamente.
