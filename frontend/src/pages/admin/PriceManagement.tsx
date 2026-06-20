@@ -23,7 +23,7 @@ export default function PriceManagement() {
   const filtered = useMemo(() => {
     let result = products;
 
-    // Filtrar por b├║squeda
+    // Filtrar por búsqueda
     if (search) {
       result = result.filter(
         p =>
@@ -32,7 +32,7 @@ export default function PriceManagement() {
       );
     }
 
-    // Filtrar por categor├¡a
+    // Filtrar por categoría
     if (filterCategory !== 'all') {
       result = result.filter(p => p.category === filterCategory);
     }
@@ -65,19 +65,17 @@ export default function PriceManagement() {
       // Actualizar la lista de productos
       refetch();
       
-      // Limpiar el estado de edici├│n
+      // Limpiar el estado de edición
       setEditingPrices(prev => {
         const next = { ...prev };
         delete next[productId];
         return next;
       });
       
-      alert('Ô£à Precio actualizado correctamente');
+      alert('✅ Precio actualizado correctamente');
     } catch (error) {
       console.error('Error al actualizar precio:', error);
-      alert(
-        `ÔØî Error: ${error instanceof Error ? error.message : 'Error al actualizar el precio'}`
-      );
+      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al actualizar el precio'}`);
     } finally {
       setSavingIds(prev => {
         const next = new Set(prev);
@@ -96,7 +94,7 @@ export default function PriceManagement() {
     }
 
     const confirmSave = window.confirm(
-      `┬┐Guardar ${pendingChanges.length} cambio${pendingChanges.length !== 1 ? 's' : ''} de precio?`
+      `¿Guardar ${pendingChanges.length} cambio${pendingChanges.length !== 1 ? 's' : ''} de precio?`
     );
     
     if (!confirmSave) return;
@@ -129,9 +127,9 @@ export default function PriceManagement() {
 
     // Mostrar resultado
     if (errorCount === 0) {
-      alert(`Ô£à ${successCount} precio${successCount !== 1 ? 's' : ''} actualizado${successCount !== 1 ? 's' : ''} correctamente`);
+      alert(`✅ ${successCount} precio${successCount !== 1 ? 's' : ''} actualizado${successCount !== 1 ? 's' : ''} correctamente`);
     } else {
-      alert(`ÔÜá´©Å ${successCount} actualizados, ${errorCount} con errores`);
+      alert(`⚠️ ${successCount} actualizados, ${errorCount} con errores`);
     }
   };
 
@@ -143,11 +141,11 @@ export default function PriceManagement() {
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="font-bold text-white">­ƒÅÀ´©Å Gesti├│n de Precios</h2>
+          <h2 className="font-bold text-white">💰 Gestión de Precios</h2>
           <p className="text-sm text-gray-500">
             {loading
-              ? 'CargandoÔÇª'
-              : `${products.length} productos ┬À ${noPriceCount} sin precio asignado`}
+              ? 'Cargando...'
+              : `${products.length} productos • ${noPriceCount} sin precio asignado`}
           </p>
         </div>
       </div>
@@ -188,10 +186,10 @@ export default function PriceManagement() {
           disabled={loading || Boolean(error)}
           className="px-4 py-2.5 bg-gray-800 border border-gray-700/60 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
         >
-          <option value="all">Todas las categor├¡as</option>
-          <option value="electrodomesticos">Electrodom├®sticos</option>
-          <option value="muebleria">Muebler├¡a</option>
-          <option value="colchoneria">Colchoner├¡a</option>
+          <option value="all">Todas las categorías</option>
+          <option value="electrodomesticos">Electrodomésticos</option>
+          <option value="muebleria">Mueblería</option>
+          <option value="colchoneria">Colchonería</option>
         </select>
 
         <button
@@ -212,7 +210,7 @@ export default function PriceManagement() {
         <div className="overflow-x-auto">
           {loading && (
             <div className="text-center py-16 text-gray-500">
-              <p>Cargando productosÔÇª</p>
+              <p>Cargando productos...</p>
             </div>
           )}
 
@@ -221,7 +219,7 @@ export default function PriceManagement() {
               <DollarSign size={32} className="mx-auto mb-2 opacity-30" />
               <p className="text-sm">
                 {filterNoPriceOnly
-                  ? '┬íTodos los productos tienen precio asignado! ­ƒÄë'
+                  ? '¡Todos los productos tienen precio asignado! 🎉'
                   : 'No hay productos que coincidan con los filtros.'}
               </p>
             </div>
@@ -231,7 +229,7 @@ export default function PriceManagement() {
             <table className="w-full text-sm">
               <thead className="border-b border-gray-700/60">
                 <tr>
-                  {['Producto', 'Categor├¡a', 'Stock', 'Precio Actual', 'Nuevo Precio', 'Acciones'].map(h => (
+                  {['Producto', 'Categoría', 'Stock', 'Precio Actual', 'Nuevo Precio', 'Acciones'].map(h => (
                     <th
                       key={h}
                       className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3"
@@ -354,8 +352,8 @@ export default function PriceManagement() {
       {!loading && filtered.length > 0 && (
         <div className="text-xs text-gray-600 rounded-lg border border-gray-700/60 bg-gray-800/50 px-3 py-2">
           <p>
-            ­ƒÆí <strong>Tip:</strong> Escrib├¡ los nuevos precios y hac├® click en "Guardar todos" para aplicar todos los cambios de una vez,
-            o guard├í individualmente con el bot├│n de cada fila.
+            ℹ️ <strong>Tip:</strong> Escribí los nuevos precios y hacé click en "Guardar todos" para aplicar todos los cambios de una vez,
+            o guardá individualmente con el botón de cada fila.
           </p>
         </div>
       )}

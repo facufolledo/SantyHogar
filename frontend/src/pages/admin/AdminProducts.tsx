@@ -21,7 +21,7 @@ type SortField = 'name' | 'category' | 'price' | 'stock' | 'brand';
 type SortDirection = 'asc' | 'desc';
 
 function shortId(id: string) {
-  return id.length > 14 ? `${id.slice(0, 8)}ÔÇª${id.slice(-4)}` : id;
+  return id.length > 14 ? `${id.slice(0, 8)}...${id.slice(-4)}` : id;
 }
 
 export default function AdminProducts() {
@@ -44,7 +44,7 @@ export default function AdminProducts() {
       setSortField(field);
       setSortDirection('asc');
     }
-    setPage(1); // Volver a la primera p├ígina
+    setPage(1); // Volver a la primera página
   };
 
   const filtered = useMemo(() => {
@@ -54,7 +54,7 @@ export default function AdminProducts() {
         p.brand.toLowerCase().includes(search.toLowerCase())
     );
 
-    // Ordenar seg├║n el campo seleccionado
+    // Ordenar según el campo seleccionado
     result.sort((a, b) => {
       let comparison = 0;
 
@@ -109,7 +109,7 @@ export default function AdminProducts() {
   };
 
   const handleDelete = async (productId: string) => {
-    if (!confirm('┬┐Est├ís seguro de que quieres eliminar este producto?')) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) {
       return;
     }
 
@@ -117,10 +117,10 @@ export default function AdminProducts() {
     try {
       await deleteProduct(productId);
       refetch();
-      alert('Ô£à Producto eliminado correctamente');
+      alert('✅ Producto eliminado correctamente');
     } catch (error) {
       console.error('Error al eliminar producto:', error);
-      alert(`ÔØî Error: ${error instanceof Error ? error.message : 'Error al eliminar el producto'}`);
+      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al eliminar el producto'}`);
     } finally {
       setDeleting(null);
     }
@@ -139,7 +139,7 @@ export default function AdminProducts() {
         <div>
           <h2 className="font-bold text-white">Productos</h2>
           <p className="text-sm text-gray-500">
-            {loading ? 'CargandoÔÇª' : `${products.length} productos ┬À ${products.filter(p => p.stock <= 3).length} con stock bajo`}
+            {loading ? 'Cargando...' : `${products.length} productos • ${products.filter(p => p.stock <= 3).length} con stock bajo`}
           </p>
         </div>
         <button
@@ -175,7 +175,7 @@ export default function AdminProducts() {
                 <tr>
                   {[
                     { label: 'Producto' },
-                    { label: 'Categor├¡a' },
+                    { label: 'Categoría' },
                     { label: 'Precio' },
                     { label: 'Margen' },
                     { label: 'Stock' },
@@ -203,7 +203,7 @@ export default function AdminProducts() {
                 <tr>
                   {[
                     { label: 'Producto', field: 'name' as SortField },
-                    { label: 'Categor├¡a', field: 'category' as SortField },
+                    { label: 'Categoría', field: 'category' as SortField },
                     { label: 'Precio', field: 'price' as SortField },
                     { label: 'Margen', field: null },
                     { label: 'Stock', field: 'stock' as SortField },
@@ -260,7 +260,7 @@ export default function AdminProducts() {
                           <div className="min-w-0">
                             <p className="font-medium text-gray-200 break-words">{p.name}</p>
                             <p className="text-xs text-gray-500">
-                              {p.brand} ┬À {shortId(p.id)}
+                              {p.brand} • {shortId(p.id)}
                             </p>
                           </div>
                         </div>
@@ -288,8 +288,8 @@ export default function AdminProducts() {
                             p.stock === 0 ? 'text-red-400' : p.stock <= 3 ? 'text-orange-400' : 'text-gray-300'
                           }`}
                         >
-                          {p.stock} {p.stock <= 3 && p.stock > 0 && 'ÔÜá´©Å'}
-                          {p.stock === 0 && 'ÔØî'}
+                          {p.stock} {p.stock <= 3 && p.stock > 0 && '⚠️'}
+                          {p.stock === 0 && '❌'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -339,7 +339,7 @@ export default function AdminProducts() {
           {!loading && filtered.length === 0 && !error && (
             <div className="text-center py-12 text-gray-600">
               <Package size={32} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No hay productos en la base o no coinciden con la b├║squeda.</p>
+              <p className="text-sm">No hay productos en la base o no coinciden con la búsqueda.</p>
             </div>
           )}
         </div>
@@ -348,7 +348,7 @@ export default function AdminProducts() {
       {totalPages > 1 && !loading && (
         <div className="flex items-center justify-between text-sm">
           <p className="text-gray-500">
-            Mostrando {(page - 1) * PAGE_SIZE + 1}ÔÇô{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}{' '}
+            Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}{' '}
             productos
           </p>
           <div className="flex items-center gap-1">

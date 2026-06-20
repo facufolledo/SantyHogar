@@ -7,11 +7,11 @@ import { createProduct, updateProduct, uploadProductImage, type CreateProductReq
 type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'envio';
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'general', label: '­ƒº¥ General' },
-  { id: 'precios', label: '­ƒÆ░ Precios' },
-  { id: 'stock', label: '­ƒôª Stock' },
-  { id: 'imagenes', label: '­ƒû╝´©Å Im├ígenes' },
-  { id: 'envio', label: '­ƒÜÜ Env├¡o' },
+  { id: 'general', label: '📋 General' },
+  { id: 'precios', label: '💰 Precios' },
+  { id: 'stock', label: '📦 Stock' },
+  { id: 'imagenes', label: '🖼️ Imágenes' },
+  { id: 'envio', label: '🚚 Envío' },
 ];
 
 interface Props {
@@ -71,7 +71,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
           images: form.images.length > 0 ? form.images : undefined,
         };
         await updateProduct(product.id, updateData);
-        alert('Ô£à Producto actualizado correctamente');
+        alert('✅ Producto actualizado correctamente');
       } else {
         // Create mode
         const createData: CreateProductRequest = {
@@ -86,12 +86,12 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
           images: form.images.length > 0 ? form.images : undefined,
         };
         await createProduct(createData);
-        alert('Ô£à Producto creado correctamente');
+        alert('✅ Producto creado correctamente');
       }
       onSave();
     } catch (error) {
       console.error('Error al guardar producto:', error);
-      alert(`ÔØî Error: ${error instanceof Error ? error.message : 'Error al guardar el producto'}`);
+      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al guardar el producto'}`);
     } finally {
       setSaving(false);
     }
@@ -146,18 +146,18 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
               <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                 <Field label="Nombre del producto">
                   <input required value={form.name} onChange={e => set('name', e.target.value)}
-                    placeholder="Ej: Lavarropas Autom├ítico 8kg" className={di} />
+                    placeholder="Ej: Lavarropas Automático 8kg" className={di} />
                 </Field>
-                <Field label="Descripci├│n">
+                <Field label="Descripción">
                   <textarea rows={4} value={form.description} onChange={e => set('description', e.target.value)}
-                    placeholder="Descripci├│n detallada del producto..." className={`${di} resize-none`} />
+                    placeholder="Descripción detallada del producto..." className={`${di} resize-none`} />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Categor├¡a">
+                  <Field label="Categoría">
                     <select value={form.category} onChange={e => set('category', e.target.value)} className={di}>
-                      <option value="electrodomesticos">Electrodom├®sticos</option>
-                      <option value="muebleria">Muebler├¡a</option>
-                      <option value="colchoneria">Colchoner├¡a</option>
+                      <option value="electrodomesticos">Electrodomésticos</option>
+                      <option value="muebleria">Mueblería</option>
+                      <option value="colchoneria">Colchonería</option>
                     </select>
                   </Field>
                   <Field label="Marca">
@@ -270,7 +270,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                     placeholder="Largo x Ancho x Alto ┬À Ej: 60x40x30" className={di} />
                 </Field>
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-sm text-blue-400">
-                  ­ƒÆí Estos datos se usan para calcular el costo de env├¡o autom├íticamente.
+                  ℹ️ Estos datos se usan para calcular el costo de envío automáticamente.
                 </div>
               </motion.div>
             )}
@@ -320,7 +320,7 @@ function ImagenesTab({ images, setImages, readOnly, di }: ImagenesTabProps) {
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return `"${file.name}" no es una imagen v├ílida. Solo se aceptan JPEG, PNG y WebP.`;
+      return `"${file.name}" no es una imagen válida. Solo se aceptan JPEG, PNG y WebP.`;
     }
     if (file.size > MAX_SIZE) {
       return `"${file.name}" excede 5 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`;
@@ -469,7 +469,7 @@ function ImagenesTab({ images, setImages, readOnly, di }: ImagenesTabProps) {
             Agregar
           </button>
         </div>
-        <p className="text-xs text-gray-600 mt-1">Presion├í Enter o click en Agregar para a├▒adir la URL</p>
+        <p className="text-xs text-gray-600 mt-1">Presioná Enter o click en Agregar para añadir la URL</p>
       </Field>
 
       {/* Drag & Drop zone */}
@@ -499,9 +499,9 @@ function ImagenesTab({ images, setImages, readOnly, di }: ImagenesTabProps) {
         />
         <Upload size={24} className={`mx-auto mb-2 ${dragOver ? 'text-primary-400' : 'text-gray-600'}`} />
         <p className={`text-sm ${dragOver ? 'text-primary-400' : 'text-gray-400'}`}>
-          Arrastr├í im├ígenes aqu├¡ o hac├® click para seleccionar
+          Arrastrá imágenes aquí o hacé click para seleccionar
         </p>
-        <p className="text-xs text-gray-600 mt-1">JPEG, PNG o WebP ┬À M├íximo 5 MB por archivo</p>
+        <p className="text-xs text-gray-600 mt-1">JPEG, PNG o WebP • Máximo 5 MB por archivo</p>
       </div>
 
       {/* Upload progress */}
@@ -581,7 +581,7 @@ function ImagenesTab({ images, setImages, readOnly, di }: ImagenesTabProps) {
       )}
 
       {images.length > 1 && !readOnly && (
-        <p className="text-xs text-gray-600">­ƒÆí Arrastr├í las im├ígenes para reordenarlas. La primera es la imagen principal.</p>
+        <p className="text-xs text-gray-600">ℹ️ Arrastrá las imágenes para reordenarlas. La primera es la imagen principal.</p>
       )}
     </motion.div>
   );
