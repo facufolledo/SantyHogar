@@ -57,7 +57,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[cfg.frontend_url],
+        allow_origins=cfg.frontend_url.split(',') if ',' in cfg.frontend_url else [cfg.frontend_url],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

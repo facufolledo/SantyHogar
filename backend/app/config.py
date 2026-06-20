@@ -38,7 +38,7 @@ class Config(BaseSettings):
     admin_master_password: Optional[str] = Field(None, description="Master password for admin creation")
     
     # CORS
-    frontend_url: str = Field(default="http://localhost:5173", description="Frontend URL for CORS")
+    frontend_url: str = Field(default="http://localhost:5173", description="Frontend URL for CORS (comma-separated for multiple origins)")
     
     # Desarrollo: si True, los 500 por DatabaseError incluyen el mensaje real (útil para Supabase/RLS).
     debug: bool = Field(default=False, description="Expose DB error details in API responses")
