@@ -76,33 +76,20 @@ async def calculate_installments(
             bin_number=bin_number,
         )
 
-        # Formatear la respuesta para el frontend
-        formatted = []
+        # Retornar directamente el array de métodos de pago con el formato esperado por el frontend
+        formatted_methods = []
         for payment_method in result:
             if isinstance(payment_method, dict):
-                payer_costs = payment_method.get("payer_costs", [])
-                for cost in payer_costs:
-                    formatted.append(
-                        {
-                            "installments": cost.get("installments"),
-                            "installment_amount": float(
-                                cost.get("installment_amount", 0)
-                            ),
-                            "total_amount": float(cost.get("total_amount", amount)),
-                            "interest_rate": round(
-                                float(cost.get("installment_rate", 0)) * 100, 2
-                            ),
-                            "discount": float(cost.get("discount", 0)),
-                            "labels": cost.get("labels", []),
-                        }
-                    )
+                formatted_methods.append({
+                    "payment_method_id": payment_method.get("payment_method_id", ""),
+                    "payment_type_id": payment_method.get("payment_type_id", "credit_card"),
+                    "name": payment_method.get("name", ""),
+                    "secure_thumbnail": payment_method.get("secure_thumbnail", ""),
+                    "thumbnail": payment_method.get("thumbnail", ""),
+                    "payer_costs": payment_method.get("payer_costs", []),
+                })
 
-        return {
-            "amount": amount,
-            "bin_number": bin_number,
-            "options": formatted,
-            "total_options": len(formatted),
-        }
+        return formatted_methods
 
     except MercadoPagoError as e:
         logger.error(f"Error MP en cuotas: {str(e)}")
