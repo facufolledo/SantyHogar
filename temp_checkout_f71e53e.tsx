@@ -1,16 +1,12 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, CreditCard, Smartphone, MapPin, Clock, Phone, Plus } from 'lucide-react';
+import { CheckCircle, CreditCard, Smartphone, MapPin, Clock, Phone } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
 import { useToast } from '../context/ToastContext';
 import { isApiConfigured, isMpCheckoutEnabled } from '../api/config';
-import { fetchAddresses, type AddressResponse } from '../api/customersApi';
-import ProvinceSelect from '../components/ProvinceSelect';
-import CitySelect from '../components/CitySelect';
-import SaveAddressModal from '../components/SaveAddressModal';
 
 /** Sin MP online: pedido solo en el navegador (o API sin checkout MP). */
 function isLocalCheckoutMode(): boolean {
@@ -18,7 +14,6 @@ function isLocalCheckoutMode(): boolean {
 }
 import { ApiError } from '../api/client';
 import { createOrderApi } from '../api/ordersApi';
-import { createCheckoutPreference } from '../api/checkoutApi';
 import { formatPrice } from '../utils/format';
 import type { CartItem } from '../context/CartContext';
 
@@ -46,7 +41,7 @@ const Checkout = () => {
   void navigate;
 
   const [step, setStep] = useState<Step>('form');
-  const [payMethod, setPayMethod] = useState<'mp'>('mp');
+  const [payMethod, setPayMethod] = useState<'mp' | 'fiserv'>('mp');
   const [confirmedOrder, setConfirmedOrder] = useState<{ orderNumber: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -54,46 +49,6 @@ const Checkout = () => {
     email: user?.email || '',
     phone: user?.phone || '',
   });
-  
-  // Direcciones guardadas
-  const [savedAddresses, setSavedAddresses] = useState<AddressResponse[]>([]);
-  const [loadingAddresses, setLoadingAddresses] = useState(false);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
-  const [shippingAddress, setShippingAddress] = useState({
-    street: '',
-    city: '',
-    province: '',
-    zip: '',
-  });
-  const [saveNewAddress, setSaveNewAddress] = useState(false);
-  const [newAddressLabel, setNewAddressLabel] = useState('');
-  const [showSaveAddressModal, setShowSaveAddressModal] = useState(false);
-
-  // Cargar direcciones guardadas si el usuario est├í logueado
-  useEffect(() => {
-    if (user?.customerId) {
-      setLoadingAddresses(true);
-      fetchAddresses(user.customerId)
-        .then((addresses) => {
-          setSavedAddresses(addresses);
-          // Seleccionar la direcci├│n principal por defecto
-          const primary = addresses.find(a => a.isPrimary);
-          if (primary) {
-            setSelectedAddressId(primary.id);
-            setShippingAddress({
-              street: primary.street,
-              city: primary.city,
-              province: primary.province,
-              zip: primary.zip,
-            });
-          }
-        })
-        .catch((err) => {
-          console.error('Error al cargar direcciones:', err);
-        })
-        .finally(() => setLoadingAddresses(false));
-    }
-  }, [user?.customerId]);
 
   const grandTotal = total;
   const stepIndex = ['form', 'payment', 'confirm'].indexOf(step);
@@ -101,72 +56,8 @@ const Checkout = () => {
   const mercadoPagoOnline =
     isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'mp';
 
-  // Check if the selected address is from Córdoba
-  const isValidProvince = shippingAddress.province === 'Córdoba';
-
-  const handleAddressChange = (addressId: string) => {
-    setSelectedAddressId(addressId);
-    
-    if (addressId === 'new') {
-      // Limpiar formulario para nueva direcci├│n
-      setShippingAddress({
-        street: '',
-        city: '',
-        province: '',
-        zip: '',
-      });
-    } else {
-      // Cargar direcci├│n seleccionada
-      const address = savedAddresses.find(a => a.id === addressId);
-      if (address) {
-        setShippingAddress({
-          street: address.street,
-          city: address.city,
-          province: address.province,
-          zip: address.zip,
-        });
-      }
-    }
-  };
-
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validar que la provincia sea Córdoba
-    if (shippingAddress.province !== 'Córdoba') {
-      toast('Por el momento solo realizamos envíos a Córdoba. Por favor selecciona Córdoba como provincia.', 'error');
-      return;
-    }
-    
-    // Si el usuario est├í logueado y est├í usando una direcci├│n nueva
-    if (user?.customerId && selectedAddressId === 'new') {
-      // Verificar si la direcci├│n es diferente a las guardadas
-      const isDifferent = !savedAddresses.some(addr => 
-        addr.street.trim().toLowerCase() === shippingAddress.street.trim().toLowerCase() &&
-        addr.city.trim().toLowerCase() === shippingAddress.city.trim().toLowerCase() &&
-        addr.province.trim().toLowerCase() === shippingAddress.province.trim().toLowerCase() &&
-        addr.zip.trim() === shippingAddress.zip.trim()
-      );
-
-      if (isDifferent && !saveNewAddress) {
-        // Mostrar modal para preguntar si quiere guardar
-        setShowSaveAddressModal(true);
-        return; // No avanzar hasta que el usuario decida
-      }
-    }
-    
-    setStep('payment');
-  };
-
-  const handleSaveAddress = (label: string) => {
-    setNewAddressLabel(label);
-    setSaveNewAddress(true);
-    setShowSaveAddressModal(false);
-    setStep('payment');
-  };
-
-  const handleSkipSaveAddress = () => {
-    setShowSaveAddressModal(false);
     setStep('payment');
   };
 
@@ -177,130 +68,59 @@ const Checkout = () => {
     if (useMercadoPagoRedirect) {
       setSubmitting(true);
       try {
-        // Usar el nuevo endpoint de Checkout Pro
-        const response = await createCheckoutPreference({
+        const res = await createOrderApi({
+          userId: user?.id ?? null,
+          customerName: form.name,
+          customerEmail: form.email,
+          customerPhone: form.phone,
           items: items.map(({ product, quantity }) => ({
             product_id: product.id,
             quantity,
           })),
-          customer_email: form.email,
-          customer_name: form.name,
-          customer_phone: form.phone,
+          paymentMethod: 'mp',
         });
-        
-        // Guardar direcci├│n nueva si el usuario lo solicit├│
-        if (saveNewAddress && user?.customerId && newAddressLabel) {
-          try {
-            const { createAddress } = await import('../api/customersApi');
-            await createAddress(user.customerId, {
-              label: newAddressLabel,
-              street: shippingAddress.street,
-              city: shippingAddress.city,
-              province: shippingAddress.province,
-              zip: shippingAddress.zip,
-              isPrimary: savedAddresses.length === 0,
-            });
-            console.log('Ô£à Direcci├│n guardada correctamente');
-          } catch (err) {
-            console.error('Error al guardar direcci├│n:', err);
-          }
-        }
-        
-        // NO limpiar carrito aqu├¡ - se limpiar├í cuando vuelva exitoso
-        // clearCart(); ÔØî REMOVIDO
-        
-        // Guardar items en sessionStorage para recuperar si vuelve atr├ís
-        sessionStorage.setItem('pendingCheckout', JSON.stringify({
-          items: items.map(({ product, quantity }) => ({
-            productId: product.id,
-            quantity
-          })),
-          timestamp: Date.now()
-        }));
-        
-        // Redirigir a MercadoPago Checkout Pro
-        // En testing usa sandbox_init_point, en producci├│n usa init_point
-        const checkoutUrl = import.meta.env.MODE === 'production' 
-          ? response.init_point 
-          : response.sandbox_init_point;
-        
-        window.location.href = checkoutUrl;
-        
+        pushOrder({
+          id: String(res.id),
+          userId: user?.id || 'guest',
+          customerName: form.name,
+          customerEmail: form.email,
+          customerPhone: form.phone,
+          items: [...items] as CartItem[],
+          total: grandTotal,
+          paymentMethod: 'mp',
+          status: 'pending',
+          createdAt: res.createdAt,
+          orderNumber: res.orderNumber,
+        });
+        clearCart();
+        window.location.href = res.init_point;
       } catch (e) {
         const msg =
-          e instanceof Error ? e.message : 'No se pudo iniciar el pago. Intent├í de nuevo.';
+          e instanceof ApiError ? e.message : 'No se pudo iniciar el pago. Intent├í de nuevo.';
         toast(msg, 'error');
+      } finally {
         setSubmitting(false);
       }
       return;
     }
 
-
-
-    // Modo local: guardar orden en localStorage Y en el backend
-    setSubmitting(true);
-    try {
-      // Intentar guardar en el backend si est├í configurado
-      if (isApiConfigured()) {
-        try {
-          const res = await createOrderApi({
-            userId: user?.id ?? null,
-            customerName: form.name,
-            customerEmail: form.email,
-            customerPhone: form.phone,
-            items: items.map(({ product, quantity }) => ({
-              product_id: product.id,
-              quantity,
-            })),
-            paymentMethod: payMethod,
-          });
-          
-          // Guardar direcci├│n nueva si el usuario lo solicit├│
-          if (saveNewAddress && user?.customerId && newAddressLabel) {
-            try {
-              const { createAddress } = await import('../api/customersApi');
-              await createAddress(user.customerId, {
-                label: newAddressLabel,
-                street: shippingAddress.street,
-                city: shippingAddress.city,
-                province: shippingAddress.province,
-                zip: shippingAddress.zip,
-                isPrimary: savedAddresses.length === 0, // Primera direcci├│n es principal
-              });
-              console.log('Ô£à Direcci├│n guardada correctamente');
-            } catch (err) {
-              console.error('Error al guardar direcci├│n:', err);
-              // No bloqueamos el checkout si falla guardar la direcci├│n
-            }
-          }
-          
-          // Orden guardada en backend exitosamente
-          clearCart();
-          setConfirmedOrder({ orderNumber: res.orderNumber });
-          setStep('confirm');
-          return;
-        } catch (e) {
-          // Si falla el backend, continuar con modo local
-          console.warn('No se pudo guardar en el backend, usando modo local:', e);
-        }
-      }
-      
-      // Fallback: modo local (localStorage)
-      const order = createOrder({
-        userId: user?.id || 'guest',
-        customerName: form.name,
-        customerEmail: form.email,
-        customerPhone: form.phone,
-        items: items as CartItem[],
-        total: grandTotal,
-        paymentMethod: payMethod,
-      });
-      clearCart();
-      setConfirmedOrder({ orderNumber: order.orderNumber });
-      setStep('confirm');
-    } finally {
-      setSubmitting(false);
+    if (isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'fiserv') {
+      toast('Mercado Pago es el ├║nico m├®todo con cobro online por ahora. Eleg├¡ MP o desactiv├í VITE_ENABLE_MP_CHECKOUT para modo local.', 'error');
+      return;
     }
+
+    const order = createOrder({
+      userId: user?.id || 'guest',
+      customerName: form.name,
+      customerEmail: form.email,
+      customerPhone: form.phone,
+      items: items as CartItem[],
+      total: grandTotal,
+      paymentMethod: payMethod,
+    });
+    clearCart();
+    setConfirmedOrder({ orderNumber: order.orderNumber });
+    setStep('confirm');
   };
 
   if (items.length === 0 && step !== 'confirm') return (
@@ -327,13 +147,13 @@ const Checkout = () => {
         ))}
       </div>
 
-      {/* Alerta de restricción de envíos */}
+      {/* Alerta de restricci├│n de env├¡os */}
       <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3">
         <MapPin size={20} className="text-blue-600 flex-shrink-0" />
         <div className="text-sm">
-          <p className="font-medium text-blue-900">Envíos solo a Córdoba</p>
+          <p className="font-medium text-blue-900">Env├¡os solo a C├│rdoba</p>
           <p className="text-blue-700/80 text-xs mt-0.5">
-            Por el momento realizamos retiros en nuestro depósito ubicado en Córdoba capital.
+            Por el momento realizamos retiros en nuestro dep├│sito ubicado en C├│rdoba capital.
           </p>
         </div>
       </div>
@@ -371,85 +191,6 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {/* Direcci├│n de env├¡o */}
-                <div className="card p-6">
-                  <h2 className="font-bold text-gray-900 mb-4">Direcci├│n de env├¡o</h2>
-                  
-                  {/* Selector de direcciones guardadas */}
-                  {user?.customerId && savedAddresses.length > 0 && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Seleccionar direcci├│n guardada
-                      </label>
-                      <select
-                        value={selectedAddressId}
-                        onChange={(e) => handleAddressChange(e.target.value)}
-                        className="input-field"
-                      >
-                        {savedAddresses.map((addr) => (
-                          <option key={addr.id} value={addr.id}>
-                            {addr.label} - {addr.street}, {addr.city}
-                          </option>
-                        ))}
-                        <option value="new">+ Nueva direcci├│n</option>
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Formulario de direcci├│n */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Calle y n├║mero</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Av. Corrientes 1234"
-                        value={shippingAddress.street}
-                        onChange={e => setShippingAddress(p => ({ ...p, street: e.target.value }))}
-                        disabled={selectedAddressId !== 'new' && savedAddresses.length > 0}
-                        className="input-field disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
-                      <ProvinceSelect
-                        value={shippingAddress.province}
-                        onChange={(value) => setShippingAddress(p => ({ ...p, province: value, city: '' }))}
-                        required
-                        disabled={selectedAddressId !== 'new' && savedAddresses.length > 0}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
-                      <CitySelect
-                        province={shippingAddress.province}
-                        value={shippingAddress.city}
-                        onChange={(value) => setShippingAddress(p => ({ ...p, city: value }))}
-                        required
-                        disabled={selectedAddressId !== 'new' && savedAddresses.length > 0}
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">C├│digo postal</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="1043"
-                        value={shippingAddress.zip}
-                        onChange={e => setShippingAddress(p => ({ ...p, zip: e.target.value }))}
-                        disabled={selectedAddressId !== 'new' && savedAddresses.length > 0}
-                        className="input-field disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-
-                  {user?.customerId && (
-                    <p className="text-xs text-gray-500 mt-3">
-                      ­ƒÆí Pod├®s gestionar tus direcciones desde <Link to="/cuenta/direcciones" className="text-primary-600 hover:underline">Mi cuenta</Link>
-                    </p>
-                  )}
-                </div>
-
                 {/* Retiro en dep├│sito */}
                 <div className="card p-6">
                   <div className="flex items-center gap-2 mb-4">
@@ -482,21 +223,7 @@ const Checkout = () => {
                   </p>
                 </div>
 
-                {!isValidProvince && (
-                  <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-                    <p className="text-sm text-red-700">
-                      ⚠️ Solo podemos enviar a Córdoba. Por favor selecciona Córdoba como provincia.
-                    </p>
-                  </div>
-                )}
-
-                <button 
-                  type="submit" 
-                  className="w-full btn-primary disabled:opacity-60 disabled:cursor-not-allowed" 
-                  disabled={!isValidProvince}
-                >
-                  Continuar al pago
-                </button>
+                <button type="submit" className="w-full btn-primary">Continuar al pago</button>
               </form>
 
               <OrderSummary items={items} total={total} grandTotal={grandTotal} />
@@ -519,24 +246,34 @@ const Checkout = () => {
                       </p>
                     </div>
                   )}
-                  <div className="grid grid-cols-1 gap-3 mb-5">
-                    <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-primary-600 bg-primary-50 text-left">
-                      <Smartphone size={22} className="text-blue-500" />
-                      <div>
-                        <p className="font-semibold text-sm text-gray-800">Mercado Pago</p>
-                        <p className="text-xs text-gray-500">Tarjeta, d├®bito, transferencia, MP</p>
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                    {[
+                      { id: 'mp', icon: Smartphone, label: 'Mercado Pago', sub: 'Tarjeta, d├®bito, MP', color: 'text-blue-500' },
+                      { id: 'fiserv', icon: CreditCard, label: 'Fiserv', sub: 'Visa, Mastercard, Amex', color: 'text-green-500' },
+                    ].map(opt => (
+                      <button key={opt.id} onClick={() => setPayMethod(opt.id as 'mp' | 'fiserv')}
+                        className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${payMethod === opt.id ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                        <opt.icon size={22} className={opt.color} />
+                        <div>
+                          <p className="font-semibold text-sm text-gray-800">{opt.label}</p>
+                          <p className="text-xs text-gray-500">{opt.sub}</p>
+                        </div>
+                      </button>
+                    ))}
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 mb-5">
-                    <p className="font-medium text-gray-800 mb-1">­ƒöÁ Mercado Pago</p>
+                    <p className="font-medium text-gray-800 mb-1">
+                      {payMethod === 'mp' ? '­ƒöÁ Mercado Pago' : '­ƒƒó Fiserv'}
+                    </p>
                     {mercadoPagoOnline ? (
                       <p>Ser├ís redirigido a Mercado Pago para completar el pago.</p>
+                    ) : isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'fiserv' ? (
+                      <p>Para pago online con tarjeta eleg├¡ Mercado Pago, o confirm├í el pedido en modo local y coordin├í el pago al retirar.</p>
                     ) : (
                       <p>
                         {localCheckout
-                          ? 'Pago en efectivo al retirar en dep├│sito.'
+                          ? 'Confirm├í el pedido: coordin├í el pago al retirar en el dep├│sito (efectivo, transferencia o lo que acuerden).'
                           : 'Ser├ís redirigido a Mercado Pago para completar el pago.'}
                       </p>
                     )}
@@ -605,14 +342,6 @@ const Checkout = () => {
         )}
 
       </AnimatePresence>
-
-      {/* Modal para guardar direcci├│n */}
-      <SaveAddressModal
-        isOpen={showSaveAddressModal}
-        onClose={handleSkipSaveAddress}
-        onSave={handleSaveAddress}
-        address={shippingAddress}
-      />
     </div>
   );
 };
