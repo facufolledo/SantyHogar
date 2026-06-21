@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, CreditCard, Smartphone, MapPin, Clock, Phone } from 'lucide-react';
+import { CheckCircle, CreditCard, Smartphone, MapPin, Clock, Phone, Plus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
 import { useToast } from '../context/ToastContext';
 import { isApiConfigured, isMpCheckoutEnabled } from '../api/config';
-import PaymentMethodsModal from '../components/PaymentMethodsModal';
+import { fetchAddresses, type AddressResponse } from '../api/customersApi';
+import ProvinceSelect from '../components/ProvinceSelect';
+import CitySelect from '../components/CitySelect';
+import SaveAddressModal from '../components/SaveAddressModal';
 
 /** Sin MP online: pedido solo en el navegador (o API sin checkout MP). */
 function isLocalCheckoutMode(): boolean {
@@ -15,22 +18,23 @@ function isLocalCheckoutMode(): boolean {
 }
 import { ApiError } from '../api/client';
 import { createOrderApi } from '../api/ordersApi';
+import { createCheckoutPreference } from '../api/checkoutApi';
 import { formatPrice } from '../utils/format';
 import type { CartItem } from '../context/CartContext';
 
 type Step = 'form' | 'payment' | 'confirm';
 
-// ─── Datos del depósito ───────────────────────────────────────────────────────
-// Reemplazá con la dirección real cuando la tengas
+// ÔöÇÔöÇÔöÇ Datos del dep├│sito ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// Reemplaz├í con la direcci├│n real cuando la tengas
 const DEPOSITO = {
-  address: 'Viamonte 1261, B° Pueyrredón',
-  city: 'Córdoba, Argentina',
-  hours: 'Lun–Vie 9:00–18:00 · Sáb 9:00–13:00',
+  address: 'Viamonte 1261, B┬░ Pueyrred├│n',
+  city: 'C├│rdoba, Argentina',
+  hours: 'LunÔÇôVie 9:00ÔÇô18:00 ┬À S├íb 9:00ÔÇô13:00',
   phone: '(011) 4000-0000',
   mapsUrl: 'https://www.google.com/maps/search/Viamonte+1261+Barrio+Pueyrredon+Cordoba+Argentina',
 };
 
-const STEPS = ['Datos', 'Pago', 'Confirmación'];
+const STEPS = ['Datos', 'Pago', 'Confirmaci├│n'];
 
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
@@ -42,15 +46,54 @@ const Checkout = () => {
   void navigate;
 
   const [step, setStep] = useState<Step>('form');
-  const [payMethod, setPayMethod] = useState<'mp' | 'fiserv'>('mp');
+  const [payMethod, setPayMethod] = useState<'mp'>('mp');
   const [confirmedOrder, setConfirmedOrder] = useState<{ orderNumber: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
   });
+  
+  // Direcciones guardadas
+  const [savedAddresses, setSavedAddresses] = useState<AddressResponse[]>([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
+  const [shippingAddress, setShippingAddress] = useState({
+    street: '',
+    city: '',
+    province: '',
+    zip: '',
+  });
+  const [saveNewAddress, setSaveNewAddress] = useState(false);
+  const [newAddressLabel, setNewAddressLabel] = useState('');
+  const [showSaveAddressModal, setShowSaveAddressModal] = useState(false);
+
+  // Cargar direcciones guardadas si el usuario est├í logueado
+  useEffect(() => {
+    if (user?.customerId) {
+      setLoadingAddresses(true);
+      fetchAddresses(user.customerId)
+        .then((addresses) => {
+          setSavedAddresses(addresses);
+          // Seleccionar la direcci├│n principal por defecto
+          const primary = addresses.find(a => a.isPrimary);
+          if (primary) {
+            setSelectedAddressId(primary.id);
+            setShippingAddress({
+              street: primary.street,
+              city: primary.city,
+              province: primary.province,
+              zip: primary.zip,
+            });
+          }
+        })
+        .catch((err) => {
+          console.error('Error al cargar direcciones:', err);
+        })
+        .finally(() => setLoadingAddresses(false));
+    }
+  }, [user?.customerId]);
 
   const grandTotal = total;
   const stepIndex = ['form', 'payment', 'confirm'].indexOf(step);
@@ -58,8 +101,63 @@ const Checkout = () => {
   const mercadoPagoOnline =
     isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'mp';
 
+  const handleAddressChange = (addressId: string) => {
+    setSelectedAddressId(addressId);
+    
+    if (addressId === 'new') {
+      // Limpiar formulario para nueva direcci├│n
+      setShippingAddress({
+        street: '',
+        city: '',
+        province: '',
+        zip: '',
+      });
+    } else {
+      // Cargar direcci├│n seleccionada
+      const address = savedAddresses.find(a => a.id === addressId);
+      if (address) {
+        setShippingAddress({
+          street: address.street,
+          city: address.city,
+          province: address.province,
+          zip: address.zip,
+        });
+      }
+    }
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Si el usuario est├í logueado y est├í usando una direcci├│n nueva
+    if (user?.customerId && selectedAddressId === 'new') {
+      // Verificar si la direcci├│n es diferente a las guardadas
+      const isDifferent = !savedAddresses.some(addr => 
+        addr.street.trim().toLowerCase() === shippingAddress.street.trim().toLowerCase() &&
+        addr.city.trim().toLowerCase() === shippingAddress.city.trim().toLowerCase() &&
+        addr.province.trim().toLowerCase() === shippingAddress.province.trim().toLowerCase() &&
+        addr.zip.trim() === shippingAddress.zip.trim()
+      );
+
+      if (isDifferent && !saveNewAddress) {
+        // Mostrar modal para preguntar si quiere guardar
+        setShowSaveAddressModal(true);
+        return; // No avanzar hasta que el usuario decida
+      }
+    }
+    
+    setStep('payment');
+  };
+
+  const handleSaveAddress = (label: string) => {
+    setNewAddressLabel(label);
+    setSaveNewAddress(true);
+    setShowSaveAddressModal(false);
+    setStep('payment');
+  };
+
+  const handleSkipSaveAddress = () => {
+    setShowSaveAddressModal(false);
     setStep('payment');
   };
 
@@ -70,59 +168,130 @@ const Checkout = () => {
     if (useMercadoPagoRedirect) {
       setSubmitting(true);
       try {
-        const res = await createOrderApi({
-          userId: user?.id ?? null,
-          customerName: form.name,
-          customerEmail: form.email,
-          customerPhone: form.phone,
+        // Usar el nuevo endpoint de Checkout Pro
+        const response = await createCheckoutPreference({
           items: items.map(({ product, quantity }) => ({
             product_id: product.id,
             quantity,
           })),
-          paymentMethod: 'mp',
+          customer_email: form.email,
+          customer_name: form.name,
+          customer_phone: form.phone,
         });
-        pushOrder({
-          id: String(res.id),
-          userId: user?.id || 'guest',
-          customerName: form.name,
-          customerEmail: form.email,
-          customerPhone: form.phone,
-          items: [...items] as CartItem[],
-          total: grandTotal,
-          paymentMethod: 'mp',
-          status: 'pending',
-          createdAt: res.createdAt,
-          orderNumber: res.orderNumber,
-        });
-        clearCart();
-        window.location.href = res.init_point;
+        
+        // Guardar direcci├│n nueva si el usuario lo solicit├│
+        if (saveNewAddress && user?.customerId && newAddressLabel) {
+          try {
+            const { createAddress } = await import('../api/customersApi');
+            await createAddress(user.customerId, {
+              label: newAddressLabel,
+              street: shippingAddress.street,
+              city: shippingAddress.city,
+              province: shippingAddress.province,
+              zip: shippingAddress.zip,
+              isPrimary: savedAddresses.length === 0,
+            });
+            console.log('Ô£à Direcci├│n guardada correctamente');
+          } catch (err) {
+            console.error('Error al guardar direcci├│n:', err);
+          }
+        }
+        
+        // NO limpiar carrito aqu├¡ - se limpiar├í cuando vuelva exitoso
+        // clearCart(); ÔØî REMOVIDO
+        
+        // Guardar items en sessionStorage para recuperar si vuelve atr├ís
+        sessionStorage.setItem('pendingCheckout', JSON.stringify({
+          items: items.map(({ product, quantity }) => ({
+            productId: product.id,
+            quantity
+          })),
+          timestamp: Date.now()
+        }));
+        
+        // Redirigir a MercadoPago Checkout Pro
+        // En testing usa sandbox_init_point, en producci├│n usa init_point
+        const checkoutUrl = import.meta.env.MODE === 'production' 
+          ? response.init_point 
+          : response.sandbox_init_point;
+        
+        window.location.href = checkoutUrl;
+        
       } catch (e) {
         const msg =
-          e instanceof ApiError ? e.message : 'No se pudo iniciar el pago. Intentá de nuevo.';
+          e instanceof Error ? e.message : 'No se pudo iniciar el pago. Intent├í de nuevo.';
         toast(msg, 'error');
-      } finally {
         setSubmitting(false);
       }
       return;
     }
 
-    if (isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'fiserv') {
-      toast('Mercado Pago es el único método con cobro online por ahora. Elegí MP o desactivá VITE_ENABLE_MP_CHECKOUT para modo local.', 'error');
-      return;
-    }
 
-    const order = createOrder({
-      userId: user?.id || 'guest',
-      customerName: form.name,
-      customerEmail: form.email,
-      customerPhone: form.phone,
-      items: items as CartItem[],
-      total: grandTotal,
-      paymentMethod: payMethod,
-    });
-    clearCart();
-    setConfirmedOrder({ orderNumber: order.orderNumber });
-    setStep('confirm');
+
+    // Modo local: guardar orden en localStorage Y en el backend
+    setSubmitting(true);
+    try {
+      // Intentar guardar en el backend si est├í configurado
+      if (isApiConfigured()) {
+        try {
+          const res = await createOrderApi({
+            userId: user?.id ?? null,
+            customerName: form.name,
+            customerEmail: form.email,
+            customerPhone: form.phone,
+            items: items.map(({ product, quantity }) => ({
+              product_id: product.id,
+              quantity,
+            })),
+            paymentMethod: payMethod,
+          });
+          
+          // Guardar direcci├│n nueva si el usuario lo solicit├│
+          if (saveNewAddress && user?.customerId && newAddressLabel) {
+            try {
+              const { createAddress } = await import('../api/customersApi');
+              await createAddress(user.customerId, {
+                label: newAddressLabel,
+                street: shippingAddress.street,
+                city: shippingAddress.city,
+                province: shippingAddress.province,
+                zip: shippingAddress.zip,
+                isPrimary: savedAddresses.length === 0, // Primera direcci├│n es principal
+              });
+              console.log('Ô£à Direcci├│n guardada correctamente');
+            } catch (err) {
+              console.error('Error al guardar direcci├│n:', err);
+              // No bloqueamos el checkout si falla guardar la direcci├│n
+            }
+          }
+          
+          // Orden guardada en backend exitosamente
+          clearCart();
+          setConfirmedOrder({ orderNumber: res.orderNumber });
+          setStep('confirm');
+          return;
+        } catch (e) {
+          // Si falla el backend, continuar con modo local
+          console.warn('No se pudo guardar en el backend, usando modo local:', e);
+        }
+      }
+      
+      // Fallback: modo local (localStorage)
+      const order = createOrder({
+        userId: user?.id || 'guest',
+        customerName: form.name,
+        customerEmail: form.email,
+        customerPhone: form.phone,
+        items: items as CartItem[],
+        total: grandTotal,
+        paymentMethod: payMethod,
+      });
+      clearCart();
+      setConfirmedOrder({ orderNumber: order.orderNumber });
+      setStep('confirm');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (items.length === 0 && step !== 'confirm') return (
@@ -140,7 +309,7 @@ const Checkout = () => {
           <React.Fragment key={label}>
             <div className={`flex items-center gap-2 text-sm font-medium ${i === stepIndex ? 'text-primary-600' : i < stepIndex ? 'text-green-600' : 'text-gray-400'}`}>
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${i === stepIndex ? 'bg-primary-600 text-white' : i < stepIndex ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                {i < stepIndex ? '✓' : i + 1}
+                {i < stepIndex ? 'Ô£ô' : i + 1}
               </div>
               <span className="hidden sm:block">{label}</span>
             </div>
@@ -149,20 +318,9 @@ const Checkout = () => {
         ))}
       </div>
 
-      {/* Alerta de restricción de envíos */}
-      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3">
-        <MapPin size={20} className="text-blue-600 flex-shrink-0" />
-        <div className="text-sm">
-          <p className="font-medium text-blue-900">Envíos solo a Córdoba</p>
-          <p className="text-blue-700/80 text-xs mt-0.5">
-            Por el momento realizamos retiros en nuestro depósito ubicado en Córdoba capital.
-          </p>
-        </div>
-      </div>
-
       <AnimatePresence mode="wait">
 
-        {/* ── STEP 1: Datos ── */}
+        {/* ÔöÇÔöÇ STEP 1: Datos ÔöÇÔöÇ */}
         {step === 'form' && (
           <motion.div key="form" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -174,7 +332,7 @@ const Checkout = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-                      <input type="text" required placeholder="Juan Pérez"
+                      <input type="text" required placeholder="Juan P├®rez"
                         value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                         className="input-field" />
                     </div>
@@ -185,7 +343,7 @@ const Checkout = () => {
                         className="input-field" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tel├®fono</label>
                       <input type="tel" required placeholder="011 1234-5678"
                         value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
                         className="input-field" />
@@ -193,11 +351,90 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {/* Retiro en depósito */}
+                {/* Direcci├│n de env├¡o */}
+                <div className="card p-6">
+                  <h2 className="font-bold text-gray-900 mb-4">Direcci├│n de env├¡o</h2>
+                  
+                  {/* Selector de direcciones guardadas */}
+                  {user?.customerId && savedAddresses.length > 0 && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Seleccionar direcci├│n guardada
+                      </label>
+                      <select
+                        value={selectedAddressId}
+                        onChange={(e) => handleAddressChange(e.target.value)}
+                        className="input-field"
+                      >
+                        {savedAddresses.map((addr) => (
+                          <option key={addr.id} value={addr.id}>
+                            {addr.label} - {addr.street}, {addr.city}
+                          </option>
+                        ))}
+                        <option value="new">+ Nueva direcci├│n</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Formulario de direcci├│n */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Calle y n├║mero</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Av. Corrientes 1234"
+                        value={shippingAddress.street}
+                        onChange={e => setShippingAddress(p => ({ ...p, street: e.target.value }))}
+                        disabled={selectedAddressId !== 'new' && savedAddresses.length > 0}
+                        className="input-field disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+                      <ProvinceSelect
+                        value={shippingAddress.province}
+                        onChange={(value) => setShippingAddress(p => ({ ...p, province: value, city: '' }))}
+                        required
+                        disabled={selectedAddressId !== 'new' && savedAddresses.length > 0}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+                      <CitySelect
+                        province={shippingAddress.province}
+                        value={shippingAddress.city}
+                        onChange={(value) => setShippingAddress(p => ({ ...p, city: value }))}
+                        required
+                        disabled={selectedAddressId !== 'new' && savedAddresses.length > 0}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">C├│digo postal</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="1043"
+                        value={shippingAddress.zip}
+                        onChange={e => setShippingAddress(p => ({ ...p, zip: e.target.value }))}
+                        disabled={selectedAddressId !== 'new' && savedAddresses.length > 0}
+                        className="input-field disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  {user?.customerId && (
+                    <p className="text-xs text-gray-500 mt-3">
+                      ­ƒÆí Pod├®s gestionar tus direcciones desde <Link to="/cuenta/direcciones" className="text-primary-600 hover:underline">Mi cuenta</Link>
+                    </p>
+                  )}
+                </div>
+
+                {/* Retiro en dep├│sito */}
                 <div className="card p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <MapPin size={18} className="text-primary-600" />
-                    <h2 className="font-bold text-gray-900">Retiro en depósito</h2>
+                    <h2 className="font-bold text-gray-900">Retiro en dep├│sito</h2>
                   </div>
                   <div className="bg-primary-50 border border-primary-100 rounded-xl p-4 space-y-3">
                     <div className="flex items-start gap-3">
@@ -217,11 +454,11 @@ const Checkout = () => {
                     </div>
                     <a href={DEPOSITO.mapsUrl} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium mt-1">
-                      <MapPin size={14} /> Ver en Google Maps →
+                      <MapPin size={14} /> Ver en Google Maps ÔåÆ
                     </a>
                   </div>
                   <p className="text-xs text-gray-400 mt-3">
-                    Te avisaremos por email cuando tu pedido esté listo para retirar.
+                    Te avisaremos por email cuando tu pedido est├® listo para retirar.
                   </p>
                 </div>
 
@@ -233,72 +470,50 @@ const Checkout = () => {
           </motion.div>
         )}
 
-        {/* ── STEP 2: Pago ── */}
+        {/* ÔöÇÔöÇ STEP 2: Pago ÔöÇÔöÇ */}
         {step === 'payment' && (
           <motion.div key="payment" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
                 <div className="card p-6">
-                  <h2 className="font-bold text-gray-900 mb-4">Método de pago</h2>
+                  <h2 className="font-bold text-gray-900 mb-4">M├®todo de pago</h2>
                   {localCheckout && (
                     <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                       <p className="font-medium">Modo local</p>
                       <p className="text-amber-800/90 mt-0.5">
-                        No hay cobro online: el pedido queda guardado en este navegador. Al publicar el sitio podrás activar el pago con Mercado Pago.
+                        No hay cobro online: el pedido queda guardado en este navegador. Al publicar el sitio podr├ís activar el pago con Mercado Pago.
                       </p>
                     </div>
                   )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                    {[
-                      { id: 'mp', icon: Smartphone, label: 'Mercado Pago', sub: 'Tarjeta, débito, MP', color: 'text-blue-500' },
-                      { id: 'fiserv', icon: CreditCard, label: 'Fiserv', sub: 'Visa, Mastercard, Amex', color: 'text-green-500' },
-                    ].map(opt => (
-                      <button key={opt.id} onClick={() => setPayMethod(opt.id as 'mp' | 'fiserv')}
-                        className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${payMethod === opt.id ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                        <opt.icon size={22} className={opt.color} />
-                        <div>
-                          <p className="font-semibold text-sm text-gray-800">{opt.label}</p>
-                          <p className="text-xs text-gray-500">{opt.sub}</p>
-                        </div>
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-1 gap-3 mb-5">
+                    <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-primary-600 bg-primary-50 text-left">
+                      <Smartphone size={22} className="text-blue-500" />
+                      <div>
+                        <p className="font-semibold text-sm text-gray-800">Mercado Pago</p>
+                        <p className="text-xs text-gray-500">Tarjeta, d├®bito, transferencia, MP</p>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 mb-5">
-                    <p className="font-medium text-gray-800 mb-1">
-                      {payMethod === 'mp' ? '🔵 Mercado Pago' : '🟢 Fiserv'}
-                    </p>
+                    <p className="font-medium text-gray-800 mb-1">­ƒöÁ Mercado Pago</p>
                     {mercadoPagoOnline ? (
-                      <p>Serás redirigido a Mercado Pago para completar el pago.</p>
-                    ) : isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'fiserv' ? (
-                      <p>Para pago online con tarjeta elegí Mercado Pago, o confirmá el pedido en modo local y coordiná el pago al retirar.</p>
+                      <p>Ser├ís redirigido a Mercado Pago para completar el pago.</p>
                     ) : (
                       <p>
                         {localCheckout
-                          ? 'Confirmá el pedido: coordiná el pago al retirar en el depósito (efectivo, transferencia o lo que acuerden).'
-                          : 'Serás redirigido a Mercado Pago para completar el pago.'}
+                          ? 'Pago en efectivo al retirar en dep├│sito.'
+                          : 'Ser├ís redirigido a Mercado Pago para completar el pago.'}
                       </p>
                     )}
                   </div>
-
-                  {/* Ver medios de pago para MP */}
-                  {mercadoPagoOnline && (
-                    <button
-                      onClick={() => setShowPaymentMethods(true)}
-                      type="button"
-                      className="mb-5 w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-50 border border-primary-200 text-primary-700 hover:bg-primary-100 font-semibold rounded-xl transition-all"
-                    >
-                      <CreditCard size={18} />
-                      Ver medios de pago y cuotas
-                    </button>
-                  )}
 
                   {/* Recordatorio retiro */}
                   <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5">
                     <MapPin size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
                     <div className="text-sm">
-                      <p className="font-semibold text-blue-800">Retiro en depósito</p>
-                      <p className="text-blue-600">{DEPOSITO.address} · {DEPOSITO.city}</p>
+                      <p className="font-semibold text-blue-800">Retiro en dep├│sito</p>
+                      <p className="text-blue-600">{DEPOSITO.address} ┬À {DEPOSITO.city}</p>
                     </div>
                   </div>
 
@@ -307,11 +522,11 @@ const Checkout = () => {
                     <button type="button" onClick={() => void handlePay()} className="btn-primary flex-1 disabled:opacity-60" disabled={submitting}>
                       {submitting
                         ? mercadoPagoOnline
-                          ? 'Redirigiendo…'
-                          : 'Guardando…'
+                          ? 'RedirigiendoÔÇª'
+                          : 'GuardandoÔÇª'
                         : mercadoPagoOnline
                           ? `Confirmar y pagar ${formatPrice(grandTotal)}`
-                          : `Confirmar pedido · ${formatPrice(grandTotal)}`}
+                          : `Confirmar pedido ┬À ${formatPrice(grandTotal)}`}
                     </button>
                   </div>
                 </div>
@@ -322,21 +537,21 @@ const Checkout = () => {
           </motion.div>
         )}
 
-        {/* ── STEP 3: Confirmación ── */}
+        {/* ÔöÇÔöÇ STEP 3: Confirmaci├│n ÔöÇÔöÇ */}
         {step === 'confirm' && (
           <motion.div key="confirm" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg mx-auto text-center py-10">
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring' }}>
               <CheckCircle size={72} className="mx-auto text-green-500 mb-4" />
             </motion.div>
-            <h2 className="text-2xl font-black text-gray-900 mb-2">¡Pedido confirmado!</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">┬íPedido confirmado!</h2>
             <p className="text-gray-500 mb-1">Te enviamos un email con los detalles.</p>
             <p className="text-sm text-gray-400 mb-6">
-              Número de pedido: <span className="font-bold text-gray-700">#{confirmedOrder?.orderNumber}</span>
+              N├║mero de pedido: <span className="font-bold text-gray-700">#{confirmedOrder?.orderNumber}</span>
             </p>
 
             {/* Info retiro */}
             <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-left mb-6 space-y-3">
-              <p className="font-bold text-green-800 text-sm">📦 Próximo paso: retirá tu pedido</p>
+              <p className="font-bold text-green-800 text-sm">­ƒôª Pr├│ximo paso: retir├í tu pedido</p>
               <div className="flex items-start gap-2 text-sm text-green-700">
                 <MapPin size={15} className="mt-0.5 flex-shrink-0" />
                 <span>{DEPOSITO.address}, {DEPOSITO.city}</span>
@@ -345,7 +560,7 @@ const Checkout = () => {
                 <Clock size={15} className="flex-shrink-0" />
                 <span>{DEPOSITO.hours}</span>
               </div>
-              <p className="text-xs text-green-600">Te avisaremos por email cuando esté listo para retirar.</p>
+              <p className="text-xs text-green-600">Te avisaremos por email cuando est├® listo para retirar.</p>
             </div>
 
             <div className="flex gap-3 justify-center">
@@ -357,11 +572,12 @@ const Checkout = () => {
 
       </AnimatePresence>
 
-      {/* Payment methods modal */}
-      <PaymentMethodsModal
-        amount={grandTotal}
-        isOpen={showPaymentMethods}
-        onClose={() => setShowPaymentMethods(false)}
+      {/* Modal para guardar direcci├│n */}
+      <SaveAddressModal
+        isOpen={showSaveAddressModal}
+        onClose={handleSkipSaveAddress}
+        onSave={handleSaveAddress}
+        address={shippingAddress}
       />
     </div>
   );
@@ -381,7 +597,7 @@ const OrderSummary = ({ items, total, grandTotal }: { items: CartItem[]; total: 
     </div>
     <div className="border-t border-gray-100 pt-3 space-y-1.5 text-sm">
       <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatPrice(total)}</span></div>
-      <div className="flex justify-between text-green-600 font-medium"><span>Envío</span><span>Retiro gratis</span></div>
+      <div className="flex justify-between text-green-600 font-medium"><span>Env├¡o</span><span>Retiro gratis</span></div>
       <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t border-gray-100">
         <span>Total</span><span>{formatPrice(grandTotal)}</span>
       </div>

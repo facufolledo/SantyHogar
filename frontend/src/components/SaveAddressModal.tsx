@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, X } from 'lucide-react';
 
@@ -25,7 +25,7 @@ const SaveAddressModal: React.FC<SaveAddressModalProps> = ({
   const handleSave = () => {
     if (label.trim()) {
       onSave(label.trim());
-      // No llamar onClose() aquí, onSave ya maneja el cierre
+      // No llamar onClose() aqu├¡, onSave ya maneja el cierre
     }
   };
 
@@ -67,7 +67,7 @@ const SaveAddressModal: React.FC<SaveAddressModalProps> = ({
 
               {/* Title */}
               <h3 className="text-xl font-bold text-gray-900 mb-2">
-                ¿Guardar esta dirección?
+                ┬┐Guardar esta direcci├│n?
               </h3>
 
               {/* Address preview */}
@@ -78,13 +78,13 @@ const SaveAddressModal: React.FC<SaveAddressModalProps> = ({
 
               {/* Description */}
               <p className="text-gray-600 text-sm mb-4">
-                Guardá esta dirección para usarla en futuros pedidos y hacer el checkout más rápido.
+                Guard├í esta direcci├│n para usarla en futuros pedidos y hacer el checkout m├ís r├ípido.
               </p>
 
               {/* Label input */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre de la dirección
+                  Nombre de la direcci├│n
                 </label>
                 <input
                   type="text"
@@ -114,7 +114,7 @@ const SaveAddressModal: React.FC<SaveAddressModalProps> = ({
                   disabled={!label.trim()}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Guardar dirección
+                  Guardar direcci├│n
                 </button>
               </div>
             </motion.div>

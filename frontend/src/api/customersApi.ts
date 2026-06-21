@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+﻿import { apiFetch } from './client';
 
 export interface CustomerList {
   id: string;
@@ -89,5 +89,88 @@ export async function fetchCustomerOrders(customerId: string): Promise<any[]> {
 export async function updateCustomerStats(customerId: string): Promise<{ message: string }> {
   return apiFetch<{ message: string }>(`/customers/${customerId}/update-stats`, {
     method: 'POST',
+  });
+}
+
+
+// ------------------------------------------------------------------ //
+// Addresses
+// ------------------------------------------------------------------ //
+
+export interface AddressResponse {
+  id: string;
+  label: string;
+  street: string;
+  city: string;
+  province: string;
+  zip: string;
+  isPrimary: boolean;
+}
+
+export interface CreateAddressRequest {
+  label: string;
+  street: string;
+  city: string;
+  province: string;
+  zip: string;
+  isPrimary?: boolean;
+}
+
+export interface UpdateAddressRequest {
+  label?: string;
+  street?: string;
+  city?: string;
+  province?: string;
+  zip?: string;
+  isPrimary?: boolean;
+}
+
+export async function fetchAddresses(customerId: string): Promise<AddressResponse[]> {
+  return apiFetch<AddressResponse[]>(`/customers/${customerId}/addresses`, { method: 'GET' });
+}
+
+export async function createAddress(customerId: string, data: CreateAddressRequest): Promise<AddressResponse> {
+  return apiFetch<AddressResponse>(`/customers/${customerId}/addresses`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAddress(customerId: string, addressId: string, data: UpdateAddressRequest): Promise<AddressResponse> {
+  return apiFetch<AddressResponse>(`/customers/${customerId}/addresses/${addressId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteAddress(customerId: string, addressId: string): Promise<void> {
+  await apiFetch(`/customers/${customerId}/addresses/${addressId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ------------------------------------------------------------------ //
+// Favorites
+// ------------------------------------------------------------------ //
+
+export interface FavoriteResponse {
+  productId: string;
+  addedAt: string;
+}
+
+export async function fetchFavorites(customerId: string): Promise<FavoriteResponse[]> {
+  return apiFetch<FavoriteResponse[]>(`/customers/${customerId}/favorites`, { method: 'GET' });
+}
+
+export async function addFavorite(customerId: string, productId: string): Promise<FavoriteResponse> {
+  return apiFetch<FavoriteResponse>(`/customers/${customerId}/favorites`, {
+    method: 'POST',
+    body: JSON.stringify({ productId }),
+  });
+}
+
+export async function removeFavorite(customerId: string, productId: string): Promise<void> {
+  await apiFetch(`/customers/${customerId}/favorites/${productId}`, {
+    method: 'DELETE',
   });
 }
