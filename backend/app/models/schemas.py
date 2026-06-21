@@ -320,3 +320,15 @@ class Customer(BaseModel):
     order_count: int
     notes: Optional[str] = None
     active: bool
+
+
+# ------------------------------------------------------------------ #
+# Image Upload
+# ------------------------------------------------------------------ #
+
+class ImageUploadResponse(BaseModel):
+    """Response after uploading an image to Supabase Storage."""
+    
+    url: str = Field(description="Public URL of the uploaded image")
+    filename: str = Field(description="Filename in Supabase Storage")
+    message: str = Field(default="Image uploaded successfully")
