@@ -21,6 +21,8 @@ export interface CheckoutResponse {
   init_point: string;
   sandbox_init_point: string;
   external_reference: string;
+  order_id: string;
+  order_number: string;
 }
 
 export async function createCheckoutPreference(

@@ -46,29 +46,27 @@ class PaymentService:
         """Crea preferencia Checkout Pro. `line_items`: title, quantity, unit_price."""
 
         def _call() -> PreferenceResponse:
-            base = self._cfg.frontend_url.rstrip("/")
-            pub = self._cfg.public_api_url.rstrip("/")
+            # Construcción mínima de preferencia
             pref: dict[str, Any] = {
                 "items": _preference_line_items(line_items),
                 "external_reference": str(order.id),
-                "back_urls": {
-                    "success": f"{base}/checkout/success",
-                    "failure": f"{base}/checkout/failure",
-                    "pending": f"{base}/checkout/pending",
-                },
-                "auto_return": "approved",
-                "notification_url": f"{pub}/webhook",
             }
+            
             payer_email = order.customerEmail
             if payer_email:
                 pref["payer"] = {"email": payer_email}
 
+            logger.info(f"Creando preferencia MP MINIMA con datos: {pref}")
+            
             result = self._sdk.preference().create(pref)
             status = result.get("status")
+            
+            logger.info(f"Respuesta de MP: status={status}, response={result.get('response')}")
+            
             if status not in (200, 201):
                 err = result.get("response", result)
                 logger.error("Mercado Pago preference error: %s", err)
-                raise MercadoPagoError(f"Preferencia rechazada (HTTP {status})")
+                raise MercadoPagoError(f"Preferencia rechazada (HTTP {status}). Detalles: {err}")
 
             body = result.get("response") or {}
             pid = body.get("id")

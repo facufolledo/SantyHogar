@@ -37,10 +37,10 @@ class SSLAdapter(HTTPAdapter):
     """Adaptador que deshabilita verificación SSL para desarrollo."""
     
     def init_poolmanager(self, *args, **kwargs):
-        kwargs['ssl_version'] = ssl.PROTOCOL_TLS
-        kwargs['cert_reqs'] = ssl.CERT_NONE
-        kwargs['assert_hostname'] = False
-        kwargs['check_hostname'] = False
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        kwargs['ssl_context'] = ctx
         return super().init_poolmanager(*args, **kwargs)
 
 

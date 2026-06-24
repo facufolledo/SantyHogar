@@ -423,8 +423,10 @@ def create_app() -> FastAPI:
     app.include_router(admin_users.router)
     app.include_router(admin_users.router, prefix="/api")
     app.include_router(installments.router)
-    app.include_router(checkout.router, prefix="/api/checkout")
+    # checkout_pro define POST /checkout/create-preference, se registra bajo /api para quedar en /api/checkout/create-preference
     app.include_router(checkout_pro.router, prefix="/api")
+    # Deprecated checkout.router solo retorna 410 Gone, registrado bajo /api/deprecated-checkout
+    app.include_router(checkout.router, prefix="/api/deprecated-checkout")
     app.include_router(webhook.router)
 
     @app.get("/health", tags=["health"])

@@ -19,6 +19,29 @@ class ProductService:
         rows = await self._db.get_all_products()
         return [row_to_product(r) for r in rows]
 
+    async def get_product_by_id(self, product_id: str) -> Product:
+        """Obtiene un producto por ID.
+        
+        Args:
+            product_id: UUID del producto
+            
+        Returns:
+            Product object
+            
+        Raises:
+            ProductNotFoundError si el producto no existe
+        """
+        try:
+            pid = UUID(product_id)
+        except (ValueError, TypeError):
+            raise ProductNotFoundError(f"ID de producto inválido: {product_id}")
+        
+        rows = await self._db.get_products_by_ids([pid])
+        if not rows:
+            raise ProductNotFoundError(f"Producto no encontrado: {product_id}")
+        
+        return row_to_product(rows[0])
+
     async def validate_products_exist(self, product_ids: List[UUID]) -> None:
         if not product_ids:
             return

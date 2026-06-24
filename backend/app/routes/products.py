@@ -2,7 +2,7 @@
 from typing import Annotated, List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, UploadFile, status, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile, status, HTTPException, Query
 
 from app.deps import get_image_service, get_product_service, get_supabase
 from app.exceptions import ProductNotFoundError
@@ -19,6 +19,7 @@ from app.models.schemas import (
 )
 from app.services.bulk_import_service import parse_xlsx_file, process_bulk_import, process_xlsx_import
 from app.services.image_service import ImageService, ImageValidationError
+from app.services.pagination_service import PaginationService
 from app.services.product_service import ProductService
 
 router = APIRouter(tags=["products"])
@@ -26,14 +27,58 @@ router = APIRouter(tags=["products"])
 
 @router.get(
     "/products",
-    response_model=List[ProductResponse],
     status_code=status.HTTP_200_OK,
 )
 async def list_products(
     product_service: Annotated[ProductService, Depends(get_product_service)],
-) -> List[ProductResponse]:
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> dict:
+    """Lista todos los productos con paginación."""
     products = await product_service.get_all_products()
-    return [product_to_response(p) for p in products]
+    pager = PaginationService(page=page, limit=limit)
+    paginated = pager.paginate(
+        total=len(products),
+        results=[
+            product_to_response(p).model_dump(mode="json")
+            for p in products[pager.offset : pager.offset + pager.limit]
+        ]
+    )
+    return paginated
+
+
+@router.get(
+    "/products/{product_id}",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_product_detail(
+    product_id: str,
+    product_service: Annotated[ProductService, Depends(get_product_service)],
+) -> ProductResponse:
+    """Obtiene los detalles de un producto por ID.
+    
+    Sin autenticación requerida (público).
+    Retorna 404 si el producto no existe.
+    """
+    try:
+        product = await product_service.get_product_by_id(product_id)
+        if not product:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Producto {product_id} no encontrado"
+            )
+        return product_to_response(product)
+    except ProductNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Producto {product_id} no encontrado"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error obteniendo producto: {str(e)}"
+        )
 
 
 @router.post(

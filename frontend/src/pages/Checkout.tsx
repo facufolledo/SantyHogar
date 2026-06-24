@@ -1,22 +1,15 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, CreditCard, Smartphone, MapPin, Clock, Phone, Plus } from 'lucide-react';
+import { CheckCircle, CreditCard, Smartphone, MapPin, Clock, Phone } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
 import { useToast } from '../context/ToastContext';
 import { isApiConfigured, isMpCheckoutEnabled } from '../api/config';
 import { fetchAddresses, type AddressResponse } from '../api/customersApi';
-import ProvinceSelect from '../components/ProvinceSelect';
 import CitySelect from '../components/CitySelect';
 import SaveAddressModal from '../components/SaveAddressModal';
-
-/** Sin MP online: pedido solo en el navegador (o API sin checkout MP). */
-function isLocalCheckoutMode(): boolean {
-  return !isMpCheckoutEnabled() || !isApiConfigured();
-}
-import { ApiError } from '../api/client';
 import { createOrderApi } from '../api/ordersApi';
 import { createCheckoutPreference } from '../api/checkoutApi';
 import { formatPrice } from '../utils/format';
@@ -24,29 +17,24 @@ import type { CartItem } from '../context/CartContext';
 
 type Step = 'form' | 'payment' | 'confirm';
 
-// ÔöÇÔöÇÔöÇ Datos del dep├│sito ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-// Reemplaz├í con la direcci├│n real cuando la tengas
 const DEPOSITO = {
-  address: 'Viamonte 1261, B┬░ Pueyrred├│n',
-  city: 'C├│rdoba, Argentina',
-  hours: 'LunÔÇôVie 9:00ÔÇô18:00 ┬À S├íb 9:00ÔÇô13:00',
+  address: 'Viamonte 1261, B° Pueyrredón',
+  city: 'Córdoba, Argentina',
+  hours: 'Lun-Vie 9:00-18:00 • Sab 9:00-13:00',
   phone: '(011) 4000-0000',
   mapsUrl: 'https://www.google.com/maps/search/Viamonte+1261+Barrio+Pueyrredon+Cordoba+Argentina',
 };
 
-const STEPS = ['Datos', 'Pago', 'Confirmaci├│n'];
+const STEPS = ['Datos', 'Pago', 'Confirmación'];
 
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
   const { user } = useAuth();
-  const { createOrder, pushOrder } = useOrders();
+  const { createOrder } = useOrders();
   const { toast } = useToast();
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  void navigate;
 
   const [step, setStep] = useState<Step>('form');
-  const [payMethod, setPayMethod] = useState<'mp'>('mp');
   const [confirmedOrder, setConfirmedOrder] = useState<{ orderNumber: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -55,74 +43,54 @@ const Checkout = () => {
     phone: user?.phone || '',
   });
   
-  // Direcciones guardadas
   const [savedAddresses, setSavedAddresses] = useState<AddressResponse[]>([]);
-  const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
   const [shippingAddress, setShippingAddress] = useState({
     street: '',
     city: '',
-    province: '',
+    province: 'Córdoba',
     zip: '',
   });
   const [saveNewAddress, setSaveNewAddress] = useState(false);
   const [newAddressLabel, setNewAddressLabel] = useState('');
   const [showSaveAddressModal, setShowSaveAddressModal] = useState(false);
 
-  // Cargar direcciones guardadas si el usuario est├í logueado
   useEffect(() => {
     if (user?.customerId) {
-      setLoadingAddresses(true);
       fetchAddresses(user.customerId)
         .then((addresses) => {
           setSavedAddresses(addresses);
-          // Seleccionar la direcci├│n principal por defecto
           const primary = addresses.find(a => a.isPrimary);
           if (primary) {
             setSelectedAddressId(primary.id);
             setShippingAddress({
               street: primary.street,
               city: primary.city,
-              province: primary.province,
+              province: 'Córdoba',
               zip: primary.zip,
             });
           }
         })
-        .catch((err) => {
-          console.error('Error al cargar direcciones:', err);
-        })
-        .finally(() => setLoadingAddresses(false));
+        .catch((err) => console.error('Error cargando direcciones:', err));
     }
   }, [user?.customerId]);
 
   const grandTotal = total;
   const stepIndex = ['form', 'payment', 'confirm'].indexOf(step);
-  const localCheckout = isLocalCheckoutMode();
-  const mercadoPagoOnline =
-    isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'mp';
-
-  // Check if the selected address is from Córdoba
-  const isValidProvince = shippingAddress.province === 'Córdoba';
+  const localCheckout = !isMpCheckoutEnabled() || !isApiConfigured();
+  const mercadoPagoOnline = isMpCheckoutEnabled() && isApiConfigured();
 
   const handleAddressChange = (addressId: string) => {
     setSelectedAddressId(addressId);
-    
     if (addressId === 'new') {
-      // Limpiar formulario para nueva direcci├│n
-      setShippingAddress({
-        street: '',
-        city: '',
-        province: '',
-        zip: '',
-      });
+      setShippingAddress({ street: '', city: '', province: 'Córdoba', zip: '' });
     } else {
-      // Cargar direcci├│n seleccionada
       const address = savedAddresses.find(a => a.id === addressId);
       if (address) {
         setShippingAddress({
           street: address.street,
           city: address.city,
-          province: address.province,
+          province: 'Córdoba',
           zip: address.zip,
         });
       }
@@ -131,30 +99,15 @@ const Checkout = () => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validar que la provincia sea Córdoba
-    if (shippingAddress.province !== 'Córdoba') {
-      toast('Por el momento solo realizamos envíos a Córdoba. Por favor selecciona Córdoba como provincia.', 'error');
-      return;
-    }
-    
-    // Si el usuario est├í logueado y est├í usando una direcci├│n nueva
     if (user?.customerId && selectedAddressId === 'new') {
-      // Verificar si la direcci├│n es diferente a las guardadas
       const isDifferent = !savedAddresses.some(addr => 
-        addr.street.trim().toLowerCase() === shippingAddress.street.trim().toLowerCase() &&
-        addr.city.trim().toLowerCase() === shippingAddress.city.trim().toLowerCase() &&
-        addr.province.trim().toLowerCase() === shippingAddress.province.trim().toLowerCase() &&
-        addr.zip.trim() === shippingAddress.zip.trim()
+        addr.street.trim().toLowerCase() === shippingAddress.street.trim().toLowerCase()
       );
-
       if (isDifferent && !saveNewAddress) {
-        // Mostrar modal para preguntar si quiere guardar
         setShowSaveAddressModal(true);
-        return; // No avanzar hasta que el usuario decida
+        return;
       }
     }
-    
     setStep('payment');
   };
 
@@ -171,13 +124,9 @@ const Checkout = () => {
   };
 
   const handlePay = async () => {
-    const useMercadoPagoRedirect =
-      isMpCheckoutEnabled() && isApiConfigured() && payMethod === 'mp';
-
-    if (useMercadoPagoRedirect) {
+    if (mercadoPagoOnline) {
       setSubmitting(true);
       try {
-        // Usar el nuevo endpoint de Checkout Pro
         const response = await createCheckoutPreference({
           items: items.map(({ product, quantity }) => ({
             product_id: product.id,
@@ -188,7 +137,6 @@ const Checkout = () => {
           customer_phone: form.phone,
         });
         
-        // Guardar direcci├│n nueva si el usuario lo solicit├│
         if (saveNewAddress && user?.customerId && newAddressLabel) {
           try {
             const { createAddress } = await import('../api/customersApi');
@@ -200,47 +148,31 @@ const Checkout = () => {
               zip: shippingAddress.zip,
               isPrimary: savedAddresses.length === 0,
             });
-            console.log('Ô£à Direcci├│n guardada correctamente');
           } catch (err) {
-            console.error('Error al guardar direcci├│n:', err);
+            console.error('Error guardando dirección:', err);
           }
         }
         
-        // NO limpiar carrito aqu├¡ - se limpiar├í cuando vuelva exitoso
-        // clearCart(); ÔØî REMOVIDO
-        
-        // Guardar items en sessionStorage para recuperar si vuelve atr├ís
         sessionStorage.setItem('pendingCheckout', JSON.stringify({
-          items: items.map(({ product, quantity }) => ({
-            productId: product.id,
-            quantity
-          })),
+          items: items.map(({ product, quantity }) => ({ productId: product.id, quantity })),
           timestamp: Date.now()
         }));
         
-        // Redirigir a MercadoPago Checkout Pro
-        // En testing usa sandbox_init_point, en producci├│n usa init_point
         const checkoutUrl = import.meta.env.MODE === 'production' 
           ? response.init_point 
           : response.sandbox_init_point;
         
         window.location.href = checkoutUrl;
-        
       } catch (e) {
-        const msg =
-          e instanceof Error ? e.message : 'No se pudo iniciar el pago. Intent├í de nuevo.';
+        const msg = e instanceof Error ? e.message : 'Error al iniciar el pago';
         toast(msg, 'error');
         setSubmitting(false);
       }
       return;
     }
 
-
-
-    // Modo local: guardar orden en localStorage Y en el backend
     setSubmitting(true);
     try {
-      // Intentar guardar en el backend si est├í configurado
       if (isApiConfigured()) {
         try {
           const res = await createOrderApi({
@@ -252,10 +184,9 @@ const Checkout = () => {
               product_id: product.id,
               quantity,
             })),
-            paymentMethod: payMethod,
+            paymentMethod: 'mp',
           });
           
-          // Guardar direcci├│n nueva si el usuario lo solicit├│
           if (saveNewAddress && user?.customerId && newAddressLabel) {
             try {
               const { createAddress } = await import('../api/customersApi');
@@ -265,27 +196,22 @@ const Checkout = () => {
                 city: shippingAddress.city,
                 province: shippingAddress.province,
                 zip: shippingAddress.zip,
-                isPrimary: savedAddresses.length === 0, // Primera direcci├│n es principal
+                isPrimary: savedAddresses.length === 0,
               });
-              console.log('Ô£à Direcci├│n guardada correctamente');
             } catch (err) {
-              console.error('Error al guardar direcci├│n:', err);
-              // No bloqueamos el checkout si falla guardar la direcci├│n
+              console.error('Error guardando dirección:', err);
             }
           }
           
-          // Orden guardada en backend exitosamente
           clearCart();
           setConfirmedOrder({ orderNumber: res.orderNumber });
           setStep('confirm');
           return;
         } catch (e) {
-          // Si falla el backend, continuar con modo local
-          console.warn('No se pudo guardar en el backend, usando modo local:', e);
+          console.warn('Modo local:', e);
         }
       }
       
-      // Fallback: modo local (localStorage)
       const order = createOrder({
         userId: user?.id || 'guest',
         customerName: form.name,
@@ -293,7 +219,7 @@ const Checkout = () => {
         customerPhone: form.phone,
         items: items as CartItem[],
         total: grandTotal,
-        paymentMethod: payMethod,
+        paymentMethod: 'mp',
       });
       clearCart();
       setConfirmedOrder({ orderNumber: order.orderNumber });
@@ -318,7 +244,7 @@ const Checkout = () => {
           <React.Fragment key={label}>
             <div className={`flex items-center gap-2 text-sm font-medium ${i === stepIndex ? 'text-primary-600' : i < stepIndex ? 'text-green-600' : 'text-gray-400'}`}>
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${i === stepIndex ? 'bg-primary-600 text-white' : i < stepIndex ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                {i < stepIndex ? 'Ô£ô' : i + 1}
+                {i < stepIndex ? '✓' : i + 1}
               </div>
               <span className="hidden sm:block">{label}</span>
             </div>
@@ -327,20 +253,18 @@ const Checkout = () => {
         ))}
       </div>
 
-      {/* Alerta de restricción de envíos */}
+      {/* Alert */}
       <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3">
         <MapPin size={20} className="text-blue-600 flex-shrink-0" />
         <div className="text-sm">
-          <p className="font-medium text-blue-900">Envíos solo a Córdoba</p>
-          <p className="text-blue-700/80 text-xs mt-0.5">
-            Por el momento realizamos retiros en nuestro depósito ubicado en Córdoba capital.
-          </p>
+          <p className="font-medium text-blue-900">Solo retiro en Córdoba</p>
+          <p className="text-blue-700/80 text-xs mt-0.5">Por el momento solo realizamos retiros en nuestro depósito ubicado en Córdoba capital.</p>
         </div>
       </div>
 
       <AnimatePresence mode="wait">
 
-        {/* ÔöÇÔöÇ STEP 1: Datos ÔöÇÔöÇ */}
+        {/* STEP 1: Datos */}
         {step === 'form' && (
           <motion.div key="form" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -352,7 +276,7 @@ const Checkout = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-                      <input type="text" required placeholder="Juan P├®rez"
+                      <input type="text" required placeholder="Juan Pérez"
                         value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                         className="input-field" />
                     </div>
@@ -363,7 +287,7 @@ const Checkout = () => {
                         className="input-field" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tel├®fono</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
                       <input type="tel" required placeholder="011 1234-5678"
                         value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
                         className="input-field" />
@@ -371,15 +295,14 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {/* Direcci├│n de env├¡o */}
+                {/* Dirección de envío */}
                 <div className="card p-6">
-                  <h2 className="font-bold text-gray-900 mb-4">Direcci├│n de env├¡o</h2>
+                  <h2 className="font-bold text-gray-900 mb-4">Dirección de envío</h2>
                   
-                  {/* Selector de direcciones guardadas */}
                   {user?.customerId && savedAddresses.length > 0 && (
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Seleccionar direcci├│n guardada
+                        Seleccionar dirección guardada
                       </label>
                       <select
                         value={selectedAddressId}
@@ -391,15 +314,15 @@ const Checkout = () => {
                             {addr.label} - {addr.street}, {addr.city}
                           </option>
                         ))}
-                        <option value="new">+ Nueva direcci├│n</option>
+                        <option value="new">+ Nueva dirección</option>
                       </select>
                     </div>
                   )}
 
-                  {/* Formulario de direcci├│n */}
+                  {/* Formulario */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Calle y n├║mero</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Calle y número</label>
                       <input
                         type="text"
                         required
@@ -412,12 +335,7 @@ const Checkout = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
-                      <ProvinceSelect
-                        value={shippingAddress.province}
-                        onChange={(value) => setShippingAddress(p => ({ ...p, province: value, city: '' }))}
-                        required
-                        disabled={selectedAddressId !== 'new' && savedAddresses.length > 0}
-                      />
+                      <input type="text" disabled value="Córdoba" className="input-field disabled:bg-gray-100 disabled:cursor-not-allowed" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
@@ -430,7 +348,7 @@ const Checkout = () => {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">C├│digo postal</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Código postal</label>
                       <input
                         type="text"
                         required
@@ -445,16 +363,16 @@ const Checkout = () => {
 
                   {user?.customerId && (
                     <p className="text-xs text-gray-500 mt-3">
-                      ­ƒÆí Pod├®s gestionar tus direcciones desde <Link to="/cuenta/direcciones" className="text-primary-600 hover:underline">Mi cuenta</Link>
+                      📦 Podés gestionar tus direcciones desde <Link to="/cuenta/direcciones" className="text-primary-600 hover:underline">Mi cuenta</Link>
                     </p>
                   )}
                 </div>
 
-                {/* Retiro en dep├│sito */}
+                {/* Retiro en depósito */}
                 <div className="card p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <MapPin size={18} className="text-primary-600" />
-                    <h2 className="font-bold text-gray-900">Retiro en dep├│sito</h2>
+                    <h2 className="font-bold text-gray-900">Retiro en depósito</h2>
                   </div>
                   <div className="bg-primary-50 border border-primary-100 rounded-xl p-4 space-y-3">
                     <div className="flex items-start gap-3">
@@ -474,27 +392,15 @@ const Checkout = () => {
                     </div>
                     <a href={DEPOSITO.mapsUrl} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium mt-1">
-                      <MapPin size={14} /> Ver en Google Maps ÔåÆ
+                      <MapPin size={14} /> Ver en Google Maps ↗
                     </a>
                   </div>
                   <p className="text-xs text-gray-400 mt-3">
-                    Te avisaremos por email cuando tu pedido est├® listo para retirar.
+                    Te avisaremos por email cuando tu pedido esté listo para retirar.
                   </p>
                 </div>
 
-                {!isValidProvince && (
-                  <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-                    <p className="text-sm text-red-700">
-                      ⚠️ Solo podemos enviar a Córdoba. Por favor selecciona Córdoba como provincia.
-                    </p>
-                  </div>
-                )}
-
-                <button 
-                  type="submit" 
-                  className="w-full btn-primary disabled:opacity-60 disabled:cursor-not-allowed" 
-                  disabled={!isValidProvince}
-                >
+                <button type="submit" className="w-full btn-primary">
                   Continuar al pago
                 </button>
               </form>
@@ -504,18 +410,18 @@ const Checkout = () => {
           </motion.div>
         )}
 
-        {/* ÔöÇÔöÇ STEP 2: Pago ÔöÇÔöÇ */}
+        {/* STEP 2: Pago */}
         {step === 'payment' && (
           <motion.div key="payment" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
                 <div className="card p-6">
-                  <h2 className="font-bold text-gray-900 mb-4">M├®todo de pago</h2>
+                  <h2 className="font-bold text-gray-900 mb-4">Método de pago</h2>
                   {localCheckout && (
                     <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                       <p className="font-medium">Modo local</p>
                       <p className="text-amber-800/90 mt-0.5">
-                        No hay cobro online: el pedido queda guardado en este navegador. Al publicar el sitio podr├ís activar el pago con Mercado Pago.
+                        Sin cobro online: pedido guardado localmente.
                       </p>
                     </div>
                   )}
@@ -524,30 +430,25 @@ const Checkout = () => {
                       <Smartphone size={22} className="text-blue-500" />
                       <div>
                         <p className="font-semibold text-sm text-gray-800">Mercado Pago</p>
-                        <p className="text-xs text-gray-500">Tarjeta, d├®bito, transferencia, MP</p>
+                        <p className="text-xs text-gray-500">Tarjeta, débito, transferencia, MP</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 mb-5">
-                    <p className="font-medium text-gray-800 mb-1">­ƒöÁ Mercado Pago</p>
+                    <p className="font-medium text-gray-800 mb-1">ℹ️ Mercado Pago</p>
                     {mercadoPagoOnline ? (
-                      <p>Ser├ís redirigido a Mercado Pago para completar el pago.</p>
+                      <p>Serás redirigido a Mercado Pago para completar el pago.</p>
                     ) : (
-                      <p>
-                        {localCheckout
-                          ? 'Pago en efectivo al retirar en dep├│sito.'
-                          : 'Ser├ís redirigido a Mercado Pago para completar el pago.'}
-                      </p>
+                      <p>Pago en efectivo al retirar en depósito.</p>
                     )}
                   </div>
 
-                  {/* Recordatorio retiro */}
                   <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5">
                     <MapPin size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
                     <div className="text-sm">
-                      <p className="font-semibold text-blue-800">Retiro en dep├│sito</p>
-                      <p className="text-blue-600">{DEPOSITO.address} ┬À {DEPOSITO.city}</p>
+                      <p className="font-semibold text-blue-800">Retiro en depósito</p>
+                      <p className="text-blue-600">{DEPOSITO.address} • {DEPOSITO.city}</p>
                     </div>
                   </div>
 
@@ -555,12 +456,8 @@ const Checkout = () => {
                     <button type="button" onClick={() => setStep('form')} className="btn-secondary flex-1" disabled={submitting}>Volver</button>
                     <button type="button" onClick={() => void handlePay()} className="btn-primary flex-1 disabled:opacity-60" disabled={submitting}>
                       {submitting
-                        ? mercadoPagoOnline
-                          ? 'RedirigiendoÔÇª'
-                          : 'GuardandoÔÇª'
-                        : mercadoPagoOnline
-                          ? `Confirmar y pagar ${formatPrice(grandTotal)}`
-                          : `Confirmar pedido ┬À ${formatPrice(grandTotal)}`}
+                        ? mercadoPagoOnline ? 'Redirigiendo…' : 'Guardando…'
+                        : mercadoPagoOnline ? `Confirmar y pagar ${formatPrice(grandTotal)}` : `Confirmar pedido • ${formatPrice(grandTotal)}`}
                     </button>
                   </div>
                 </div>
@@ -571,21 +468,20 @@ const Checkout = () => {
           </motion.div>
         )}
 
-        {/* ÔöÇÔöÇ STEP 3: Confirmaci├│n ÔöÇÔöÇ */}
+        {/* STEP 3: Confirmación */}
         {step === 'confirm' && (
           <motion.div key="confirm" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg mx-auto text-center py-10">
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring' }}>
               <CheckCircle size={72} className="mx-auto text-green-500 mb-4" />
             </motion.div>
-            <h2 className="text-2xl font-black text-gray-900 mb-2">┬íPedido confirmado!</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">¡Pedido confirmado!</h2>
             <p className="text-gray-500 mb-1">Te enviamos un email con los detalles.</p>
             <p className="text-sm text-gray-400 mb-6">
-              N├║mero de pedido: <span className="font-bold text-gray-700">#{confirmedOrder?.orderNumber}</span>
+              Número de pedido: <span className="font-bold text-gray-700">#{confirmedOrder?.orderNumber}</span>
             </p>
 
-            {/* Info retiro */}
             <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-left mb-6 space-y-3">
-              <p className="font-bold text-green-800 text-sm">­ƒôª Pr├│ximo paso: retir├í tu pedido</p>
+              <p className="font-bold text-green-800 text-sm">✓ Próximo paso: retirá tu pedido</p>
               <div className="flex items-start gap-2 text-sm text-green-700">
                 <MapPin size={15} className="mt-0.5 flex-shrink-0" />
                 <span>{DEPOSITO.address}, {DEPOSITO.city}</span>
@@ -594,7 +490,7 @@ const Checkout = () => {
                 <Clock size={15} className="flex-shrink-0" />
                 <span>{DEPOSITO.hours}</span>
               </div>
-              <p className="text-xs text-green-600">Te avisaremos por email cuando est├® listo para retirar.</p>
+              <p className="text-xs text-green-600">Te avisaremos por email cuando esté listo para retirar.</p>
             </div>
 
             <div className="flex gap-3 justify-center">
@@ -606,7 +502,6 @@ const Checkout = () => {
 
       </AnimatePresence>
 
-      {/* Modal para guardar direcci├│n */}
       <SaveAddressModal
         isOpen={showSaveAddressModal}
         onClose={handleSkipSaveAddress}
@@ -631,7 +526,7 @@ const OrderSummary = ({ items, total, grandTotal }: { items: CartItem[]; total: 
     </div>
     <div className="border-t border-gray-100 pt-3 space-y-1.5 text-sm">
       <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatPrice(total)}</span></div>
-      <div className="flex justify-between text-green-600 font-medium"><span>Env├¡o</span><span>Retiro gratis</span></div>
+      <div className="flex justify-between text-green-600 font-medium"><span>Envío</span><span>Retiro gratis</span></div>
       <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t border-gray-100">
         <span>Total</span><span>{formatPrice(grandTotal)}</span>
       </div>
