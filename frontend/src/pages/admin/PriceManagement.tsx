@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, DollarSign, Save, AlertCircle, Filter, TrendingUp } from 'lucide-react';
 import { useProducts } from '../../context/ProductsContext';
@@ -160,7 +160,7 @@ export default function PriceManagement() {
               Hay {noPriceCount} productos sin precio
             </p>
             <p className="text-xs text-yellow-500/80 mt-1">
-              Estos productos no se mostrar├ín correctamente en la tienda hasta que les asignes un precio.
+              Estos productos no se mostrarán correctamente en la tienda hasta que les asignes un precio.
             </p>
           </div>
         </div>
@@ -358,7 +358,7 @@ export default function PriceManagement() {
         </div>
       )}
 
-      {/* Bot├│n flotante "Guardar todos" */}
+      {/* Botón flotante "Guardar todos" */}
       {pendingChangesCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

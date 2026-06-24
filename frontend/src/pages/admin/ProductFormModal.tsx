@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { X, Upload, ImageIcon, AlertCircle, GripVertical } from 'lucide-react';
 import type { Product } from '../../data/products';
@@ -200,7 +200,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-300">Margen de ganancia</p>
-                      <p className="text-xs text-gray-600 mt-0.5">((precio - costo) / costo) ├ù 100</p>
+                      <p className="text-xs text-gray-600 mt-0.5">((precio - costo) / costo) × 100</p>
                     </div>
                     <div className="text-right">
                       <p className={`text-3xl font-black ${marginColor}`}>{margin}%</p>
@@ -227,7 +227,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                 <div className="flex items-center justify-between p-4 bg-gray-800 border border-gray-700 rounded-xl">
                   <div>
                     <p className="text-sm font-medium text-gray-300">Control de stock</p>
-                    <p className="text-xs text-gray-600">Desactivar para productos sin l├¡mite</p>
+                    <p className="text-xs text-gray-600">Desactivar para productos sin límite</p>
                   </div>
                   <button type="button" onClick={() => set('trackStock', !form.trackStock)}
                     className={`w-11 h-6 rounded-full transition-colors relative ${form.trackStock ? 'bg-primary-600' : 'bg-gray-700'}`}>
@@ -576,7 +576,7 @@ function ImagenesTab({ images, setImages, readOnly, di }: ImagenesTabProps) {
         </div>
       ) : (
         <div className="flex items-center gap-2 text-xs text-gray-600 p-4 bg-gray-800 border border-gray-700 rounded-lg">
-          <ImageIcon size={14} /> <span>No hay im├ígenes cargadas</span>
+          <ImageIcon size={14} /> <span>No hay imágenes cargadas</span>
         </div>
       )}
 

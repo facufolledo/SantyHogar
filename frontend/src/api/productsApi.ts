@@ -1,4 +1,4 @@
-﻿import type { Product } from '../data/products';
+import type { Product } from '../data/products';
 import { apiFetch } from './client';
 import { getApiBase } from './config';
 
@@ -79,7 +79,7 @@ export interface BulkImportConfirmRow {
 export async function bulkImportPreview(file: File): Promise<BulkImportPreviewResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no est├í configurada');
+    throw new Error('VITE_API_URL no estâ”œÃ­ configurada');
   }
   const formData = new FormData();
   formData.append('file', file);
@@ -103,7 +103,7 @@ export async function bulkImportPreview(file: File): Promise<BulkImportPreviewRe
 export async function bulkImportConfirm(rows: BulkImportConfirmRow[]): Promise<BulkImportResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no est├í configurada');
+    throw new Error('VITE_API_URL no estâ”œÃ­ configurada');
   }
 
   const root = base.replace(/\/$/, '');
@@ -126,7 +126,7 @@ export async function bulkImportConfirm(rows: BulkImportConfirmRow[]): Promise<B
 export async function bulkImportProducts(file: File): Promise<BulkImportResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no est├í configurada');
+    throw new Error('VITE_API_URL no estâ”œÃ­ configurada');
   }
   const formData = new FormData();
   formData.append('file', file);
@@ -240,7 +240,7 @@ export interface ImageUploadResponse {
 export async function uploadProductImage(file: File): Promise<ImageUploadResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no est├í configurada');
+    throw new Error('VITE_API_URL no estâ”œÃ­ configurada');
   }
   const formData = new FormData();
   formData.append('file', file);

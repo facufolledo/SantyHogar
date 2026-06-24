@@ -1,4 +1,4 @@
-﻿import { useMemo } from 'react';
+import { useMemo } from 'react';
 import { getCitiesByProvince, getProvinceByName } from '../data/argentina';
 
 interface Props {

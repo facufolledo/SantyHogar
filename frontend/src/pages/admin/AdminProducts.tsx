@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Product } from '../../data/products';
@@ -37,7 +37,7 @@ export default function AdminProducts() {
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      // Cambiar direcci├│n si es el mismo campo
+      // Cambiar dirección si es el mismo campo
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       // Nuevo campo, ordenar ascendente por defecto

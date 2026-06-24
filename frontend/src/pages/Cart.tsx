@@ -22,7 +22,7 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Cancelado',
 };
 
-// ─── Sección: mis pedidos ──────────────────────────────────────────────────────
+// â”€â”€â”€ SecciÃ³n: mis pedidos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function MyOrdersSection() {
   const { user } = useAuth();
@@ -56,9 +56,9 @@ function MyOrdersSection() {
         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Package size={32} className="text-gray-400" />
         </div>
-        <h3 className="font-bold text-gray-800 mb-2">Iniciá sesión para ver tus pedidos</h3>
+        <h3 className="font-bold text-gray-800 mb-2">IniciÃ¡ sesiÃ³n para ver tus pedidos</h3>
         <p className="text-sm text-gray-500 mb-6">
-          Registrate o iniciá sesión para acceder al historial de compras.
+          Registrate o iniciÃ¡ sesiÃ³n para acceder al historial de compras.
         </p>
         <Link to="/tienda" className="btn-primary inline-block">
           Ir a la tienda
@@ -71,7 +71,7 @@ function MyOrdersSection() {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
         <Loader2 size={32} className="animate-spin" />
-        <p className="text-sm">Cargando tus pedidos…</p>
+        <p className="text-sm">Cargando tus pedidosâ€¦</p>
       </div>
     );
   }
@@ -97,9 +97,9 @@ function MyOrdersSection() {
         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Package size={32} className="text-gray-400" />
         </div>
-        <h3 className="font-semibold text-gray-700 mb-1">Todavía no tenés pedidos</h3>
+        <h3 className="font-semibold text-gray-700 mb-1">TodavÃ­a no tenÃ©s pedidos</h3>
         <p className="text-sm text-gray-400 mb-6">
-          Cuando realices una compra aparecerá acá.
+          Cuando realices una compra aparecerÃ¡ acÃ¡.
         </p>
         <Link to="/tienda" className="btn-primary inline-block">
           Ver productos
@@ -115,7 +115,7 @@ function MyOrdersSection() {
           {orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'} realizados
         </p>
         <Link to="/cuenta/pedidos" className="text-xs text-primary-600 hover:underline font-medium">
-          Ver todos →
+          Ver todos â†’
         </Link>
       </div>
 
@@ -150,7 +150,7 @@ function MyOrdersSection() {
                     <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-400">
                       <Clock size={11} />
                       <span>{date}</span>
-                      <span>·</span>
+                      <span>Â·</span>
                       <span>{order.itemCount} {order.itemCount === 1 ? 'producto' : 'productos'}</span>
                     </div>
                   </div>
@@ -182,7 +182,7 @@ function MyOrdersSection() {
   );
 }
 
-// ─── Componente principal ──────────────────────────────────────────────────────
+// â”€â”€â”€ Componente principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Tab = 'carrito' | 'pedidos';
 
@@ -191,11 +191,11 @@ const Cart = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Si se navega desde CheckoutSuccess con state={tab:'pedidos'}, activar esa tab automáticamente
+  // Si se navega desde CheckoutSuccess con state={tab:'pedidos'}, activar esa tab automÃ¡ticamente
   const initialTab: Tab = (location.state as any)?.tab === 'pedidos' ? 'pedidos' : 'carrito';
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
-  const shipping = 0; // Solo retiro en depósito — envío gratis
+  const shipping = 0; // Solo retiro en depÃ³sito â€” envÃ­o gratis
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'carrito', label: 'Mi carrito', icon: <ShoppingCart size={16} /> },
@@ -230,7 +230,7 @@ const Cart = () => {
 
       <AnimatePresence mode="wait">
 
-        {/* ── Tab: carrito ── */}
+        {/* â”€â”€ Tab: carrito â”€â”€ */}
         {activeTab === 'carrito' && (
           <motion.div
             key="carrito"
@@ -241,8 +241,8 @@ const Cart = () => {
             {items.length === 0 ? (
               <div className="text-center py-20">
                 <ShoppingBag size={64} className="mx-auto text-gray-200 mb-4" />
-                <h2 className="text-xl font-bold text-gray-800 mb-2">Tu carrito está vacío</h2>
-                <p className="text-gray-500 mb-6">Agregá productos para continuar</p>
+                <h2 className="text-xl font-bold text-gray-800 mb-2">Tu carrito estÃ¡ vacÃ­o</h2>
+                <p className="text-gray-500 mb-6">AgregÃ¡ productos para continuar</p>
                 <Link to="/tienda" className="btn-primary inline-block">Ver productos</Link>
               </div>
             ) : (
@@ -309,7 +309,7 @@ const Cart = () => {
                         <span>{formatPrice(total)}</span>
                       </div>
                       <div className="flex justify-between text-gray-600">
-                        <span>Envío</span>
+                        <span>EnvÃ­o</span>
                         <span className="text-green-600 font-medium">
                           {shipping === 0 ? 'Retiro gratis' : formatPrice(shipping)}
                         </span>
@@ -337,7 +337,7 @@ const Cart = () => {
           </motion.div>
         )}
 
-        {/* ── Tab: pedidos ── */}
+        {/* â”€â”€ Tab: pedidos â”€â”€ */}
         {activeTab === 'pedidos' && (
           <motion.div
             key="pedidos"
