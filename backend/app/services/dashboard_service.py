@@ -37,7 +37,9 @@ class DashboardService:
         - Productos con stock bajo (stock < 5 y stock > 0)
         - Clientes nuevos del mes
         """
-        now = datetime.now(timezone.utc)
+        # Usar horario de Córdoba (UTC-3) para las métricas
+        cordoba_tz = timezone(timedelta(hours=-3))
+        now = datetime.now(cordoba_tz)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = today_start - timedelta(days=today_start.weekday())
         month_start = today_start.replace(day=1)
@@ -127,7 +129,9 @@ class DashboardService:
         Agrupa órdenes pagadas por fecha de los últimos 7 días.
         Retorna una lista de {date, total} para cada día.
         """
-        now = datetime.now(timezone.utc)
+        # Usar horario de Córdoba (UTC-3)
+        cordoba_tz = timezone(timedelta(hours=-3))
+        now = datetime.now(cordoba_tz)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Build the last 7 days

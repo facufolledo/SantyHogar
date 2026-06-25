@@ -7,7 +7,7 @@ import app.ssl_fix  # noqa: F401
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -408,7 +408,8 @@ def create_app() -> FastAPI:
     @app.get("/dashboard/sales-chart", tags=["dashboard"])
     @app.get("/api/dashboard/sales-chart", tags=["dashboard"])
     async def dashboard_sales_chart_compat() -> list[dict]:
-        today = datetime.now(timezone.utc).date()
+        cordoba_tz = timezone(timedelta(hours=-3))
+        today = datetime.now(cordoba_tz).date()
         return [
             {"date": str(today), "total": (await dashboard_stats_compat())["sales_month"]}
         ]
