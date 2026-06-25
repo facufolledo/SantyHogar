@@ -16,3 +16,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 export type { Session, User } from '@supabase/supabase-js';
+

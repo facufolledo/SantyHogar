@@ -4,7 +4,36 @@ import { getApiBase } from './config';
 
 type ProductDto = Product;
 
+type PaginatedProductsResponse = {
+  data?: ProductDto[];
+  results?: ProductDto[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+};
+
+function extractProductList(response: unknown): ProductDto[] {
+  if (Array.isArray(response)) return response;
+  if (response && typeof response === 'object') {
+    const r = response as PaginatedProductsResponse;
+    if (Array.isArray(r.data)) return r.data;
+    if (Array.isArray(r.results)) return r.results;
+  }
+  return [];
+}
+
 function normalizeProduct(p: ProductDto): Product {
+  const images = Array.isArray(p.images) ? p.images : [];
+  const specs =
+    p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs)
+      ? (p.specs as Record<string, string>)
+      : {};
+
   return {
     ...p,
     id: String(p.id),
@@ -13,31 +42,38 @@ function normalizeProduct(p: ProductDto): Product {
     rating: Number(p.rating),
     reviews: Number(p.reviews),
     stock: Number(p.stock),
+    images,
+    specs,
   };
 }
 
 export async function fetchProductsFromApi(): Promise<Product[]> {
-  const response = await apiFetch<{
-    data: ProductDto[];
-    pagination?: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-      hasNext: boolean;
-      hasPrev: boolean;
-    };
-  }>('/products', { method: 'GET' });
-  
-  // Handle both direct array (for backward compatibility) and paginated response
-  const data = Array.isArray(response) ? response : response?.data;
-  
-  if (!Array.isArray(data)) {
-    console.error('Unexpected response format from /products:', response);
-    return [];
+  const all: Product[] = [];
+  let page = 1;
+  const limit = 100;
+
+  while (true) {
+    const response = await apiFetch<PaginatedProductsResponse | ProductDto[]>(
+      `/products?page=${page}&limit=${limit}`,
+      { method: 'GET' }
+    );
+
+    const batch = extractProductList(response);
+    if (batch.length === 0 && page === 1) {
+      console.error('Unexpected response format from /products:', response);
+      break;
+    }
+
+    all.push(...batch.map(normalizeProduct));
+
+    if (Array.isArray(response)) break;
+
+    const pagination = (response as PaginatedProductsResponse).pagination;
+    if (!pagination?.hasNext || page >= (pagination.pages || 1)) break;
+    page += 1;
   }
-  
-  return data.map(normalizeProduct);
+
+  return all;
 }
 
 export interface BulkImportResponse {

@@ -36,8 +36,9 @@ export const categoryDefinitions = [
 ];
 
 export function buildCategoryCards(list: Product[]) {
+  const safe = Array.isArray(list) ? list : [];
   return categoryDefinitions.map(cat => ({
     ...cat,
-    count: list.filter(p => p.category === cat.id).length,
+    count: safe.filter(p => p.category === cat.id).length,
   }));
 }

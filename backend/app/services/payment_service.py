@@ -46,7 +46,7 @@ class PaymentService:
         """Crea preferencia Checkout Pro. `line_items`: title, quantity, unit_price."""
 
         def _call() -> PreferenceResponse:
-            # Construcción mínima de preferencia
+            # Construcción de preferencia con back_urls
             pref: dict[str, Any] = {
                 "items": _preference_line_items(line_items),
                 "external_reference": str(order.id),
@@ -56,7 +56,33 @@ class PaymentService:
             if payer_email:
                 pref["payer"] = {"email": payer_email}
 
-            logger.info(f"Creando preferencia MP MINIMA con datos: {pref}")
+            # Configurar URLs de retorno
+            # En local: http://localhost:5173
+            # En producción: https://santyhogar-production.up.railway.app (o el dominio)
+            public_url = self._cfg.public_api_url
+            
+            # Si es localhost:8000, cambiar al puerto del frontend
+            if "localhost:8000" in public_url:
+                app_base_url = "http://localhost:5173"
+            else:
+                # Para producción, quitar /api si está presente
+                app_base_url = public_url.replace("/api", "").rstrip("/")
+            
+            success_url = f"{app_base_url}/checkout/success?order_id={str(order.id)}&preference_id={{PREFERENCE_ID}}&payment_id={{PAYMENT_ID}}"
+            failure_url = f"{app_base_url}/checkout/failure?preference_id={{PREFERENCE_ID}}"
+            pending_url = f"{app_base_url}/checkout/pending?preference_id={{PREFERENCE_ID}}"
+            
+            pref["back_urls"] = {
+                "success": success_url,
+                "failure": failure_url,
+                "pending": pending_url,
+            }
+            
+            # Auto-redirigir después de pago aprobado
+            pref["auto_return"] = "approved"
+
+            logger.info(f"Creando preferencia MP con back_urls - app_base_url={app_base_url}")
+            logger.info(f"URLs: success={success_url}")
             
             result = self._sdk.preference().create(pref)
             status = result.get("status")
