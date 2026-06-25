@@ -33,6 +33,7 @@ def _extract_payment_id(payload: Any) -> Optional[str]:
 
 @router.post("/webhook")
 @router.post("/mercadopago")
+@router.post("/")
 async def mercadopago_webhook(
     request: Request,
     order_service: Annotated[OrderService, Depends(get_order_service)],

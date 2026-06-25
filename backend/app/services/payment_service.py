@@ -57,16 +57,33 @@ class PaymentService:
                 pref["payer"] = {"email": payer_email}
 
             # Configurar URLs de retorno
-            # En local: http://localhost:5173
-            # En producción: https://santyhogar-production.up.railway.app (o el dominio)
-            public_url = self._cfg.public_api_url
+            # Usar frontend_url (Hostinger) para las back_urls, no el backend (Railway)
+            frontend_urls = self._cfg.frontend_url.split(',')
+            # Preferir el dominio de producción (no localhost, no railway)
+            app_base_url = None
+            for url in frontend_urls:
+                url = url.strip()
+                if "localhost" in url:
+                    continue  # Skip localhost
+                if "railway" in url:
+                    continue  # Skip railway (es el backend)
+                if url.startswith("https://"):  # Preferir https
+                    app_base_url = url
+                    break
             
-            # Si es localhost:8000, cambiar al puerto del frontend
-            if "localhost:8000" in public_url:
-                app_base_url = "http://localhost:5173"
-            else:
-                # Para producción, quitar /api si está presente
-                app_base_url = public_url.replace("/api", "").rstrip("/")
+            # Si no encontré https en producción, usar cualquiera que no sea localhost
+            if not app_base_url:
+                for url in frontend_urls:
+                    url = url.strip()
+                    if "localhost" not in url and "railway" not in url:
+                        app_base_url = url
+                        break
+            
+            # Fallback (shouldn't happen)
+            if not app_base_url:
+                app_base_url = frontend_urls[0].strip()
+            
+            app_base_url = app_base_url.rstrip("/")
             
             success_url = f"{app_base_url}/checkout/success?order_id={str(order.id)}&preference_id={{PREFERENCE_ID}}&payment_id={{PAYMENT_ID}}"
             failure_url = f"{app_base_url}/checkout/failure?preference_id={{PREFERENCE_ID}}"
