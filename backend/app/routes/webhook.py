@@ -147,6 +147,13 @@ async def mercadopago_webhook(
         logger.info(f"✅ Stock descontado para orden {order.id}")
     except Exception as e:
         logger.error(f"Error descontando stock para orden {order.id}: {str(e)}")
-        # No fallar, stock puede haberse descontado antes
+        # Reintentar una vez más por si fue error transitorio
+        try:
+            logger.info(f"Reintentando descuento de stock para orden {order.id}")
+            await product_service.decrement_stock(order.id)
+            logger.info(f"✅ Stock descontado en reintento para orden {order.id}")
+        except Exception as e2:
+            logger.error(f"Fallo descuento de stock en reintento para orden {order.id}: {str(e2)}")
+            # Aún así responder 200 OK a MP para no reintentar infinitamente
 
     return {"status": "ok"}
