@@ -354,7 +354,7 @@ async def create_product(
     # Convertir de camelCase a snake_case para la BD
     db_data = {
         "nombre": product_data.name,
-        "categoria": product_data.category,
+        "id_categoria": str(product_data.category_id),
         "subcategoria": product_data.subcategory,
         "precio": product_data.price,
         "precio_original": product_data.original_price,
@@ -386,8 +386,8 @@ async def update_product(
         db_data = {}
         if product_data.name is not None:
             db_data["nombre"] = product_data.name
-        if product_data.category is not None:
-            db_data["categoria"] = product_data.category
+        if product_data.category_id is not None:
+            db_data["id_categoria"] = str(product_data.category_id)
         if product_data.subcategory is not None:
             db_data["subcategoria"] = product_data.subcategory
         if product_data.price is not None:

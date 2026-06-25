@@ -42,9 +42,9 @@ def row_to_product(row: dict[str, Any]) -> Product:
     po = row.get("precio_original")
     original = _f(po) if po is not None else None
 
-    cat = row.get("categoria") or "electrodomesticos"
-    if cat not in ("electrodomesticos", "muebleria", "colchoneria"):
-        cat = "electrodomesticos"
+    # Usar id_categoria si existe, sino usar categoria antigua (string)
+    id_cat = row.get("id_categoria")
+    cat_name = row.get("categoria_nombre") or row.get("categoria") or "electrodomesticos"
 
     sub = row.get("subcategoria") or ""
 
@@ -68,7 +68,8 @@ def row_to_product(row: dict[str, Any]) -> Product:
         id=UUID(str(row["id_producto"])),
         name=row.get("nombre") or "",
         slug=row.get("slug") or "",
-        category=cat,  # type: ignore[arg-type]
+        id_categoria=UUID(str(id_cat)) if id_cat else None,
+        categoria_nombre=cat_name,
         subcategory=sub,
         price=_f(row.get("precio", 0)),
         originalPrice=original,
@@ -90,7 +91,8 @@ def product_to_response(p: Product) -> ProductResponse:
         id=p.id,
         name=p.name,
         slug=p.slug,
-        category=p.category,
+        categoryId=p.id_categoria or UUID(int=0),  # Default UUID si es None
+        categoryName=p.categoria_nombre or "Desconocida",
         subcategory=p.subcategory,
         price=p.price,
         originalPrice=p.originalPrice,

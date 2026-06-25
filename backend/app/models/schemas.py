@@ -1,6 +1,6 @@
 """Pydantic request, response, and domain models."""
 from datetime import datetime
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, field_serializer
@@ -13,10 +13,76 @@ from app.utils.validation import (
 )
 
 
-CategoryLiteral = Literal["electrodomesticos", "muebleria", "colchoneria"]
-PaymentMethodLiteral = Literal["mp", "fiserv"]
-OrderStatusLiteral = Literal["pending", "paid", "cancelled"]
+# ================================================================== #
+# LITERALES Y ENUMS
+# ================================================================== #
 
+PaymentMethodLiteral = List  # Placeholder
+OrderStatusLiteral = List  # Placeholder
+
+
+# ================================================================== #
+# CATEGORÍAS
+# ================================================================== #
+
+class CategoryResponse(BaseModel):
+    """Category response for the frontend."""
+    
+    id: UUID
+    name: str
+    slug: str
+    description: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+    order: int = 0
+    active: bool = True
+    createdAt: str
+    updatedAt: str
+
+
+class CreateCategoryRequest(BaseModel):
+    """Request to create a new category."""
+    
+    name: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    color: Optional[str] = Field(default=None, max_length=7)
+    icon: Optional[str] = Field(default=None, max_length=50)
+    order: int = Field(default=0, ge=0)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def sanitize_name(cls, v: str) -> str:
+        return sanitize_string(v, max_len=100).strip()
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def sanitize_description(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        return sanitize_string(v, max_len=1000).strip()
+
+
+class UpdateCategoryRequest(BaseModel):
+    """Request to update a category."""
+    
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    description: Optional[str] = None
+    color: Optional[str] = Field(default=None, max_length=7)
+    icon: Optional[str] = Field(default=None, max_length=50)
+    order: Optional[int] = Field(default=None, ge=0)
+    active: Optional[bool] = None
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def sanitize_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        return sanitize_string(v, max_len=100).strip()
+
+
+# ================================================================== #
+# ÓRDENES Y ITEMS
+# ================================================================== #
 
 class OrderItemRequest(BaseModel):
     """Single line in a create-order request."""
@@ -41,7 +107,7 @@ class OrderRequest(BaseModel):
     customerEmail: EmailStr
     customerPhone: str = Field(min_length=1, max_length=50)
     items: List[OrderItemRequest] = Field(min_length=1)
-    paymentMethod: PaymentMethodLiteral = "mp"
+    paymentMethod: str = "mp"
 
     @field_validator("userId", mode="before")
     @classmethod
@@ -73,33 +139,13 @@ class OrderRequest(BaseModel):
         return v.strip().lower()
 
 
-class ProductResponse(BaseModel):
-    """Product as returned to the frontend (camelCase)."""
-
-    id: UUID
-    name: str
-    slug: str
-    category: CategoryLiteral
-    subcategory: str
-    price: float
-    originalPrice: Optional[float] = None
-    images: List[str]
-    description: str
-    specs: Dict[str, str]
-    stock: int
-    featured: bool
-    brand: str
-    rating: float
-    reviews: int
-
-
 class OrderResponse(BaseModel):
     """Response after creating an order and Mercado Pago preference."""
 
     id: UUID
     orderNumber: str
     init_point: str
-    status: OrderStatusLiteral = "pending"
+    status: str = "pending"
     createdAt: str
 
 
@@ -126,8 +172,8 @@ class OrderDetailResponse(BaseModel):
     customerEmail: str
     customerPhone: str
     total: float
-    paymentMethod: PaymentMethodLiteral
-    status: OrderStatusLiteral
+    paymentMethod: str
+    status: str
     preferenceId: Optional[str] = None
     paymentId: Optional[str] = None
     createdAt: str
@@ -143,7 +189,7 @@ class OrderListResponse(BaseModel):
     customerName: str
     customerEmail: str
     total: float
-    status: OrderStatusLiteral
+    status: str
     itemCount: int
     createdAt: str
 
@@ -151,7 +197,7 @@ class OrderListResponse(BaseModel):
 class UpdateOrderStatusRequest(BaseModel):
     """Request to update order status."""
     
-    status: OrderStatusLiteral = Field(description="Nuevo estado del pedido")
+    status: str = Field(description="Nuevo estado del pedido")
 
 
 class PreferenceResponse(BaseModel):
@@ -159,27 +205,6 @@ class PreferenceResponse(BaseModel):
 
     preference_id: str
     init_point: str
-
-
-class Product(BaseModel):
-    """Product loaded from the database."""
-
-    id: UUID
-    name: str
-    slug: str
-    category: CategoryLiteral
-    subcategory: str
-    price: float
-    originalPrice: Optional[float] = None
-    images: List[str]
-    description: str
-    specs: Dict[str, str]
-    stock: int
-    featured: bool
-    brand: str
-    rating: float
-    reviews: int
-    created_at: datetime
 
 
 class Order(BaseModel):
@@ -191,8 +216,8 @@ class Order(BaseModel):
     customerEmail: str
     customerPhone: str
     total: float
-    paymentMethod: PaymentMethodLiteral
-    status: OrderStatusLiteral
+    paymentMethod: str
+    status: str
     preference_id: Optional[str]
     payment_id: Optional[str] = None
     orderNumber: str
@@ -219,52 +244,36 @@ class PaymentInfo(BaseModel):
     external_reference: Optional[str] = None
 
 
-class UpdatePriceRequest(BaseModel):
-    """Request to update product price."""
-    
-    price: float = Field(gt=0, description="Nuevo precio del producto")
-    original_price: Optional[float] = Field(default=None, ge=0, description="Precio original (opcional)")
+# ================================================================== #
+# PRODUCTOS
+# ================================================================== #
 
-    @field_validator("price", mode="before")
-    @classmethod
-    def validate_price_value(cls, v):
-        is_valid, price = validate_price(v)
-        if not is_valid or price <= 0:
-            raise ValueError("Precio inválido. Debe ser mayor a 0 y menor a 1,000,000")
-        return price
+class ProductResponse(BaseModel):
+    """Product as returned to the frontend (camelCase)."""
 
-    @field_validator("original_price", mode="before")
-    @classmethod
-    def validate_original_price_value(cls, v):
-        if v is None:
-            return None
-        is_valid, price = validate_price(v)
-        if not is_valid:
-            raise ValueError("Precio original inválido. Debe ser entre 0 y 1,000,000")
-        return price
-
-
-class UpdatePriceByProductBody(UpdatePriceRequest):
-    """Actualizar precio enviando el id en el cuerpo (ruta alternativa si /products/{id}/price devuelve 404)."""
-
-    product_id: UUID = Field(description="ID del producto (id_producto)")
-
-
-class UpdatePriceResponse(BaseModel):
-    """Response after updating product price."""
-    
     id: UUID
     name: str
+    slug: str
+    categoryId: UUID
+    categoryName: str
+    subcategory: str
     price: float
-    original_price: Optional[float] = None
-    message: str = "Precio actualizado correctamente"
+    originalPrice: Optional[float] = None
+    images: List[str]
+    description: str
+    specs: Dict[str, str]
+    stock: int
+    featured: bool
+    brand: str
+    rating: float
+    reviews: int
 
 
 class CreateProductRequest(BaseModel):
     """Request to create a new product."""
     
     name: str = Field(min_length=1, max_length=255)
-    category: CategoryLiteral
+    category_id: UUID = Field(description="ID de la categoría del producto")
     subcategory: str = Field(min_length=1, max_length=100)
     price: float = Field(ge=0)
     original_price: Optional[float] = Field(default=None, ge=0)
@@ -321,7 +330,7 @@ class UpdateProductRequest(BaseModel):
     """Request to update an existing product."""
     
     name: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    category: Optional[CategoryLiteral] = None
+    category_id: Optional[UUID] = None
     subcategory: Optional[str] = Field(default=None, min_length=1, max_length=100)
     price: Optional[float] = Field(default=None, ge=0)
     original_price: Optional[float] = Field(default=None, ge=0)
@@ -333,9 +342,72 @@ class UpdateProductRequest(BaseModel):
     featured: Optional[bool] = None
 
 
-# ------------------------------------------------------------------ #
-# Clientes
-# ------------------------------------------------------------------ #
+class Product(BaseModel):
+    """Product loaded from the database."""
+
+    id: UUID
+    name: str
+    slug: str
+    id_categoria: Optional[UUID] = None
+    categoria_nombre: Optional[str] = None
+    subcategory: str
+    price: float
+    originalPrice: Optional[float] = None
+    images: List[str]
+    description: str
+    specs: Dict[str, str]
+    stock: int
+    featured: bool
+    brand: str
+    rating: float
+    reviews: int
+    created_at: datetime
+
+
+class UpdatePriceRequest(BaseModel):
+    """Request to update product price."""
+    
+    price: float = Field(gt=0, description="Nuevo precio del producto")
+    original_price: Optional[float] = Field(default=None, ge=0, description="Precio original (opcional)")
+
+    @field_validator("price", mode="before")
+    @classmethod
+    def validate_price_value(cls, v):
+        is_valid, price = validate_price(v)
+        if not is_valid or price <= 0:
+            raise ValueError("Precio inválido. Debe ser mayor a 0 y menor a 1,000,000")
+        return price
+
+    @field_validator("original_price", mode="before")
+    @classmethod
+    def validate_original_price_value(cls, v):
+        if v is None:
+            return None
+        is_valid, price = validate_price(v)
+        if not is_valid:
+            raise ValueError("Precio original inválido. Debe ser entre 0 y 1,000,000")
+        return price
+
+
+class UpdatePriceByProductBody(UpdatePriceRequest):
+    """Actualizar precio enviando el id en el cuerpo."""
+
+    product_id: UUID = Field(description="ID del producto")
+
+
+class UpdatePriceResponse(BaseModel):
+    """Response after updating product price."""
+    
+    id: UUID
+    name: str
+    price: float
+    original_price: Optional[float] = None
+    message: str = "Precio actualizado correctamente"
+
+
+# ================================================================== #
+# CLIENTES
+# ================================================================== #
 
 class CustomerResponse(BaseModel):
     """Customer as returned to the frontend."""
@@ -450,9 +522,9 @@ class Customer(BaseModel):
     active: bool
 
 
-# ------------------------------------------------------------------ #
-# Image Upload
-# ------------------------------------------------------------------ #
+# ================================================================== #
+# IMAGE UPLOAD
+# ================================================================== #
 
 class ImageUploadResponse(BaseModel):
     """Response after uploading an image to Supabase Storage."""

@@ -27,6 +27,7 @@ from app.exceptions import (
 )
 from app.routes import (
     admin_users,
+    categories,
     checkout,
     checkout_pro,
     customers,
@@ -449,6 +450,8 @@ def create_app() -> FastAPI:
     app.include_router(products.router, prefix="/api")
     app.include_router(orders.router)
     app.include_router(customers.router)
+    app.include_router(categories.router)
+    app.include_router(categories.router, prefix="/api")
     app.include_router(admin_users.router)
     app.include_router(admin_users.router, prefix="/api")
     app.include_router(installments.router)
