@@ -77,6 +77,10 @@ async def calculate_installments(
         )
 
         # Retornar directamente el array de métodos de pago con el formato esperado por el frontend
+        if not isinstance(result, list):
+            logger.error(f"Resultado no es lista: {type(result)}")
+            raise HTTPException(status_code=500, detail="Formato de respuesta inesperado")
+        
         formatted_methods = []
         for payment_method in result:
             if isinstance(payment_method, dict):

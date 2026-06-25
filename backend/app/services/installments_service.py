@@ -58,7 +58,7 @@ class InstallmentsService:
         amount: float,
         bin_number: Optional[str] = None,
         payment_method_id: Optional[str] = None,
-    ) -> dict[str, Any]:
+    ) -> list[dict[str, Any]]:
         """
         Obtiene opciones de cuotas disponibles para un monto dado.
         
@@ -68,10 +68,10 @@ class InstallmentsService:
             payment_method_id: ID del método de pago (ej: "visa", "master")
         
         Returns:
-            Dict con información de cuotas disponibles
+            Lista de métodos de pago con opciones de cuotas
         """
 
-        def _call() -> dict[str, Any]:
+        def _call() -> list[dict[str, Any]]:
             # En desarrollo, retornar datos mock para evitar problemas de SSL
             if self.debug:
                 logger.info(f"🔧 DEBUG MODE: Retornando cuotas mock para ${amount}")
@@ -118,7 +118,15 @@ class InstallmentsService:
 
                 logger.info(f"Respuesta cuotas MP: {result}")
 
-                return result
+                # MP retorna un dict con la lista de métodos de pago
+                # Necesitamos retornar la lista directamente
+                if isinstance(result, dict) and "payment_methods" in result:
+                    return result.get("payment_methods", [])
+                elif isinstance(result, list):
+                    return result
+                else:
+                    logger.warning(f"Formato inesperado de MP: {type(result)}")
+                    return []
 
             except requests.exceptions.RequestException as e:
                 logger.error(f"Error consultando MP: {str(e)}")
