@@ -85,9 +85,10 @@ class PaymentService:
             
             app_base_url = app_base_url.rstrip("/")
             
-            success_url = f"{app_base_url}/checkout/success?order_id={str(order.id)}&preference_id={{PREFERENCE_ID}}&payment_id={{PAYMENT_ID}}"
-            failure_url = f"{app_base_url}/checkout/failure?preference_id={{PREFERENCE_ID}}"
-            pending_url = f"{app_base_url}/checkout/pending?preference_id={{PREFERENCE_ID}}"
+            # Usar solo order_id - MP agregará sus parámetros automáticamente
+            success_url = f"{app_base_url}/checkout/success?order_id={str(order.id)}"
+            failure_url = f"{app_base_url}/checkout/failure"
+            pending_url = f"{app_base_url}/checkout/pending"
             
             pref["back_urls"] = {
                 "success": success_url,
