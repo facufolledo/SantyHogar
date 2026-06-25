@@ -21,9 +21,10 @@ CREATE INDEX IF NOT EXISTS idx_productos_fecha ON productos(fecha_creacion DESC)
 -- Índices en tabla CLIENTES
 -- Mejora búsquedas por email, ID y filtros
 CREATE INDEX IF NOT EXISTS idx_clientes_id ON clientes(id_cliente);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_clientes_email ON clientes(email);  -- Email debe ser único
+CREATE UNIQUE INDEX IF NOT EXISTS idx_clientes_email ON clientes(email);
 CREATE INDEX IF NOT EXISTS idx_clientes_provincia ON clientes(provincia);
 CREATE INDEX IF NOT EXISTS idx_clientes_activo ON clientes(activo);
+CREATE INDEX IF NOT EXISTS idx_clientes_fecha_registro ON clientes(fecha_registro DESC);
 
 -- Índices en tabla ORDENES
 -- Crítico para dashboards y listados
@@ -40,9 +41,8 @@ CREATE INDEX IF NOT EXISTS idx_ordenes_cliente_estado ON ordenes(id_cliente, est
 
 -- Índices en tabla ITEMS_ORDEN
 -- Mejora joins y búsquedas
-CREATE INDEX IF NOT EXISTS idx_items_orden_id_orden ON items_orden(id_orden);  -- Para get_order_items
+CREATE INDEX IF NOT EXISTS idx_items_orden_id_orden ON items_orden(id_orden);
 CREATE INDEX IF NOT EXISTS idx_items_orden_id_producto ON items_orden(id_producto);
-CREATE INDEX IF NOT EXISTS idx_items_orden_fecha ON items_orden(fecha_creacion DESC);
 
 -- Índices en tabla DIRECCIONES
 -- Para búsquedas de direcciones por cliente
@@ -53,15 +53,6 @@ CREATE INDEX IF NOT EXISTS idx_direcciones_es_principal ON direcciones(es_princi
 -- Para cargar favoritos de usuario
 CREATE INDEX IF NOT EXISTS idx_favoritos_id_cliente ON favoritos(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_favoritos_id_producto ON favoritos(id_producto);
-CREATE INDEX IF NOT EXISTS idx_favoritos_fecha ON favoritos(fecha_creacion DESC);
-
--- Índices en tabla USUARIOS_ADMIN
--- Para búsquedas y autenticación
-CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_admin_email ON usuarios_admin(email);
-CREATE INDEX IF NOT EXISTS idx_usuarios_admin_activo ON usuarios_admin(activo);
-
--- Índice para búsqueda de productos por nombre (si la usas)
--- CREATE INDEX IF NOT EXISTS idx_productos_nombre_gin ON productos USING gin(to_tsvector('spanish', nombre));
 
 -- Informar creación
 DO $$

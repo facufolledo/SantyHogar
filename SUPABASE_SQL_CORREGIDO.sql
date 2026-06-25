@@ -1,4 +1,4 @@
--- ÍNDICES DE PERFORMANCE - SESIÓN 7 (CORREGIDO)
+-- ÍNDICES DE PERFORMANCE - SESIÓN 7 (FINAL - SIN USUARIOS_ADMIN)
 -- Pega esto en Supabase SQL Editor
 
 -- Índices en tabla PRODUCTOS
@@ -13,6 +13,7 @@ CREATE INDEX IF NOT EXISTS idx_clientes_id ON clientes(id_cliente);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_clientes_email ON clientes(email);
 CREATE INDEX IF NOT EXISTS idx_clientes_provincia ON clientes(provincia);
 CREATE INDEX IF NOT EXISTS idx_clientes_activo ON clientes(activo);
+CREATE INDEX IF NOT EXISTS idx_clientes_fecha_registro ON clientes(fecha_registro DESC);
 
 -- Índices en tabla ORDENES
 CREATE INDEX IF NOT EXISTS idx_ordenes_id ON ordenes(id_orden);
@@ -27,7 +28,6 @@ CREATE INDEX IF NOT EXISTS idx_ordenes_cliente_estado ON ordenes(id_cliente, est
 -- Índices en tabla ITEMS_ORDEN
 CREATE INDEX IF NOT EXISTS idx_items_orden_id_orden ON items_orden(id_orden);
 CREATE INDEX IF NOT EXISTS idx_items_orden_id_producto ON items_orden(id_producto);
-CREATE INDEX IF NOT EXISTS idx_items_orden_fecha ON items_orden(fecha_creacion DESC);
 
 -- Índices en tabla DIRECCIONES
 CREATE INDEX IF NOT EXISTS idx_direcciones_id_cliente ON direcciones(id_cliente);
@@ -36,8 +36,3 @@ CREATE INDEX IF NOT EXISTS idx_direcciones_es_principal ON direcciones(es_princi
 -- Índices en tabla FAVORITOS
 CREATE INDEX IF NOT EXISTS idx_favoritos_id_cliente ON favoritos(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_favoritos_id_producto ON favoritos(id_producto);
-CREATE INDEX IF NOT EXISTS idx_favoritos_fecha ON favoritos(fecha_creacion DESC);
-
--- Índices en tabla USUARIOS_ADMIN
-CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_admin_email ON usuarios_admin(email);
-CREATE INDEX IF NOT EXISTS idx_usuarios_admin_activo ON usuarios_admin(activo);
