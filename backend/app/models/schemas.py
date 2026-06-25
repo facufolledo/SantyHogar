@@ -3,7 +3,14 @@ from datetime import datetime
 from typing import Dict, List, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, field_serializer
+from app.utils.validation import (
+    validate_name,
+    validate_phone,
+    validate_quantity,
+    validate_price,
+    sanitize_string,
+)
 
 
 CategoryLiteral = Literal["electrodomesticos", "muebleria", "colchoneria"]
@@ -16,6 +23,14 @@ class OrderItemRequest(BaseModel):
 
     product_id: UUID
     quantity: int = Field(gt=0)
+
+    @field_validator("quantity", mode="before")
+    @classmethod
+    def validate_quantity_value(cls, v):
+        is_valid, qty = validate_quantity(v)
+        if not is_valid:
+            raise ValueError("Cantidad inválida. Debe ser entre 1 y 10000")
+        return qty
 
 
 class OrderRequest(BaseModel):
@@ -37,6 +52,25 @@ class OrderRequest(BaseModel):
             s = v.strip()
             return s if s else None
         raise ValueError("userId must be a string or null")
+
+    @field_validator("customerName", mode="before")
+    @classmethod
+    def validate_customer_name(cls, v: str) -> str:
+        if not validate_name(v, min_len=2, max_len=100):
+            raise ValueError("Nombre inválido. Usa solo letras, espacios, guiones")
+        return v.strip()
+
+    @field_validator("customerPhone", mode="before")
+    @classmethod
+    def validate_customer_phone(cls, v: str) -> str:
+        if not validate_phone(v):
+            raise ValueError("Teléfono inválido. Formato esperado: +54 9 11 1234-5678")
+        return v.strip()
+
+    @field_validator("customerEmail", mode="before")
+    @classmethod
+    def validate_customer_email(cls, v: str) -> str:
+        return v.strip().lower()
 
 
 class ProductResponse(BaseModel):
@@ -191,6 +225,24 @@ class UpdatePriceRequest(BaseModel):
     price: float = Field(gt=0, description="Nuevo precio del producto")
     original_price: Optional[float] = Field(default=None, ge=0, description="Precio original (opcional)")
 
+    @field_validator("price", mode="before")
+    @classmethod
+    def validate_price_value(cls, v):
+        is_valid, price = validate_price(v)
+        if not is_valid or price <= 0:
+            raise ValueError("Precio inválido. Debe ser mayor a 0 y menor a 1,000,000")
+        return price
+
+    @field_validator("original_price", mode="before")
+    @classmethod
+    def validate_original_price_value(cls, v):
+        if v is None:
+            return None
+        is_valid, price = validate_price(v)
+        if not is_valid:
+            raise ValueError("Precio original inválido. Debe ser entre 0 y 1,000,000")
+        return price
+
 
 class UpdatePriceByProductBody(UpdatePriceRequest):
     """Actualizar precio enviando el id en el cuerpo (ruta alternativa si /products/{id}/price devuelve 404)."""
@@ -222,6 +274,47 @@ class CreateProductRequest(BaseModel):
     images: List[str] = Field(default_factory=list)
     specs: Dict[str, str] = Field(default_factory=dict)
     featured: bool = Field(default=False)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def sanitize_name(cls, v: str) -> str:
+        return sanitize_string(v, max_len=255).strip()
+
+    @field_validator("price", mode="before")
+    @classmethod
+    def validate_price_value(cls, v):
+        is_valid, price = validate_price(v)
+        if not is_valid:
+            raise ValueError("Precio inválido. Debe ser entre 0 y 1,000,000")
+        return price
+
+    @field_validator("original_price", mode="before")
+    @classmethod
+    def validate_original_price_value(cls, v):
+        if v is None:
+            return None
+        is_valid, price = validate_price(v)
+        if not is_valid:
+            raise ValueError("Precio original inválido. Debe ser entre 0 y 1,000,000")
+        return price
+
+    @field_validator("stock", mode="before")
+    @classmethod
+    def validate_stock_value(cls, v):
+        try:
+            stock = int(v)
+            if stock < 0:
+                raise ValueError("Stock no puede ser negativo")
+            if stock > 100000:
+                raise ValueError("Stock máximo: 100,000")
+            return stock
+        except (ValueError, TypeError):
+            raise ValueError("Stock debe ser un número entero")
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def sanitize_description(cls, v: str) -> str:
+        return sanitize_string(v, max_len=5000)
 
 
 class UpdateProductRequest(BaseModel):
@@ -287,6 +380,41 @@ class CreateCustomerRequest(BaseModel):
     province: Optional[str] = Field(default=None, max_length=100)
     postalCode: Optional[str] = Field(default=None, max_length=20)
     notes: Optional[str] = None
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def validate_customer_name(cls, v: str) -> str:
+        if not validate_name(v, min_len=2, max_len=100):
+            raise ValueError("Nombre inválido. Usa solo letras, espacios, guiones")
+        return v.strip()
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_customer_email(cls, v: str) -> str:
+        return v.strip().lower()
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def validate_customer_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        if not validate_phone(v):
+            raise ValueError("Teléfono inválido. Formato esperado: +54 9 11 1234-5678")
+        return v.strip()
+
+    @field_validator("address", mode="before")
+    @classmethod
+    def sanitize_address(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        return sanitize_string(v, max_len=500).strip()
+
+    @field_validator("notes", mode="before")
+    @classmethod
+    def sanitize_notes(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        return sanitize_string(v, max_len=1000)
 
 
 class UpdateCustomerRequest(BaseModel):

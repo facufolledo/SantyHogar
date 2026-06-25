@@ -1,10 +1,11 @@
 """Rutas para gestión de usuarios admin."""
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import List
 import requests
 import urllib3
 from app.config import get_config
+from app.utils.validation import validate_password, validate_name
 
 # Deshabilitar advertencias de SSL (solo para desarrollo)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -18,6 +19,27 @@ class CreateAdminRequest(BaseModel):
     password: str
     name: str
     master_password: str  # Contraseña maestra para autorizar la creación
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        is_valid, error = validate_password(v)
+        if not is_valid:
+            raise ValueError(f"Contraseña débil: {error}")
+        return v
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def validate_admin_name(cls, v: str) -> str:
+        from app.utils.validation import validate_name
+        if not validate_name(v, min_len=2, max_len=100):
+            raise ValueError("Nombre inválido. Usa solo letras, espacios, guiones")
+        return v.strip()
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_admin_email(cls, v: str) -> str:
+        return v.strip().lower()
 
 
 class AdminUserResponse(BaseModel):
@@ -121,9 +143,7 @@ async def create_admin_user(request: CreateAdminRequest):
                 detail="Contraseña maestra incorrecta"
             )
         
-        # Validar contraseña del nuevo admin
-        if len(request.password) < 6:
-            raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+        # Validación de contraseña ya se hace en el field_validator
         
         headers = {
             "apikey": config.supabase_key,
