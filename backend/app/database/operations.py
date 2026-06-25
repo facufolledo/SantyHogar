@@ -373,14 +373,11 @@ class DatabaseOperations:
             self._raise_db_error(e)
 
     async def get_all_orders(self) -> List[dict[str, Any]]:
-        """Obtiene todas las órdenes."""
-        return await asyncio.to_thread(self._get_all_orders_sync)
-
-    def _get_all_orders_sync(self) -> List[dict[str, Any]]:
+        """Obtiene todas las órdenes con items en una sola query (evitar N+1)."""
         try:
             res = (
                 self._client().table("ordenes")
-                .select("*")
+                .select("*, items_orden(cantidad)")  # Incluir items de una vez
                 .order("fecha_creacion", desc=True)
                 .execute()
             )
@@ -530,14 +527,14 @@ class DatabaseOperations:
             self._raise_db_error(e)
 
     async def get_customer_orders(self, customer_id: UUID) -> List[dict[str, Any]]:
-        """Obtiene todas las órdenes de un cliente."""
+        """Obtiene todas las órdenes de un cliente (con items en JOIN, sin N+1)."""
         return await asyncio.to_thread(self._get_customer_orders_sync, customer_id)
 
     def _get_customer_orders_sync(self, customer_id: UUID) -> List[dict[str, Any]]:
         try:
             res = (
                 self._client().table("ordenes")
-                .select("*")
+                .select("*, items_orden(cantidad)")  # Incluir items de una vez
                 .eq("id_cliente", str(customer_id))
                 .order("fecha_creacion", desc=True)
                 .execute()

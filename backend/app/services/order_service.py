@@ -152,15 +152,15 @@ class OrderService:
         await self._db.update_order_preference_id(order_id, preference_id)
 
     async def get_all_orders(self) -> List[Any]:
-        """Obtiene todas las órdenes con información resumida."""
+        """Obtiene todas las órdenes con información resumida (sin N+1)."""
         from app.models.schemas import OrderListResponse
         
         rows = await self._db.get_all_orders()
         orders = []
         
         for row in rows:
-            # Contar items de la orden
-            items = await self._db.get_order_items(UUID(str(row["id_orden"])))
+            # Contar items que ya vienen en el row (Supabase join)
+            items = row.get("items_orden", [])
             item_count = sum(item.get("cantidad", 0) for item in items)
             
             orders.append(OrderListResponse(
