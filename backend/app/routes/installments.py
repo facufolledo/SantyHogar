@@ -78,8 +78,9 @@ async def calculate_installments(
 
         # Retornar directamente el array de métodos de pago con el formato esperado por el frontend
         if not isinstance(result, list):
-            logger.error(f"Resultado no es lista: {type(result)}")
-            raise HTTPException(status_code=500, detail="Formato de respuesta inesperado")
+            logger.error(f"Resultado no es lista: {type(result)} - {result}")
+            # Retornar array vacío en lugar de lanzar error para que el frontend no falle
+            return []
         
         formatted_methods = []
         for payment_method in result:
@@ -93,14 +94,17 @@ async def calculate_installments(
                     "payer_costs": payment_method.get("payer_costs", []),
                 })
 
+        logger.info(f"Retornando {len(formatted_methods)} métodos de pago formateados")
         return formatted_methods
 
     except MercadoPagoError as e:
         logger.error(f"Error MP en cuotas: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        # Retornar array vacío en vez de HTTP error para que el frontend no falle
+        return []
     except Exception as e:
         logger.error(f"Error calculando cuotas: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        # Retornar array vacío en vez de HTTP error  
+        return []
 
 
 @router.get("/installment-price")

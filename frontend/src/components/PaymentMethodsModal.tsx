@@ -63,11 +63,25 @@ export default function PaymentMethodsModal({ amount, isOpen, onClose }: Props) 
 
       const data = await response.json();
       
+      // Asegurar que siempre procesamos un array
+      let methods_data: PaymentMethodInstallments[] = [];
+      
       if (Array.isArray(data)) {
-        setMethods(data);
-      } else {
-        setError('Formato de respuesta inesperado');
+        methods_data = data;
+      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Si es un objeto (posible error), extraer info o avisar
+        console.warn('Respuesta no es un array:', data);
+        // Si es {detail: "error"}, mostrar error
+        if ('detail' in data) {
+          setError(data.detail);
+        } else {
+          setError('Formato de respuesta inesperado');
+        }
+        setLoading(false);
+        return;
       }
+      
+      setMethods(methods_data);
     } catch (err) {
       console.error('Error fetching installments:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
