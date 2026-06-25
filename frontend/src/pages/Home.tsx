@@ -183,8 +183,6 @@ const Home = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {loading && products.length === 0 ? (
             <p className="col-span-full text-center text-gray-500 py-8">Cargando categorías…</p>
-          ) : !Array.isArray(categories) || categories.length === 0 ? (
-            <p className="col-span-full text-center text-gray-500 py-8">No hay categorías disponibles</p>
           ) : (
           categories.map((cat, i) => (
             <motion.div
