@@ -15,6 +15,8 @@ from fastapi import FastAPI, Request, Body, Query, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.middleware import RateLimitMiddleware
+
 from app.config import get_config
 from app.database.connection import get_supabase_client
 from app.exceptions import (
@@ -78,6 +80,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    # Agregar rate limiting middleware
+    app.add_middleware(RateLimitMiddleware)
 
     def _pagination(items: list, page: int, limit: int) -> dict:
         pager = PaginationService(page=page, limit=limit)
