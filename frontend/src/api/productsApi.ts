@@ -17,8 +17,27 @@ function normalizeProduct(p: ProductDto): Product {
 }
 
 export async function fetchProductsFromApi(): Promise<Product[]> {
-  const raw = await apiFetch<ProductDto[]>('/products', { method: 'GET' });
-  return raw.map(normalizeProduct);
+  const response = await apiFetch<{
+    data: ProductDto[];
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }>('/products', { method: 'GET' });
+  
+  // Handle both direct array (for backward compatibility) and paginated response
+  const data = Array.isArray(response) ? response : response?.data;
+  
+  if (!Array.isArray(data)) {
+    console.error('Unexpected response format from /products:', response);
+    return [];
+  }
+  
+  return data.map(normalizeProduct);
 }
 
 export interface BulkImportResponse {
