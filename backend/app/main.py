@@ -295,14 +295,37 @@ def create_app() -> FastAPI:
     @app.post("/api/customers/{customer_id}/addresses", tags=["addresses"], status_code=status.HTTP_201_CREATED)
     async def create_address_compat(customer_id: UUID, body: dict = Body(...)) -> dict:
         supabase = get_supabase_client()
+        
+        # Verificar que el cliente existe, si no crear uno mínimo
+        customer_id_str = str(customer_id)
+        existing_customer = (
+            supabase.table("clientes")
+            .select("id_cliente")
+            .eq("id_cliente", customer_id_str)
+            .limit(1)
+            .execute()
+        )
+        
+        if not existing_customer.data:
+            # Crear cliente minimal si no existe
+            supabase.table("clientes").insert({
+                "id_cliente": customer_id_str,
+                "nombre": body.get("customer_name", ""),
+                "email": body.get("customer_email", ""),
+                "telefono": body.get("customer_phone"),
+                "total_gastado": 0,
+                "cantidad_ordenes": 0,
+                "activo": True,
+            }).execute()
+        
         is_primary = bool(body.get("isPrimary", False))
         if is_primary:
             supabase.table("direcciones").update({"es_principal": False}).eq(
-                "id_cliente", str(customer_id)
+                "id_cliente", customer_id_str
             ).execute()
         payload = {
             "id_direccion": str(uuid4()),
-            "id_cliente": str(customer_id),
+            "id_cliente": customer_id_str,
             "etiqueta": body.get("label", ""),
             "calle": body.get("street", ""),
             "ciudad": body.get("city", ""),
