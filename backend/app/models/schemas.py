@@ -64,7 +64,7 @@ class OrderRequest(BaseModel):
     @classmethod
     def validate_customer_phone(cls, v: str) -> str:
         if not validate_phone(v):
-            raise ValueError("Teléfono inválido. Formato esperado: +54 9 11 1234-5678")
+            raise ValueError("Teléfono inválido. Mínimo 6 dígitos (ej: 123123 o +54 9 11 1234-5678)")
         return v.strip()
 
     @field_validator("customerEmail", mode="before")
@@ -399,7 +399,7 @@ class CreateCustomerRequest(BaseModel):
         if v is None:
             return None
         if not validate_phone(v):
-            raise ValueError("Teléfono inválido. Formato esperado: +54 9 11 1234-5678")
+            raise ValueError("Teléfono inválido. Mínimo 6 dígitos (ej: 123123 o +54 9 11 1234-5678)")
         return v.strip()
 
     @field_validator("address", mode="before")

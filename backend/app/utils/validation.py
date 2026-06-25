@@ -10,11 +10,17 @@ def validate_email(email: str) -> bool:
 
 
 def validate_phone(phone: str) -> bool:
-    """Valida que el teléfono tenga solo dígitos y espacios (Argentina)."""
+    """Valida que el teléfono sea válido (flexible - acepta varios formatos)."""
     phone = phone.strip()
-    # Permitir: +54 9 (11) 1234-5678 o variantes
-    pattern = r'^(\+?54)?[\d\s\-\(\)]{8,}$'
-    return bool(re.match(pattern, phone))
+    # Permitir: números simples (6+), formatos Argentina, espacios, guiones, paréntesis
+    # Ejemplos válidos: 123123, +54 9 11 1234-5678, (011) 1234-5678
+    pattern = r'^[\d\s\-\(\)\+]{6,}$'  # Mínimo 6 caracteres que sean dígitos/espacios/puntuación
+    if not re.match(pattern, phone):
+        return False
+    
+    # Verificar que tenga al menos 6 dígitos (sin contar espacios/símbolos)
+    digits_only = re.sub(r'\D', '', phone)
+    return len(digits_only) >= 6
 
 
 def validate_name(name: str, min_len: int = 2, max_len: int = 100) -> bool:
