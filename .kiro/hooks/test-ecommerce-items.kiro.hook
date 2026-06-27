@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Test E-Commerce Items Implementation",
+  "description": "Testa las implementaciones de los 8 items críticos del e-commerce",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd backend && python -m pytest tests/ -v --tb=short 2>&1 | head -100"
+  }
+}
