@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Package, Calendar, CreditCard, User, Mail, Phone, MapPin } from 'lucide-react';
 import { fetchOrderDetail, OrderDetail } from '../api/ordersApi';
 import { formatPrice } from '../utils/format';
+import { formatDateArg } from '../utils/dateUtils';
 
 interface OrderDetailModalProps {
   orderId: string;
@@ -43,15 +44,7 @@ export default function OrderDetailModal({ orderId, onClose }: OrderDetailModalP
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatDate = (dateString: string) => formatDateArg(dateString, 'datetime');
 
   return (
     <AnimatePresence>

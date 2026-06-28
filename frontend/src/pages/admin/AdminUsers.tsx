@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { UserPlus, Shield, Trash2, Mail, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { formatDateArg } from '../../utils/dateUtils';
 import { useToast } from '../../context/ToastContext';
 
 interface AdminUser {
@@ -225,9 +226,7 @@ export default function AdminUsers() {
                       {user.email}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-400">
-                      {new Date(user.created_at).toLocaleDateString('es-AR', {
-                        year: 'numeric',
-                        month: 'long',
+                      {formatDateArg(user.created_at, 'date')}
                         day: 'numeric',
                       })}
                     </td>

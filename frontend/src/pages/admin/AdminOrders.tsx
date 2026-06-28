@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
+import { formatDateArg } from '../../utils/dateUtils';
 import { fetchOrders, fetchOrderDetail, updateOrderStatus, type OrderStatus, type OrderList, type OrderDetail } from '../../api/ordersApi';
 
 const statusColors: Record<string, string> = {
@@ -135,7 +136,7 @@ export default function AdminOrders() {
           {filtered.map((order, i) => {
             const isOpen = expanded === order.id;
             const detail = orderDetails[order.id];
-            const date = new Date(order.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const date = formatDateArg(order.createdAt, 'datetime');
 
             return (
               <motion.div key={order.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}

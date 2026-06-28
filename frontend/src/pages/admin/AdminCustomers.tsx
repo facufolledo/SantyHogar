@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Eye } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
+import { formatDateArg } from '../../utils/dateUtils';
 import { fetchCustomers, deleteCustomer, type CustomerList } from '../../api/customersApi';
 
 export default function AdminCustomers() {
@@ -49,17 +50,7 @@ export default function AdminCustomers() {
     c.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('es-AR', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    } catch {
-      return dateString;
-    }
-  };
+  const formatDate = (dateString: string) => formatDateArg(dateString, 'date');
 
   if (loading) {
     return (

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Edit2, Check, X, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { formatDateArg } from '../../utils/dateUtils';
 
 export default function MyAccount() {
   const { user } = useAuth();
@@ -42,7 +43,7 @@ export default function MyAccount() {
                 <Calendar size={12} />
                 <span>
                   Cliente desde {user?.joinedAt
-                    ? new Date(user.joinedAt).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
+                    ? formatDateArg(user.joinedAt, 'date')
                     : 'hoy'}
                 </span>
               </div>

@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Package, MapPin, CreditCard } from 'lucide-reac
 import { useOrders } from '../../context/OrdersContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/format';
+import { formatDateArg } from '../../utils/dateUtils';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -51,7 +52,7 @@ export default function MyOrders() {
       {orders.map((order, i) => {
         const isOpen = expanded === order.id;
         const trackStep = statusToStep[order.status] ?? 0;
-        const date = new Date(order.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
+        const date = formatDateArg(order.createdAt, 'date');
 
         return (
           <motion.div key={order.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}

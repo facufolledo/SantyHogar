@@ -119,7 +119,10 @@ async def create_category(request: CreateCategoryRequest):
         
         # Crear categoría
         category_id = str(uuid.uuid4())
-        now = datetime.utcnow().isoformat()
+        # Usar horario de Argentina (UTC-3)
+        from datetime import timezone, timedelta
+        argentina_tz = timezone(timedelta(hours=-3))
+        now = datetime.now(argentina_tz).isoformat()
         
         new_category = {
             "id_categoria": category_id,
@@ -259,7 +262,7 @@ async def update_category(
         if request.active is not None:
             updates["activo"] = request.active
         
-        updates["fecha_actualizacion"] = datetime.utcnow().isoformat()
+        updates["fecha_actualizacion"] = datetime.now(timezone(timedelta(hours=-3))).isoformat()
         
         # Actualizar
         response = client.table("categorias")\
@@ -321,7 +324,7 @@ async def delete_category(category_id: UUID):
         response = client.table("categorias")\
             .update({
                 "activo": False,
-                "fecha_actualizacion": datetime.utcnow().isoformat()
+                "fecha_actualizacion": datetime.now(timezone(timedelta(hours=-3))).isoformat()
             })\
             .eq("id_categoria", str(category_id))\
             .execute()

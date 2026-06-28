@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, ShoppingBag, Package, ArrowUpRight, DollarSign } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
+import { formatDateArg } from '../../utils/dateUtils';
 import useDashboardStats from '../../hooks/useDashboardStats';
 import { useOrders } from '../../context/OrdersContext';
 
@@ -165,7 +166,7 @@ export default function Dashboard() {
                     className="hover:bg-gray-700/30 transition-colors">
                     <td className="py-3 pr-4 font-medium text-gray-200">#{order.orderNumber || order.id}</td>
                     <td className="py-3 pr-4 text-gray-400">{order.customerName}</td>
-                    <td className="py-3 pr-4 text-gray-500 text-xs">{new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td className="py-3 pr-4 text-gray-500 text-xs">{formatDateArg(order.createdAt, 'date')}</td>
                     <td className="py-3 pr-4">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[order.status] || statusColors.pending}`}>
                         {statusLabels[order.status] || order.status}

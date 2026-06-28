@@ -8,6 +8,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/format';
+import { formatDateArg } from '../utils/dateUtils';
 import { fetchOrdersByEmail, type OrderList } from '../api/ordersApi';
 import OrderDetailModal from '../components/OrderDetailModal';
 
@@ -120,11 +121,7 @@ function MyOrdersSection() {
       </div>
 
       {orders.slice(0, 5).map((order, i) => {
-        const date = new Date(order.createdAt).toLocaleDateString('es-AR', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        });
+        const date = formatDateArg(order.createdAt, 'date');
 
         return (
           <motion.div
