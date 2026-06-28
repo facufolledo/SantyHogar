@@ -124,6 +124,19 @@ const Checkout = () => {
   };
 
   const handlePay = async () => {
+    // Validar que hay items en el carrito
+    if (!items || items.length === 0) {
+      toast('Carrito vacío', 'error');
+      return;
+    }
+
+    // Validación básica de stock en frontend (sanity check)
+    const outOfStockItems = items.filter(({ product }) => product.stock <= 0);
+    if (outOfStockItems.length > 0) {
+      toast(`Producto(s) sin stock: ${outOfStockItems.map(i => i.product.name).join(', ')}`, 'error');
+      return;
+    }
+
     if (mercadoPagoOnline) {
       setSubmitting(true);
       try {
@@ -164,9 +177,15 @@ const Checkout = () => {
         
         window.location.href = checkoutUrl;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Error al iniciar el pago';
-        toast(msg, 'error');
         setSubmitting(false);
+        const msg = e instanceof Error ? e.message : 'Error al iniciar el pago';
+        
+        // Detectar error de stock
+        if (msg.includes('stock') || msg.includes('Stock')) {
+          toast(`⚠️ Stock insuficiente: ${msg}. Por favor, actualizá tu carrito.`, 'error');
+        } else {
+          toast(msg, 'error');
+        }
       }
       return;
     }
@@ -208,10 +227,19 @@ const Checkout = () => {
           setStep('confirm');
           return;
         } catch (e) {
-          console.warn('Modo local:', e);
+          const msg = e instanceof Error ? e.message : 'Error al crear la orden';
+          
+          // Detectar error de stock
+          if (msg.includes('stock') || msg.includes('Stock')) {
+            toast(`⚠️ Stock insuficiente: ${msg}. Por favor, actualizá tu carrito.`, 'error');
+          } else {
+            toast(msg, 'error');
+          }
+          return;
         }
       }
       
+      // Fallback local mode
       const order = createOrder({
         userId: user?.id || 'guest',
         customerName: form.name,
