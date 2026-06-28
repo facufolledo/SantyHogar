@@ -256,7 +256,7 @@ const Home = () => {
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {loading && featured.length === 0 ? (
+            {productsLoading && featured.length === 0 ? (
               <p className="col-span-full text-center text-gray-500 py-12">Cargando productos…</p>
             ) : (
             featured.map((p, i) => (
