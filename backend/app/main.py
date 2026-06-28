@@ -4,6 +4,7 @@ from __future__ import annotations
 # IMPORTANTE: Importar SSL fix PRIMERO (antes de cualquier import de requests/mercadopago)
 import app.ssl_fix  # noqa: F401
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -60,7 +61,29 @@ async def lifespan(app: FastAPI):
         "API v%s — precios: POST /catalog/update-price (y /api/catalog/update-price)",
         app.version,
     )
-    yield
+    
+    # STARTUP: Iniciar scheduler de tareas
+    logger.info("🚀 Iniciando scheduler de tareas...")
+    from app.tasks import cancel_expired_orders
+    
+    # Task que corre cada 5 minutos
+    async def run_scheduled_tasks():
+        while True:
+            try:
+                await asyncio.sleep(300)  # 5 minutos
+                logger.info("⏰ Ejecutando job: cancel_expired_orders...")
+                cancel_expired_orders()
+            except Exception as e:
+                logger.error(f"❌ Error en scheduler: {e}")
+    
+    # Iniciar task en background
+    task = asyncio.create_task(run_scheduled_tasks())
+    
+    yield  # App corriendo
+    
+    # SHUTDOWN: Detener scheduler
+    task.cancel()
+    logger.info("🛑 Scheduler detenido")
     logger.info("Cierre de aplicación")
 
 
