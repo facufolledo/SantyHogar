@@ -35,6 +35,7 @@ from app.routes import (
     installments,
     orders,
     products,
+    retry_payment,
     webhook,
 )
 from app.mappers import product_to_response
@@ -484,6 +485,7 @@ def create_app() -> FastAPI:
     # Mismo router bajo /api por si el reverse proxy o el front publican la API con prefijo (evita 404 genérico).
     app.include_router(products.router, prefix="/api")
     app.include_router(orders.router)
+    app.include_router(retry_payment.router, prefix="/api")  # New: retry payment endpoint
     app.include_router(customers.router)
     app.include_router(categories.router)
     app.include_router(categories.router, prefix="/api")
