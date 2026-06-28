@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { CartItem } from './CartContext';
 
-export type OrderStatus = 'pending' | 'processing' | 'ready' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending' | 'pendiente_pago' | 'pagada' | 'paid' | 'processing' | 'ready' | 'delivered' | 'cancelled';
 
 export interface Order {
   id: string;
