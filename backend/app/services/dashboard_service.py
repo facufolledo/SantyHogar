@@ -264,19 +264,15 @@ class DashboardService:
 
     @staticmethod
     def _parse_date(value: Any) -> datetime | None:
-        """Parsea una fecha de la BD (puede ser string ISO o datetime)."""
+        """Parse date from DB. Dates are already stored in Argentina timezone (UTC-3)."""
         if value is None:
             return None
         if isinstance(value, datetime):
-            if value.tzinfo is None:
-                return value.replace(tzinfo=timezone.utc)
             return value
         if isinstance(value, str):
             try:
-                # Try ISO format with timezone
+                # Parse ISO format (dates from DB are already in Argentina time)
                 dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
                 return dt
             except (ValueError, TypeError):
                 return None

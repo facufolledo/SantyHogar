@@ -85,6 +85,11 @@ class OrderService:
 
         total_rounded = round(total, 2)
 
+        # Set fecha_creacion and updated_at with Argentina timezone (UTC-3)
+        from datetime import datetime, timezone, timedelta
+        argentina_tz = timezone(timedelta(hours=-3))
+        now_argentina = datetime.now(argentina_tz).isoformat()
+
         order_data: dict[str, Any] = {
             "id_orden": order_id_str,
             "nombre_cliente": req.customerName,
@@ -94,6 +99,8 @@ class OrderService:
             "metodo_pago": req.paymentMethod,
             "estado": "pending",
             "numero_orden": "",
+            "fecha_creacion": now_argentina,  # Explicitly set to Argentina time
+            "updated_at": now_argentina,  # Also set updated_at to Argentina time
         }
         if req.userId is not None:
             order_data["id_usuario"] = req.userId

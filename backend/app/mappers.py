@@ -15,24 +15,12 @@ def _f(value: Any) -> float:
 
 
 def _parse_dt(value: Any) -> datetime:
-    """Parse datetime from DB (UTC) and return with Argentina timezone info (UTC-3)."""
-    from datetime import timedelta
-    
-    argentina_tz = timezone(timedelta(hours=-3))
-    
+    """Parse datetime from DB. Dates are already in Argentina timezone (UTC-3)."""
     if isinstance(value, datetime):
-        # If no timezone, assume UTC
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=timezone.utc)
-        # Convert to Argentina timezone (UTC-3)
-        return value.astimezone(argentina_tz)
+        return value
     if isinstance(value, str):
         s = value.replace("Z", "+00:00") if value.endswith("Z") else value
-        dt = datetime.fromisoformat(s)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        # Convert to Argentina timezone (UTC-3)
-        return dt.astimezone(argentina_tz)
+        return datetime.fromisoformat(s)
     raise TypeError(f"fecha inválida: {type(value)}")
 
 
