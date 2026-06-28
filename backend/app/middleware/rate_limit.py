@@ -1,5 +1,6 @@
 """Rate limiting middleware para proteger contra abuso y DoS."""
 import logging
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from collections import defaultdict
@@ -11,6 +12,9 @@ logger = logging.getLogger(__name__)
 # {ip: [(timestamp, endpoint), ...]}
 REQUEST_TRACKER = defaultdict(list)
 CLEANUP_INTERVAL = 300  # Limpiar cada 5 minutos
+
+# Detectar entorno
+IS_DEVELOPMENT = os.getenv("ENV", "development") == "development"
 
 
 class RateLimiter:
@@ -62,6 +66,10 @@ class RateLimiter:
         Returns:
             (is_limited, retry_after_seconds)
         """
+        # En desarrollo desde localhost, permitir sin restricciones
+        if IS_DEVELOPMENT and client_ip in ("127.0.0.1", "localhost"):
+            return False, None
+        
         self._cleanup_old_requests()
         now = datetime.now(timezone.utc)
         cutoff = now - timedelta(minutes=1)
@@ -81,7 +89,12 @@ class RateLimiter:
         ]
         
         is_critical = any(ep in endpoint for ep in critical_endpoints)
-        limit = 10 if is_critical else self.requests_per_minute
+        
+        # En desarrollo, ser más permisivo
+        if IS_DEVELOPMENT:
+            limit = 100 if is_critical else 200
+        else:
+            limit = 10 if is_critical else self.requests_per_minute
         
         # Contar requests recientes
         count = len(recent)

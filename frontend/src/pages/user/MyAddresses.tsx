@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, Star, X, Check, Loader } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
@@ -16,6 +17,7 @@ import {
 export default function MyAddresses() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
   
   const [addresses, setAddresses] = useState<AddressResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,12 +28,22 @@ export default function MyAddresses() {
   const emptyForm = { label: '', street: '', city: '', province: '', zip: '' };
   const [form, setForm] = useState(emptyForm);
 
-  // Cargar direcciones del usuario
+  // Cargar direcciones cuando el usuario está listo
   useEffect(() => {
-    if (!user?.customerId) return;
+    if (!user?.customerId) {
+      setLoading(false);
+      return;
+    }
     
     loadAddresses();
   }, [user?.customerId]);
+
+  // Recargar direcciones cuando volvemos a esta página
+  useEffect(() => {
+    if (location.pathname === '/cuenta/direcciones' && user?.customerId) {
+      loadAddresses();
+    }
+  }, [location.pathname, user?.customerId]);
 
   const loadAddresses = async () => {
     if (!user?.customerId) return;
@@ -40,11 +52,11 @@ export default function MyAddresses() {
       setLoading(true);
       const data = await fetchAddresses(user.customerId);
       setAddresses(data);
+      setLoading(false);
     } catch (err) {
       console.error('Error cargando direcciones:', err);
-      toast('Error cargando direcciones', 'error');
-    } finally {
       setLoading(false);
+      toast('Error cargando direcciones', 'error');
     }
   };
 

@@ -314,15 +314,27 @@ def create_app() -> FastAPI:
         
         if not existing_customer.data:
             # Crear cliente minimal si no existe
-            supabase.table("clientes").insert({
+            # Solo incluir email si está disponible y no es vacío
+            customer_payload = {
                 "id_cliente": customer_id_str,
-                "nombre": body.get("customer_name", ""),
-                "email": body.get("customer_email", ""),
+                "nombre": body.get("customer_name", "Unnamed"),
                 "telefono": body.get("customer_phone"),
                 "total_gastado": 0,
                 "cantidad_ordenes": 0,
                 "activo": True,
-            }).execute()
+            }
+            
+            # Agregar email solo si está disponible y no es vacío
+            email = body.get("customer_email", "").strip()
+            if email:
+                customer_payload["email"] = email
+            
+            try:
+                supabase.table("clientes").insert(customer_payload).execute()
+            except Exception as e:
+                # Si falla, simplemente ignorar (el cliente probablemente ya existe)
+                # pero no fallar la dirección
+                pass
         
         is_primary = bool(body.get("isPrimary", False))
         if is_primary:
