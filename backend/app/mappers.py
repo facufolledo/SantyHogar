@@ -114,7 +114,8 @@ def row_to_order(row: dict[str, Any]) -> Order:
     if mp not in ("mp", "fiserv"):
         mp = "mp"
     st = row["estado"]
-    if st not in ("pending", "paid", "cancelled"):
+    # Allowed states: pending, pendiente_pago, pagada, paid, processing, ready, delivered, cancelled
+    if st not in ("pending", "pendiente_pago", "pagada", "paid", "processing", "ready", "delivered", "cancelled"):
         st = "pending"
 
     uid = row.get("id_usuario")
