@@ -97,12 +97,12 @@ const ProductCard = ({ product }: Props) => {
         <div className="px-2.5 pb-2.5 sm:px-4 sm:pb-4">
           <button
             onClick={handleAdd}
-            disabled={product.stock === 0}
+            disabled={product.stock <= 0 || product.price <= 0}
             className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-200 disabled:text-gray-400 text-white text-xs sm:text-sm font-semibold py-2 sm:py-2.5 rounded-lg transition-all duration-200 active:scale-95"
           >
-            {!isLogged ? <Lock size={14} /> : <ShoppingCart size={14} />}
+            {!isLogged && product.stock > 0 && product.price > 0 ? <Lock size={14} /> : <ShoppingCart size={14} />}
             <span className="sm:inline">
-              {product.stock === 0 ? 'Sin stock' : !isLogged ? 'Iniciá sesión' : 'Agregar'}
+              {product.stock <= 0 ? 'Sin stock' : product.price <= 0 ? 'Consultar precio' : !isLogged ? 'Iniciá sesión' : 'Agregar'}
             </span>
           </button>
         </div>

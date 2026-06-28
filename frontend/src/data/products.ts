@@ -2,7 +2,9 @@ export interface Product {
   id: string;
   name: string;
   slug: string;
-  category: 'electrodomesticos' | 'muebleria' | 'colchoneria';
+  categoryId: string;
+  categoryName?: string;
+  category: string; // Keep for backward compatibility or slug if needed
   subcategory: string;
   price: number;
   originalPrice?: number;

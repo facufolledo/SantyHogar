@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Truck, CreditCard, Shield, RefreshCw, ChevronLeft } from 'lucide-react';
-import { buildCategoryCards } from '../data/products';
+import { ChevronRight, Truck, CreditCard, Shield, RefreshCw, ChevronLeft, LayoutGrid } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
+import { useCategories } from '../hooks/useCategories';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import ProductCard from '../components/ProductCard';
 
@@ -43,9 +43,25 @@ const trust = [
 ];
 
 const Home = () => {
-  const { products, loading } = useProducts();
+  const { products, loading: productsLoading } = useProducts();
+  const { categories: apiCategories, loading: categoriesLoading } = useCategories();
   const [slide, setSlide] = useState(0);
-  const categories = useMemo(() => buildCategoryCards(products), [products]);
+  
+  const categoryCards = useMemo(() => {
+    return apiCategories.filter(c => c.active).map(cat => {
+      // Find a product that belongs to this category to get an image
+      const categoryProducts = products.filter(p => p.categoryId === cat.id || p.category === cat.slug);
+      const firstProductWithImage = categoryProducts.find(p => p.images && p.images.length > 0);
+      return {
+        id: cat.slug,
+        name: cat.name,
+        count: categoryProducts.length,
+        image: firstProductWithImage?.images[0] || 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=400&q=80',
+        color: cat.color || '#F97316'
+      };
+    });
+  }, [apiCategories, products]);
+
   const featured = useMemo(
     () => products.filter(p => p.featured).slice(0, 8),
     [products]
@@ -181,10 +197,10 @@ const Home = () => {
             </Link>
           </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {loading && products.length === 0 ? (
+          {(categoriesLoading || productsLoading) && categoryCards.length === 0 ? (
             <p className="col-span-full text-center text-gray-500 py-8">Cargando categorías…</p>
           ) : (
-          categories.map((cat, i) => (
+          categoryCards.map((cat, i) => (
             <motion.div
               key={cat.id}
               initial={{ opacity: 0, y: 20 }}
@@ -209,32 +225,11 @@ const Home = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent group-hover:opacity-0 transition-opacity duration-300" />
 
                 <div className="absolute bottom-0 left-0 p-5 w-full">
-                  <div className="w-8 h-8 mb-2 text-white opacity-90">
-                    {cat.id === 'electrodomesticos' && (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/><path d="M9 6h6M9 10h6"/>
-                      </svg>
-                    )}
-                    {cat.id === 'muebleria' && (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0Z"/><path d="M4 18v2M20 18v2M12 4v9"/>
-                      </svg>
-                    )}
-                    {cat.id === 'colchoneria' && (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>
-                      </svg>
-                    )}
+                  <div className="w-8 h-8 mb-2 text-white opacity-90" style={{ color: cat.color }}>
+                    <LayoutGrid size={28} />
                   </div>
                   <h3 className="text-white text-xl font-bold">{cat.name}</h3>
                   <p className="text-gray-300 text-sm">{cat.count} productos</p>
-
-                  {/* Detalle extra solo en hover */}
-                  <p className="text-gray-300 text-xs mt-2 max-h-0 overflow-hidden opacity-0 group-hover:max-h-10 group-hover:opacity-100 transition-all duration-300">
-                    {cat.id === 'electrodomesticos' && 'Heladeras, cocinas y lavarropas'}
-                    {cat.id === 'muebleria' && 'Muebles modernos y funcionales'}
-                    {cat.id === 'colchoneria' && 'Colchones y sommiers de calidad'}
-                  </p>
                 </div>
               </Link>
             </motion.div>

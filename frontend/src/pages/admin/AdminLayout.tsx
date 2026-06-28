@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Bell, Settings, Store, Upload, LayoutDashboard, Package, ShoppingBag, Users, LogOut, ChevronRight, DollarSign } from 'lucide-react';
+import { Menu, X, Bell, Settings, Store, Upload, LayoutDashboard, Package, ShoppingBag, Users, LogOut, ChevronRight, DollarSign, Tags } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { to: '/admin/categorias', label: 'Categorías', icon: Tags },
   { to: '/admin/productos', label: 'Productos', icon: Package },
   { to: '/admin/precios', label: 'Gestión de Precios', icon: DollarSign },
   { to: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },

@@ -163,12 +163,12 @@ const ProductDetail = () => {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            <button onClick={handleAdd} disabled={product.stock === 0} className="flex-1 flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 disabled:opacity-40 font-semibold py-3 rounded-xl transition-all">
-              {!isLogged ? <Lock size={18} /> : <ShoppingCart size={18} />}
-              {!isLogged ? 'Iniciá sesión para comprar' : 'Agregar al carrito'}
+            <button onClick={handleAdd} disabled={product.stock <= 0 || product.price <= 0} className="flex-1 flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 disabled:opacity-40 disabled:cursor-not-allowed font-semibold py-3 rounded-xl transition-all">
+              {!isLogged && product.stock > 0 && product.price > 0 ? <Lock size={18} /> : <ShoppingCart size={18} />}
+              {product.stock <= 0 ? 'Sin stock' : product.price <= 0 ? 'Consultar precio' : !isLogged ? 'Iniciá sesión para comprar' : 'Agregar al carrito'}
             </button>
-            <button onClick={handleBuyNow} disabled={product.stock === 0} className="flex-1 bg-primary-600 hover:bg-primary-700 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-all active:scale-95">
-              {!isLogged ? 'Registrate' : 'Comprar ahora'}
+            <button onClick={handleBuyNow} disabled={product.stock <= 0 || product.price <= 0} className="flex-1 bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all active:scale-95">
+              {product.stock <= 0 ? 'Sin stock' : product.price <= 0 ? 'Consultar precio' : !isLogged ? 'Registrate' : 'Comprar ahora'}
             </button>
           </div>
 

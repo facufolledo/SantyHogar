@@ -22,7 +22,7 @@ const Footer = () => (
             <a href="#" className="w-8 h-8 bg-gray-700 hover:bg-pink-600 rounded-full flex items-center justify-center transition-colors">
               <Instagram size={15} />
             </a>
-            <a href="https://wa.me/5491140000000" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
+            <a href="https://wa.me/5493512005937" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
               <MessageCircle size={15} />
             </a>
           </div>
@@ -49,10 +49,7 @@ const Footer = () => (
           <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wide">Información</h4>
           <ul className="space-y-2 text-sm">
             <li><Link to="/contacto" className="hover:text-white transition-colors">Contacto</Link></li>
-            <li><a href="#" className="hover:text-white transition-colors">Envíos y devoluciones</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">Medios de pago</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">Garantías</a></li>
-            <li><Link to="/admin" className="hover:text-white transition-colors">Panel admin</Link></li>
+            <li><Link to="/terminos-y-condiciones" className="hover:text-white transition-colors">Términos y Privacidad</Link></li>
           </ul>
         </div>
 
@@ -62,11 +59,11 @@ const Footer = () => (
           <ul className="space-y-3 text-sm">
             <li className="flex items-start gap-2">
               <Phone size={15} className="mt-0.5 text-primary-400 flex-shrink-0" />
-              <span>(011) 4000-0000</span>
+              <span>351-200-5937</span>
             </li>
             <li className="flex items-start gap-2">
               <Mail size={15} className="mt-0.5 text-primary-400 flex-shrink-0" />
-              <span>ventas@santyhogar.com.ar</span>
+              <span>santyhogarcba@gmail.com</span>
             </li>
             <li className="flex items-start gap-2">
               <MapPin size={15} className="mt-0.5 text-primary-400 flex-shrink-0" />

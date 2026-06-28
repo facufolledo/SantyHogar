@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Upload, ImageIcon, AlertCircle, GripVertical } from 'lucide-react';
 import type { Product } from '../../data/products';
 import { createProduct, updateProduct, uploadProductImage, type CreateProductRequest, type UpdateProductRequest } from '../../api/productsApi';
+import { useCategories } from '../../hooks/useCategories';
 
 type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'envio';
 
@@ -30,7 +31,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
   const [form, setForm] = useState({
     name: product?.name || '',
     description: product?.description || '',
-    category: product?.category || 'electrodomesticos',
+    category: product?.categoryId || product?.category || '',
     subcategory: product?.subcategory || '',
     brand: product?.brand || '',
     price: product?.price || 0,
@@ -62,7 +63,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
         const updateData: UpdateProductRequest = {
           name: form.name,
           description: form.description || undefined,
-          category: form.category as Product['category'],
+          category_id: form.category,
           subcategory: form.subcategory || undefined,
           brand: form.brand,
           price: Number(form.price),
@@ -76,7 +77,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
         // Create mode
         const createData: CreateProductRequest = {
           name: form.name,
-          category: form.category as Product['category'],
+          category_id: form.category,
           subcategory: form.subcategory || 'general',
           price: Number(form.price),
           originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
@@ -153,13 +154,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                     placeholder="Descripción detallada del producto..." className={`${di} resize-none`} />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Categoría">
-                    <select value={form.category} onChange={e => set('category', e.target.value)} className={di}>
-                      <option value="electrodomesticos">Electrodomésticos</option>
-                      <option value="muebleria">Mueblería</option>
-                      <option value="colchoneria">Colchonería</option>
-                    </select>
-                  </Field>
+                  <CategorySelect formCategory={form.category} setCategory={(val) => set('category', val)} di={di} />
                   <Field label="Marca">
                     <input value={form.brand} onChange={e => set('brand', e.target.value)}
                       placeholder="Ej: Samsung" className={di} />
@@ -593,3 +588,31 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
     {children}
   </div>
 );
+
+function CategorySelect({ formCategory, setCategory, di }: { formCategory: string, setCategory: (val: string) => void, di: string }) {
+  const { categories, loading } = useCategories();
+  
+  return (
+    <Field label="Categoría">
+      <select 
+        value={formCategory} 
+        onChange={e => setCategory(e.target.value)} 
+        className={di}
+        disabled={loading}
+      >
+        <option value="">Seleccione una categoría</option>
+        {categories.map(c => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+        {/* Fallbacks in case categories fail to load or are empty */}
+        {categories.length === 0 && !loading && (
+          <>
+            <option value="electrodomesticos">Electrodomésticos</option>
+            <option value="muebleria">Mueblería</option>
+            <option value="colchoneria">Colchonería</option>
+          </>
+        )}
+      </select>
+    </Field>
+  );
+}

@@ -61,6 +61,8 @@ class OrderService:
         for it in req.items:
             r = by_id[it.product_id]
             unit = _money(r["precio"])
+            if unit <= 0:
+                raise InsufficientStockError(f"Producto {r.get('nombre', 'desconocido')} no tiene precio válido ($0).")
             total += unit * it.quantity
             item_id = uuid4()
             items_data.append(

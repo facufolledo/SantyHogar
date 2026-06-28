@@ -122,7 +122,7 @@ const Navbar = () => {
               Hasta 12 cuotas sin interés
             </span>
             <span className="text-gray-600">·</span>
-            <span>Atención al cliente: (011) 4000-0000</span>
+            <span>Atención al cliente: 351-200-5937 | santyhogarcba@gmail.com</span>
           </div>
         </div>
 

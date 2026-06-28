@@ -37,6 +37,9 @@ function normalizeProduct(p: ProductDto): Product {
   return {
     ...p,
     id: String(p.id),
+    categoryId: (p as any).categoryId || '',
+    categoryName: (p as any).categoryName || '',
+    category: (p as any).category || (p as any).categoryName || '',
     price: Number(p.price),
     originalPrice: p.originalPrice != null ? Number(p.originalPrice) : undefined,
     rating: Number(p.rating),
@@ -234,7 +237,7 @@ export async function updateProductPrice(
 
 export interface CreateProductRequest {
   name: string;
-  category: 'electrodomesticos' | 'muebleria' | 'colchoneria';
+  category_id: string;
   subcategory: string;
   price: number;
   originalPrice?: number;
@@ -248,7 +251,7 @@ export interface CreateProductRequest {
 
 export interface UpdateProductRequest {
   name?: string;
-  category?: 'electrodomesticos' | 'muebleria' | 'colchoneria';
+  category_id?: string;
   subcategory?: string;
   price?: number;
   originalPrice?: number;
