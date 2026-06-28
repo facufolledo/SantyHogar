@@ -1,13 +1,13 @@
 /**
  * Utilidades para trabajar con fechas
  * 
- * El backend devuelve fechas en horario de Argentina (UTC-3)
- * Este archivo centraliza la conversión de fechas para evitar diferencias horarias.
+ * El backend devuelve fechas ya ajustadas a Argentina (UTC-3)
+ * Este archivo centraliza la conversión de fechas para consistencia.
  */
 
 /**
  * Parsea una fecha ISO del backend y la formatea para mostrar en Argentina
- * @param isoString - Fecha en formato ISO (ej: "2024-06-28T15:30:00-03:00")
+ * @param isoString - Fecha en formato ISO (ej: "2024-06-28T13:40:00-03:00")
  * @param format - 'date' (solo fecha), 'datetime' (fecha y hora), 'time' (solo hora)
  * @returns Fecha formateada en español argentino
  */
@@ -22,9 +22,9 @@ export function formatDateArg(
       return '-';
     }
 
-    const options: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Argentina/Buenos_Aires',
-    };
+    // NO usamos timeZone porque la fecha ya viene ajustada del backend
+    // Solo formateamos según el locale español argentino
+    const options: Intl.DateTimeFormatOptions = {};
 
     switch (format) {
       case 'date':
