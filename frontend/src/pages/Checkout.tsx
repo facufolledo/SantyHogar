@@ -512,6 +512,13 @@ const Checkout = () => {
   );
 };
 
+interface OrderSummaryProps {
+  items: CartItem[];
+  total: number;
+  grandTotal: number;
+}
+
+const OrderSummary = ({ items, total, grandTotal }: OrderSummaryProps) => (
   <div className="space-y-4">
     <div className="card p-5 h-fit sticky top-24">
       <h3 className="font-bold text-gray-900 mb-3 text-sm">Resumen ({items.length} {items.length === 1 ? 'producto' : 'productos'})</h3>
@@ -556,5 +563,6 @@ const Checkout = () => {
       </a>
     </div>
   </div>
+);
 
 export default Checkout;
