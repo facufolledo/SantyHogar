@@ -131,7 +131,7 @@ async def mercadopago_webhook(
         pref_key = order.preference_id or preference_id
         if pref_key:
             await order_service.update_order_status_by_preference(
-                pref_key, "paid", payment_id=str(payment_id)
+                pref_key, "pagada", payment_id=str(payment_id)  # Changed: paid → pagada
             )
             logger.info(f"✅ Orden {order.id} marcada como pagada")
         else:

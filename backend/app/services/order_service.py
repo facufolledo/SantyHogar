@@ -88,7 +88,9 @@ class OrderService:
         # Set fecha_creacion with Argentina timezone (UTC-3)
         from datetime import datetime, timezone, timedelta
         argentina_tz = timezone(timedelta(hours=-3))
-        now_argentina = datetime.now(argentina_tz).isoformat()
+        now_argentina = datetime.now(argentina_tz)
+        now_argentina_iso = now_argentina.isoformat()
+        fecha_expiracion = (now_argentina + timedelta(hours=2)).isoformat()
 
         order_data: dict[str, Any] = {
             "id_orden": order_id_str,
@@ -97,9 +99,10 @@ class OrderService:
             "telefono_cliente": req.customerPhone,
             "total": total_rounded,
             "metodo_pago": req.paymentMethod,
-            "estado": "pending",
+            "estado": "pendiente_pago",  # Changed: pending → pendiente_pago
             "numero_orden": "",
-            "fecha_creacion": now_argentina,  # Explicitly set to Argentina time
+            "fecha_creacion": now_argentina_iso,  # Explicitly set to Argentina time
+            "fecha_expiracion_pago": fecha_expiracion,  # New: expires after 2 hours
         }
         if req.userId is not None:
             order_data["id_usuario"] = req.userId
