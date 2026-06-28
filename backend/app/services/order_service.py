@@ -8,7 +8,7 @@ from typing import Any, List, Optional
 from uuid import UUID, uuid4
 
 from app.database.operations import DatabaseOperations
-from app.exceptions import DatabaseError
+from app.exceptions import DatabaseError, InvalidPriceError
 from app.mappers import row_to_order
 from app.models.schemas import Order, OrderRequest
 from app.services.product_service import ProductService
@@ -62,7 +62,7 @@ class OrderService:
             r = by_id[it.product_id]
             unit = _money(r["precio"])
             if unit <= 0:
-                raise InsufficientStockError(f"Producto {r.get('nombre', 'desconocido')} no tiene precio válido ($0).")
+                raise InvalidPriceError(f"Producto '{r.get('nombre', 'desconocido')}' tiene precio inválido: ${unit}. El precio debe ser mayor a $0.")
             total += unit * it.quantity
             item_id = uuid4()
             items_data.append(

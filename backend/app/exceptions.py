@@ -21,6 +21,12 @@ class InsufficientStockError(AppError):
     pass
 
 
+class InvalidPriceError(AppError):
+    """Raised when a product has an invalid price (<=0)."""
+
+    pass
+
+
 class MercadoPagoError(AppError):
     """Raised when Mercado Pago API returns an error or invalid response."""
 

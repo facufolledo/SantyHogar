@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.deps import get_order_service, get_payment_service
-from app.exceptions import DatabaseError, InsufficientStockError, MercadoPagoError, ProductNotFoundError
+from app.exceptions import DatabaseError, InsufficientStockError, InvalidPriceError, MercadoPagoError, ProductNotFoundError
 from app.models.schemas import (
     OrderRequest,
     OrderResponse,
@@ -105,6 +105,11 @@ async def create_order(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=e.message or "Producto no encontrado.",
+        ) from e
+    except InvalidPriceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=e.message or "Producto con precio inválido.",
         ) from e
     except InsufficientStockError as e:
         raise HTTPException(
