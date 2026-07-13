@@ -25,11 +25,27 @@ router = APIRouter(tags=["orders"])
     status_code=status.HTTP_200_OK,
 )
 async def list_orders(
-    order_service: Annotated[OrderService, Depends(get_order_service)],
+    page: int = 1,
+    limit: int = 50,
+    order_service: Annotated[OrderService, Depends(get_order_service)] = None,
 ) -> List[OrderListResponse]:
-    """Lista todas las órdenes (vista simplificada para admin)."""
+    """
+    Lista todas las órdenes con pagination (vista simplificada para admin).
+    
+    Query params:
+    - page: número de página (default: 1)
+    - limit: registros por página (default: 50, max: 100)
+    """
+    # Validar parámetros
+    if page < 1:
+        page = 1
+    if limit < 1:
+        limit = 50
+    if limit > 100:
+        limit = 100
+    
     try:
-        orders = await order_service.get_all_orders()
+        orders = await order_service.get_all_orders(page=page, limit=limit)
         return orders
     except DatabaseError as e:
         raise HTTPException(

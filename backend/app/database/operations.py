@@ -372,13 +372,18 @@ class DatabaseOperations:
             logger.exception("delete_product")
             self._raise_db_error(e)
 
-    async def get_all_orders(self) -> List[dict[str, Any]]:
-        """Obtiene todas las órdenes con items en una sola query (evitar N+1)."""
+    async def get_all_orders(self, page: int = 1, limit: int = 50) -> List[dict[str, Any]]:
+        """
+        Obtiene todas las órdenes con items en una sola query (evitar N+1).
+        Con pagination para no sobrecargar memoria.
+        """
         try:
+            offset = (page - 1) * limit
             res = (
                 self._client().table("ordenes")
-                .select("*, items_orden(cantidad)")  # Incluir items de una vez
+                .select("*, items_orden(cantidad, id_producto)")  # Incluir items de una vez (JOIN)
                 .order("fecha_creacion", desc=True)
+                .range(offset, offset + limit - 1)  # Pagination
                 .execute()
             )
             return list(res.data or [])

@@ -162,11 +162,11 @@ class OrderService:
     async def attach_preference_id(self, order_id: UUID, preference_id: str) -> None:
         await self._db.update_order_preference_id(order_id, preference_id)
 
-    async def get_all_orders(self) -> List[Any]:
-        """Obtiene todas las órdenes con información resumida (sin N+1)."""
+    async def get_all_orders(self, page: int = 1, limit: int = 50) -> List[Any]:
+        """Obtiene todas las órdenes con información resumida y pagination."""
         from app.models.schemas import OrderListResponse
         
-        rows = await self._db.get_all_orders()
+        rows = await self._db.get_all_orders(page=page, limit=limit)
         orders = []
         
         for row in rows:
