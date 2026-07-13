@@ -45,7 +45,7 @@ export default function BulkImport() {
       const rows: PreviewRow[] = response.validations.map((v) => ({
         row_number: v.row_number,
         valid: v.valid,
-        selected: v.valid, // Solo seleccionar las vÃ¡lidas por defecto
+        selected: v.valid, // Solo seleccionar las válidas por defecto
         nombre: v.data?.nombre || '',
         categoria: v.data?.categoria || 'electrodomesticos',
         subcategoria: v.data?.subcategoria || 'General',
@@ -122,7 +122,7 @@ export default function BulkImport() {
   const handleConfirm = async () => {
     const selectedRows = previewData.filter(r => r.selected && r.valid);
     if (selectedRows.length === 0) {
-      toast('SeleccionÃ¡ al menos una fila para importar', 'error');
+      toast('Seleccioná al menos una fila para importar', 'error');
       return;
     }
 
@@ -165,24 +165,24 @@ export default function BulkImport() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-bold text-white">ImportaciÃ³n masiva de productos</h2>
-          <p className="text-sm text-gray-500">SubÃ­ un archivo Excel (.xlsx) para importar productos</p>
+          <h2 className="font-bold text-white">Importación masiva de productos</h2>
+          <p className="text-sm text-gray-500">Subí un archivo Excel (.xlsx) para importar productos</p>
         </div>
         {step !== 'upload' && (
           <button onClick={reset} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-300">
-            <X size={14} /> Nueva importaciÃ³n
+            <X size={14} /> Nueva importación
           </button>
         )}
       </div>
 
       <div className="text-xs text-gray-600 rounded-lg border border-gray-700/60 bg-gray-800/50 px-3 py-2">
-        <p className="mb-1">ðŸ“‹ <strong>Formato esperado del Excel (.xlsx):</strong></p>
+        <p className="mb-1">📋 <strong>Formato esperado del Excel (.xlsx):</strong></p>
         <ul className="list-disc list-inside space-y-0.5 ml-2">
-          <li>Primera fila: encabezados (nombre, categorÃ­a, subcategorÃ­a, precio, stock, marca, descripciÃ³n)</li>
+          <li>Primera fila: encabezados (nombre, categoría, subcategoría, precio, stock, marca, descripción)</li>
           <li>Filas siguientes: datos de productos</li>
-          <li>Las columnas se detectan automÃ¡ticamente por nombre</li>
+          <li>Las columnas se detectan automáticamente por nombre</li>
         </ul>
-        <p className="mt-2 text-blue-400">ðŸ’¡ PodÃ©s arrastrar imÃ¡genes a cada fila en la vista previa antes de confirmar.</p>
+        <p className="mt-2 text-blue-400">💡 Podés arrastrar imágenes a cada fila en la vista previa antes de confirmar.</p>
       </div>
 
       {/* Step 1: Upload */}
@@ -210,7 +210,7 @@ export default function BulkImport() {
             )}
           </div>
           <p className="font-semibold text-gray-300 mb-1">
-            {loading ? 'Procesando archivo...' : 'ArrastrÃ¡ tu archivo Excel o hacÃ© click'}
+            {loading ? 'Procesando archivo...' : 'Arrastrá tu archivo Excel o hacé click'}
           </p>
           <p className="text-sm text-gray-600">Formato: .xlsx</p>
         </motion.div>
@@ -231,7 +231,7 @@ export default function BulkImport() {
                 <FileSpreadsheet size={15} /> {summary?.total} filas
               </div>
               <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-3 py-2 rounded-lg text-sm font-medium">
-                <CheckCircle size={15} /> {summary?.valid} vÃ¡lidas
+                <CheckCircle size={15} /> {summary?.valid} válidas
               </div>
               {(summary?.invalid || 0) > 0 && (
                 <div className="flex items-center gap-2 bg-red-500/10 text-red-400 px-3 py-2 rounded-lg text-sm font-medium">
@@ -257,7 +257,7 @@ export default function BulkImport() {
                           className="rounded border-gray-600"
                         />
                       </th>
-                      {['Fila', 'Nombre', 'CategorÃ­a', 'Precio', 'Stock', 'Marca', 'Imagen', 'Estado'].map(h => (
+                      {['Fila', 'Nombre', 'Categoría', 'Precio', 'Stock', 'Marca', 'Imagen', 'Estado'].map(h => (
                         <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">
                           {h}
                         </th>
@@ -307,7 +307,7 @@ export default function BulkImport() {
                               onDrop={(e) => handleImageDrop(e, i)}
                               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               className="w-8 h-8 border border-dashed border-gray-600 rounded flex items-center justify-center hover:border-primary-500 cursor-pointer transition-colors"
-                              title="ArrastrÃ¡ una imagen aquÃ­"
+                              title="Arrastrá una imagen aquí"
                             >
                               <ImageIcon size={12} className="text-gray-600" />
                             </div>
@@ -315,7 +315,7 @@ export default function BulkImport() {
                         </td>
                         <td className="px-4 py-3">
                           {row.valid ? (
-                            <span className="text-xs text-green-400">Ã”Â£Ã´ OK</span>
+                            <span className="text-xs text-green-400">✓ OK</span>
                           ) : (
                             <span className="text-xs text-red-400">{row.errors.join(', ')}</span>
                           )}
@@ -345,7 +345,7 @@ export default function BulkImport() {
                 ) : (
                   <>
                     <Upload size={16} />
-                    Confirmar importaciÃ³n ({selectedCount})
+                    Confirmar importación ({selectedCount})
                   </>
                 )}
               </button>
@@ -361,20 +361,20 @@ export default function BulkImport() {
             className="text-center py-12"
           >
             <CheckCircle size={56} className="mx-auto text-green-400 mb-3" />
-            <h3 className="font-bold text-white text-lg mb-1">Â¡ImportaciÃ³n exitosa!</h3>
+            <h3 className="font-bold text-white text-lg mb-1">¡Importación exitosa!</h3>
             <p className="text-gray-500 text-sm mb-2">
-              {importResult.imported_count} productos fueron agregados al catÃ¡logo.
+              {importResult.imported_count} productos fueron agregados al catálogo.
             </p>
             {importResult.invalid_rows > 0 && (
               <p className="text-yellow-500 text-sm mb-2">
-                âš ï¸ {importResult.invalid_rows} fila{importResult.invalid_rows !== 1 ? 's' : ''} no se pudieron importar.
+                ⚠️ {importResult.invalid_rows} fila{importResult.invalid_rows !== 1 ? 's' : ''} no se pudieron importar.
               </p>
             )}
             <p className="text-yellow-500 text-sm mb-5">
-              âš ï¸ RecordÃ¡ asignar precios en "GestiÃ³n de Precios" si importaste con precio $0
+              ⚠️ Recordá asignar precios en "Gestión de Precios" si importaste con precio $0
             </p>
             <button onClick={reset} className="btn-primary text-sm px-6 py-2.5">
-              Nueva importaciâ”œâ”‚n
+              Nueva importación
             </button>
           </motion.div>
         )}
