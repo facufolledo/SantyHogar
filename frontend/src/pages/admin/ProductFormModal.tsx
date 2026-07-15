@@ -615,11 +615,16 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 function CategorySelect({ formCategory, setCategory, di }: { formCategory: string, setCategory: (val: string) => void, di: string }) {
   const { categories, loading, error } = useCategories();
   
+  console.log('🔍 CategorySelect - Categories loaded:', categories);
+  
   return (
     <Field label="Categoría">
       <select 
         value={formCategory} 
-        onChange={e => setCategory(e.target.value)} 
+        onChange={e => {
+          console.log('📝 Selected category:', e.target.value);
+          setCategory(e.target.value);
+        }}
         className={di}
         disabled={loading || error !== null}
       >
@@ -627,7 +632,9 @@ function CategorySelect({ formCategory, setCategory, di }: { formCategory: strin
           {loading ? 'Cargando categorías...' : error ? 'Error al cargar categorías' : 'Seleccione una categoría'}
         </option>
         {categories.map(c => (
-          <option key={c.id} value={c.id}>{c.name}</option>
+          <option key={c.id} value={c.id}>
+            {c.name} ({c.id})
+          </option>
         ))}
       </select>
       {error && <p className="mt-1 text-xs text-red-400">Error: {error}</p>}
