@@ -590,7 +590,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 function CategorySelect({ formCategory, setCategory, di }: { formCategory: string, setCategory: (val: string) => void, di: string }) {
-  const { categories, loading } = useCategories();
+  const { categories, loading, error } = useCategories();
   
   return (
     <Field label="Categoría">
@@ -598,21 +598,16 @@ function CategorySelect({ formCategory, setCategory, di }: { formCategory: strin
         value={formCategory} 
         onChange={e => setCategory(e.target.value)} 
         className={di}
-        disabled={loading}
+        disabled={loading || error !== null}
       >
-        <option value="">Seleccione una categoría</option>
+        <option value="">
+          {loading ? 'Cargando categorías...' : error ? 'Error al cargar categorías' : 'Seleccione una categoría'}
+        </option>
         {categories.map(c => (
           <option key={c.id} value={c.id}>{c.name}</option>
         ))}
-        {/* Fallbacks in case categories fail to load or are empty */}
-        {categories.length === 0 && !loading && (
-          <>
-            <option value="electrodomesticos">Electrodomésticos</option>
-            <option value="muebleria">Mueblería</option>
-            <option value="colchoneria">Colchonería</option>
-          </>
-        )}
       </select>
+      {error && <p className="mt-1 text-xs text-red-400">Error: {error}</p>}
     </Field>
   );
 }
