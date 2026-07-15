@@ -75,6 +75,22 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
         alert('✅ Producto actualizado correctamente');
       } else {
         // Create mode
+        if (!form.category) {
+          alert('❌ Selecciona una categoría');
+          setSaving(false);
+          return;
+        }
+        if (!form.name.trim()) {
+          alert('❌ El nombre del producto es requerido');
+          setSaving(false);
+          return;
+        }
+        if (form.price <= 0) {
+          alert('❌ El precio debe ser mayor a 0');
+          setSaving(false);
+          return;
+        }
+        
         const createData: CreateProductRequest = {
           name: form.name,
           category_id: form.category,
@@ -86,13 +102,20 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
           description: form.description || undefined,
           images: form.images.length > 0 ? form.images : undefined,
         };
+        console.log('📤 Enviando producto:', createData);
         await createProduct(createData);
         alert('✅ Producto creado correctamente');
       }
       onSave();
     } catch (error) {
       console.error('Error al guardar producto:', error);
-      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al guardar el producto'}`);
+      let errorMsg = 'Error al guardar el producto';
+      
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      }
+      
+      alert(`❌ ${errorMsg}`);
     } finally {
       setSaving(false);
     }

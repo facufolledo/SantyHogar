@@ -1,4 +1,5 @@
 ﻿"""Rutas de productos."""
+import logging
 from typing import Annotated, List
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from app.services.image_service import ImageService, ImageValidationError
 from app.services.pagination_service import PaginationService
 from app.services.product_service import ProductService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["products"])
 
 
@@ -366,8 +368,14 @@ async def create_product(
         "destacado": product_data.featured,
     }
     
-    product = await product_service.create_product(db_data)
-    return product_to_response(product)
+    logger.info(f"Creating product with data: {db_data}")
+    
+    try:
+        product = await product_service.create_product(db_data)
+        return product_to_response(product)
+    except Exception as e:
+        logger.error(f"Error creating product: {str(e)}", exc_info=True)
+        raise
 
 
 @router.patch(
