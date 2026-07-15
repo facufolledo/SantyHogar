@@ -16,7 +16,7 @@ from app.models.schemas import (
 
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/categories", tags=["Categories"])
+router = APIRouter(prefix="/categories", tags=["Categories"])
 
 
 def generate_slug(name: str) -> str:
