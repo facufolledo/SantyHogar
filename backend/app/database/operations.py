@@ -43,6 +43,8 @@ class DatabaseOperations:
                 f"Host: {host}. Revisá SUPABASE_URL (Project URL) y tu DNS/Internet."
             ) from exc
 
+        # Log del error para debugging
+        logger.error(f"Database error: {msg}")
         raise DatabaseError(msg) from exc
 
     # ------------------------------------------------------------------ #
