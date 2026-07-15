@@ -3,6 +3,7 @@
  * Obtiene la lista de categorías desde la API
  */
 import { useEffect, useState } from "react";
+import { apiFetch } from "../api/client";
 
 export interface Category {
   id: string;
@@ -34,14 +35,8 @@ export const useCategories = (): UseCategoriesReturn => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/categories`);
-
-      if (!response.ok) {
-        throw new Error(`Error fetching categories: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setCategories(data || []);
+      const data = await apiFetch<Category[]>("/categories");
+      setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
