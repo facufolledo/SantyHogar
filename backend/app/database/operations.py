@@ -328,14 +328,22 @@ class DatabaseOperations:
             product_data.setdefault("calificacion", 0.0)
             product_data.setdefault("cantidad_resenas", 0)
             
+            logger.info(f"Insertando producto: id={product_id}, nombre={product_data.get('nombre')}, categoria={product_data.get('id_categoria')}")
             res = self._client().table("productos").insert(product_data).execute()
             
             if not res.data:
                 raise DatabaseError("No se pudo crear el producto")
             
             return product_id
+        except DatabaseError:
+            raise
         except Exception as e:
             logger.exception("create_product")
+            error_msg = str(e).lower()
+            if "foreign key" in error_msg or "violates" in error_msg or "constraint" in error_msg:
+                raise DatabaseError(
+                    f"La categoría seleccionada no existe o no es válida. Verifica que la categoría esté creada en la base de datos."
+                ) from e
             self._raise_db_error(e)
 
     async def update_product(self, product_id: UUID, product_data: dict[str, Any]) -> None:
