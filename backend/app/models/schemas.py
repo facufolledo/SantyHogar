@@ -278,7 +278,7 @@ class CreateProductRequest(BaseModel):
     price: float = Field(ge=0)
     original_price: Optional[float] = Field(default=None, ge=0)
     stock: int = Field(ge=0, default=0)
-    brand: str = Field(min_length=1, max_length=100)
+    brand: str = Field(default="", max_length=100)
     description: str = Field(default="", max_length=5000)
     images: List[str] = Field(default_factory=list)
     specs: Dict[str, str] = Field(default_factory=dict)
@@ -335,7 +335,7 @@ class UpdateProductRequest(BaseModel):
     price: Optional[float] = Field(default=None, ge=0)
     original_price: Optional[float] = Field(default=None, ge=0)
     stock: Optional[int] = Field(default=None, ge=0)
-    brand: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    brand: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = None
     images: Optional[List[str]] = None
     specs: Optional[Dict[str, str]] = None
