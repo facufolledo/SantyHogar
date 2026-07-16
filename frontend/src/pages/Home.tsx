@@ -52,9 +52,10 @@ const Home = () => {
   );
 
   useEffect(() => {
+    if (slides.length === 0) return;
     const t = setInterval(() => setSlide(s => (s + 1) % slides.length), 5000);
     return () => clearInterval(t);
-  }, []);
+  }, [slides.length]);
 
   const prev = () => setSlide(s => (s - 1 + slides.length) % slides.length);
   const next = () => setSlide(s => (s + 1) % slides.length);
@@ -63,81 +64,85 @@ const Home = () => {
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gray-900 h-[420px] md:h-[500px]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={slide}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="absolute inset-0"
-          >
-            <img
-              src={slides[slide].image}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            {/* Continuidad con navbar — mismo gray-900, menos intenso */}
-            <div className="absolute inset-0 bg-gradient-to-b from-gray-900/85 from-0% via-gray-900/50 via-35% to-transparent to-100%" />
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-900/65 via-gray-900/35 to-gray-900/20" />
-            {/* Azul muy sutil en bordes */}
-            <div className="absolute inset-y-0 left-0 w-2/5 bg-gradient-to-r from-[#0c1528]/50 to-transparent" />
-            <div className="absolute inset-y-0 right-0 w-2/5 bg-gradient-to-l from-[#0c1528]/35 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/45 via-transparent to-transparent" />
-          </motion.div>
-        </AnimatePresence>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={slide}
-              initial={{ opacity: 0, x: -40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 40 }}
-              transition={{ duration: 0.5 }}
-              className="max-w-xl"
-            >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-3 drop-shadow-lg">
-                {slides[slide].title}<br />
-                <span className="text-orange-400 drop-shadow-lg">{slides[slide].highlight}</span>
-              </h1>
-              <p className="text-white/90 text-lg mb-6 drop-shadow-md">{slides[slide].subtitle}</p>
-              <Link
-                to={slides[slide].link}
-                className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 shadow-lg shadow-orange-500/30 cursor-pointer"
+        {slides.length > 0 && (
+          <>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={slide}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6 }}
+                className="absolute inset-0"
               >
-                {slides[slide].cta} <ChevronRight size={18} />
-              </Link>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+                <img
+                  src={slides[slide]?.image || 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=800&q=80'}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                {/* Continuidad con navbar — mismo gray-900, menos intenso */}
+                <div className="absolute inset-0 bg-gradient-to-b from-gray-900/85 from-0% via-gray-900/50 via-35% to-transparent to-100%" />
+                <div className="absolute inset-0 bg-gradient-to-r from-gray-900/65 via-gray-900/35 to-gray-900/20" />
+                {/* Azul muy sutil en bordes */}
+                <div className="absolute inset-y-0 left-0 w-2/5 bg-gradient-to-r from-[#0c1528]/50 to-transparent" />
+                <div className="absolute inset-y-0 right-0 w-2/5 bg-gradient-to-l from-[#0c1528]/35 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/45 via-transparent to-transparent" />
+              </motion.div>
+            </AnimatePresence>
 
-        {/* Arrows */}
-        <button
-          onClick={prev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-full p-2.5 transition-all cursor-pointer"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <button
-          onClick={next}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-full p-2.5 transition-all cursor-pointer"
-        >
-          <ChevronRight size={20} />
-        </button>
+            <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={slide}
+                  initial={{ opacity: 0, x: -40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 40 }}
+                  transition={{ duration: 0.5 }}
+                  className="max-w-xl"
+                >
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-3 drop-shadow-lg">
+                    {slides[slide]?.title}<br />
+                    <span className="text-orange-400 drop-shadow-lg">{slides[slide]?.highlight}</span>
+                  </h1>
+                  <p className="text-white/90 text-lg mb-6 drop-shadow-md">{slides[slide]?.subtitle}</p>
+                  <Link
+                    to={slides[slide]?.link || '/tienda'}
+                    className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 shadow-lg shadow-orange-500/30 cursor-pointer"
+                  >
+                    {slides[slide]?.cta || 'Ver más'} <ChevronRight size={18} />
+                  </Link>
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-        {/* Dots */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-          {slides.map((_, i) => (
+            {/* Arrows */}
             <button
-              key={i}
-              onClick={() => setSlide(i)}
-              className={`transition-all duration-200 cursor-pointer ${
-                i === slide ? 'bg-orange-500 w-8 h-2.5 rounded-full' : 'bg-white/40 hover:bg-white/60 w-2.5 h-2.5 rounded-full'
-              }`}
-            />
-          ))}
-        </div>
+              onClick={prev}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-full p-2.5 transition-all cursor-pointer"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={next}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 backdrop-blur-md bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-full p-2.5 transition-all cursor-pointer"
+            >
+              <ChevronRight size={20} />
+            </button>
+
+            {/* Dots */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSlide(i)}
+                  className={`transition-all duration-200 cursor-pointer ${
+                    i === slide ? 'bg-orange-500 w-8 h-2.5 rounded-full' : 'bg-white/40 hover:bg-white/60 w-2.5 h-2.5 rounded-full'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* Trust bar */}
