@@ -33,7 +33,15 @@ const Shop = () => {
 
   const filtered = useMemo(() => {
     let list = [...products];
-    if (activeCat) list = list.filter(p => p.category === activeCat);
+    if (activeCat) {
+      // Buscar la categoría por slug para obtener su ID
+      const cat = navCategories.find(c => c.slug === activeCat);
+      if (cat) {
+        list = list.filter(p => p.categoryId === cat.id || p.category === cat.nombre);
+      } else {
+        list = []; // Si no encuentra la categoría, devuelve vacío
+      }
+    }
     if (query) list = list.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) || p.brand.toLowerCase().includes(query.toLowerCase()));
     if (priceRange !== null) {
       const range = PRICE_RANGES[priceRange];
@@ -43,7 +51,7 @@ const Shop = () => {
     else if (sort === 'price-desc') list.sort((a, b) => b.price - a.price);
     else if (sort === 'rating') list.sort((a, b) => b.rating - a.rating);
     return list;
-  }, [activeCat, query, priceRange, sort, products]);
+  }, [activeCat, query, priceRange, sort, products, navCategories]);
 
   const { categories: navCategories } = useCategoriesNav();
 
