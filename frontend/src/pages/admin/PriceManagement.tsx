@@ -2,23 +2,41 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, DollarSign, Save, AlertCircle, Filter, TrendingUp } from 'lucide-react';
 import { useProducts } from '../../context/ProductsContext';
+import { useCategoriesNav } from '../../hooks/useCategoriesNav';
 import { formatPrice } from '../../utils/format';
 import ProductsErrorBanner from '../../components/ProductsErrorBanner';
 import { updateProductPrice } from '../../api/productsApi';
 
-const catColors: Record<string, string> = {
-  electrodomesticos: 'bg-blue-500/20 text-blue-400',
-  muebleria: 'bg-purple-500/20 text-purple-400',
-  colchoneria: 'bg-green-500/20 text-green-400',
-};
-
 export default function PriceManagement() {
   const { products, loading, error, refetch } = useProducts();
+  const { categories: navCategories } = useCategoriesNav();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterNoPriceOnly, setFilterNoPriceOnly] = useState(true);
   const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+
+  const getCategoryColor = (categorySlug: string): string => {
+    const colors: Record<string, string> = {
+      electrodomesticos: 'bg-blue-500/20 text-blue-400',
+      muebleria: 'bg-purple-500/20 text-purple-400',
+      colchoneria: 'bg-green-500/20 text-green-400',
+      cocinas: 'bg-orange-500/20 text-orange-400',
+      baños: 'bg-cyan-500/20 text-cyan-400',
+    };
+    
+    if (colors[categorySlug]) {
+      return colors[categorySlug];
+    }
+    
+    const hash = categorySlug.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const colorOptions = [
+      'bg-teal-500/20 text-teal-400',
+      'bg-violet-500/20 text-violet-400',
+      'bg-rose-500/20 text-rose-400',
+    ];
+    return colorOptions[hash % colorOptions.length];
+  };
 
   const filtered = useMemo(() => {
     let result = products;
@@ -187,9 +205,9 @@ export default function PriceManagement() {
           className="px-4 py-2.5 bg-gray-800 border border-gray-700/60 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
         >
           <option value="all">Todas las categorías</option>
-          <option value="electrodomesticos">Electrodomésticos</option>
-          <option value="muebleria">Mueblería</option>
-          <option value="colchoneria">Colchonería</option>
+          {navCategories.map(cat => (
+            <option key={cat.id_categoria} value={cat.slug}>{cat.nombre}</option>
+          ))}
         </select>
 
         <button
@@ -276,7 +294,7 @@ export default function PriceManagement() {
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                            catColors[product.category]
+                            getCategoryColor(product.category)
                           }`}
                         >
                           {product.category}

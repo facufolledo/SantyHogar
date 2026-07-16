@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
+import { useCategoriesNav } from '../hooks/useCategoriesNav';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import ProductCard from '../components/ProductCard';
 
@@ -44,16 +45,17 @@ const Shop = () => {
     return list;
   }, [activeCat, query, priceRange, sort, products]);
 
+  const { categories: navCategories } = useCategoriesNav();
+
   const setCategory = (cat: string) => {
     const p = new URLSearchParams(params);
     if (cat) p.set('cat', cat); else p.delete('cat');
     setParams(p);
   };
 
-  const catLabels: Record<string, string> = {
-    electrodomesticos: 'Electrodomésticos',
-    muebleria: 'Mueblería',
-    colchoneria: 'Colchonería',
+  const getCategoryLabel = (slug: string): string => {
+    const cat = navCategories.find(c => c.slug === slug);
+    return cat ? cat.nombre : slug;
   };
 
   const FilterPanel = () => (
@@ -65,9 +67,9 @@ const Shop = () => {
           <button onClick={() => setCategory('')} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!activeCat ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
             Todas las categorías
           </button>
-          {Object.entries(catLabels).map(([id, label]) => (
-            <button key={id} onClick={() => setCategory(id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeCat === id ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
-              {label}
+          {navCategories.map(cat => (
+            <button key={cat.id_categoria} onClick={() => setCategory(cat.slug)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeCat === cat.slug ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+              {cat.nombre}
             </button>
           ))}
         </div>
@@ -97,7 +99,7 @@ const Shop = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {activeCat ? catLabels[activeCat] : query ? `Resultados para "${query}"` : 'Todos los productos'}
+            {activeCat ? getCategoryLabel(activeCat) : query ? `Resultados para "${query}"` : 'Todos los productos'}
           </h1>
           <p className="text-gray-500 text-sm mt-1">{filtered.length} productos encontrados</p>
         </div>

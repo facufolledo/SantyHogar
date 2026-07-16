@@ -7,49 +7,33 @@ import { useCategories } from '../hooks/useCategories';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import ProductCard from '../components/ProductCard';
 
-// Hero slides
-const slides = [
-  {
-    title: 'Los mejores',
-    highlight: 'Lavarropas',
-    subtitle: 'Tecnología que simplifica tu vida',
-    cta: 'Ver lavarropas',
-    link: '/tienda?cat=electrodomesticos',
-    image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=800&q=80',
-  },
-  {
-    title: 'Dormitorios',
-    highlight: 'de ensueño',
-    subtitle: 'Colchones y sommiers premium',
-    cta: 'Ver colchonería',
-    link: '/tienda?cat=colchoneria',
-    image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-  },
-  {
-    title: 'Amueblá tu hogar',
-    highlight: 'con estilo',
-    subtitle: 'Muebles modernos al mejor precio',
-    cta: 'Ver mueblería',
-    link: '/tienda?cat=muebleria',
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80',
-  },
-];
-
-const trust = [
-  { icon: Truck, label: 'Envíos a todo el país', sub: 'Gratis en compras +$200.000' },
-  { icon: CreditCard, label: 'Todos los medios de pago', sub: 'Hasta 12 cuotas sin interés' },
-  { icon: Shield, label: 'Compra segura', sub: 'Datos protegidos' },
-  { icon: RefreshCw, label: 'Garantía oficial', sub: 'Respaldo de fábrica' },
-];
-
 const Home = () => {
   const { products, loading: productsLoading } = useProducts();
   const { categories: apiCategories, loading: categoriesLoading } = useCategories();
   const [slide, setSlide] = useState(0);
   
+  // Hero slides dinámicos basados en categorías
+  const slides = useMemo(() => {
+    if (apiCategories.length === 0) return [];
+    return apiCategories.slice(0, 3).map((cat, idx) => ({
+      title: 'Los mejores',
+      highlight: cat.name,
+      subtitle: `Descubrí nuestros ${cat.name.toLowerCase()}`,
+      cta: `Ver ${cat.name.toLowerCase()}`,
+      link: `/tienda?cat=${cat.slug}`,
+      image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=800&q=80',
+    }));
+  }, [apiCategories]);
+  
+  const trust = [
+    { icon: Truck, label: 'Envíos a todo el país', sub: 'Gratis en compras +$200.000' },
+    { icon: CreditCard, label: 'Todos los medios de pago', sub: 'Hasta 12 cuotas sin interés' },
+    { icon: Shield, label: 'Compra segura', sub: 'Datos protegidos' },
+    { icon: RefreshCw, label: 'Garantía oficial', sub: 'Respaldo de fábrica' },
+  ];
+  
   const categoryCards = useMemo(() => {
     return apiCategories.filter(c => c.active).map(cat => {
-      // Find a product that belongs to this category to get an image
       const categoryProducts = products.filter(p => p.categoryId === cat.id || p.category === cat.slug);
       const firstProductWithImage = categoryProducts.find(p => p.images && p.images.length > 0);
       return {

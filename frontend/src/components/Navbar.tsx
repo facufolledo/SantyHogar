@@ -8,26 +8,14 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useCategoriesNav } from '../hooks/useCategoriesNav';
 import AuthModal from './AuthModal';
 
 const NAV_BG = 'bg-[#0c1528]/95';
 const NAV_BORDER = 'border-[#1a2540]';
 
-const categories = [
-  { label: 'Electrodomésticos', to: '/tienda?cat=electrodomesticos', icon: LayoutGrid },
-  { label: 'Mueblería', to: '/tienda?cat=muebleria', icon: LayoutGrid },
-  { label: 'Colchonería', to: '/tienda?cat=colchoneria', icon: LayoutGrid },
-];
-
-const searchSuggestions = [
-  { label: 'Electrodomésticos', to: '/tienda?cat=electrodomesticos' },
-  { label: 'Mueblería', to: '/tienda?cat=muebleria' },
-  { label: 'Colchonería', to: '/tienda?cat=colchoneria' },
-  { label: 'Lavarropas', to: '/tienda?q=lavarropas' },
-  { label: 'Heladeras', to: '/tienda?q=heladera' },
-];
-
 const Navbar = () => {
+  const { categories: navCategories } = useCategoriesNav();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -157,16 +145,16 @@ const Navbar = () => {
                         exit={{ opacity: 0, y: -4 }}
                         className={`absolute top-full left-0 right-0 mt-1.5 ${NAV_BG} border ${NAV_BORDER} rounded-xl shadow-2xl py-2 z-50 overflow-hidden`}
                       >
-                        <p className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Búsquedas populares</p>
-                        {searchSuggestions.map(s => (
+                        <p className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Categorías</p>
+                        {navCategories.map(s => (
                           <Link
-                            key={s.to}
-                            to={s.to}
+                            key={s.id_categoria}
+                            to={`/tienda?cat=${s.slug}`}
                             onClick={() => { setSearchFocused(false); setSearchQuery(''); }}
                             className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
                           >
                             <Search size={13} className="text-gray-500" />
-                            {s.label}
+                            {s.nombre}
                           </Link>
                         ))}
                       </motion.div>
@@ -314,14 +302,11 @@ const Navbar = () => {
                         <Link to="/tienda" className="flex items-center gap-2.5 px-4 py-2.5 text-gray-300 hover:bg-white/5 hover:text-white text-sm transition-all duration-200 cursor-pointer">
                           <LayoutGrid size={14} className="text-gray-400" /> Ver todo
                         </Link>
-                        {categories.map(c => {
-                          const Icon = c.icon;
-                          return (
-                            <Link key={c.to} to={c.to} className="flex items-center gap-2.5 px-4 py-2.5 text-gray-300 hover:bg-white/5 hover:text-white text-sm transition-all duration-200 cursor-pointer">
-                              <Icon size={14} className="text-gray-400" /> {c.label}
-                            </Link>
-                          );
-                        })}
+                        {navCategories.map(c => (
+                          <Link key={c.id_categoria} to={`/tienda?cat=${c.slug}`} className="flex items-center gap-2.5 px-4 py-2.5 text-gray-300 hover:bg-white/5 hover:text-white text-sm transition-all duration-200 cursor-pointer">
+                            <LayoutGrid size={14} className="text-gray-400" /> {c.nombre}
+                          </Link>
+                        ))}
                       </motion.div>
                     </div>
                   )}
@@ -359,14 +344,14 @@ const Navbar = () => {
                 </form>
                 {!searchQuery && (
                   <div className="flex flex-wrap gap-2">
-                    {searchSuggestions.slice(0, 3).map(s => (
+                    {navCategories.slice(0, 3).map(s => (
                       <Link
-                        key={s.to}
-                        to={s.to}
+                        key={s.id_categoria}
+                        to={`/tienda?cat=${s.slug}`}
                         onClick={() => setSearchOpen(false)}
                         className="text-xs px-3 py-1 rounded-full bg-white/5 border border-[#1a2540] text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                       >
-                        {s.label}
+                        {s.nombre}
                       </Link>
                     ))}
                   </div>
@@ -404,8 +389,8 @@ const Navbar = () => {
                   )}
                   <Link to="/" className="block py-2.5 text-gray-300 hover:text-white text-sm transition-colors duration-200 cursor-pointer">Inicio</Link>
                   <Link to="/tienda" className="block py-2.5 text-gray-300 hover:text-white text-sm transition-colors duration-200 cursor-pointer">Todos los productos</Link>
-                  {categories.map(c => (
-                    <Link key={c.to} to={c.to} className="block py-2 pl-4 text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer">{c.label}</Link>
+                  {navCategories.map(c => (
+                    <Link key={c.id_categoria} to={`/tienda?cat=${c.slug}`} className="block py-2 pl-4 text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer">{c.nombre}</Link>
                   ))}
                   <Link to="/contacto" className="block py-2.5 text-gray-300 hover:text-white text-sm transition-colors duration-200 cursor-pointer">Contacto</Link>
                   {isLogged ? (

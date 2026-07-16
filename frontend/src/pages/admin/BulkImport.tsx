@@ -45,9 +45,9 @@ export default function BulkImport() {
       const rows: PreviewRow[] = response.validations.map((v) => ({
         row_number: v.row_number,
         valid: v.valid,
-        selected: v.valid, // Solo seleccionar las válidas por defecto
+        selected: v.valid,
         nombre: v.data?.nombre || '',
-        categoria: v.data?.categoria || 'electrodomesticos',
+        categoria: v.data?.categoria || '',
         subcategoria: v.data?.subcategoria || 'General',
         precio: v.data?.precio || 0,
         stock: v.data?.stock || 0,
