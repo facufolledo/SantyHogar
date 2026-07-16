@@ -82,7 +82,7 @@ const Shop = () => {
           ) : (
             navCategories.map(cat => (
               <button key={cat.id_categoria} onClick={() => setCategory(cat.slug)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeCat === cat.slug ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
-                {cat.nombre || cat.slug}
+                {cat.nombre}
               </button>
             ))
           )}

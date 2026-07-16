@@ -36,7 +36,16 @@ export function useCategoriesNav() {
         // Si es paginado, obtener los datos del array
         const categoriesData = Array.isArray(data) ? data : data.results || data.data || [];
         
-        setCategories(categoriesData);
+        // Mapear datos del backend al formato del frontend
+        const mappedCategories: Category[] = categoriesData.map((cat: any) => ({
+          id_categoria: cat.id || cat.id_categoria || '',
+          nombre: cat.name || cat.nombre || '',
+          slug: cat.slug || '',
+          color: cat.color,
+          icono: cat.icon || cat.icono,
+        }));
+        
+        setCategories(mappedCategories);
         setError(null);
       } catch (err) {
         console.error('Error fetching categories:', err);
