@@ -75,11 +75,17 @@ const Shop = () => {
           <button onClick={() => setCategory('')} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!activeCat ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
             Todas las categorías
           </button>
-          {navCategories.map(cat => (
-            <button key={cat.id_categoria} onClick={() => setCategory(cat.slug)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeCat === cat.slug ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
-              {cat.nombre}
-            </button>
-          ))}
+          {categoriesLoading ? (
+            <div className="text-gray-500 text-sm p-2">Cargando categorías...</div>
+          ) : navCategories.length === 0 ? (
+            <div className="text-gray-500 text-sm p-2">No hay categorías disponibles</div>
+          ) : (
+            navCategories.map(cat => (
+              <button key={cat.id_categoria} onClick={() => setCategory(cat.slug)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeCat === cat.slug ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+                {cat.nombre || cat.slug}
+              </button>
+            ))
+          )}
         </div>
       </div>
 
