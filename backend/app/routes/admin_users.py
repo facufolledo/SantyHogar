@@ -6,6 +6,7 @@ import httpx
 from app.config import get_config
 from app.utils.validation import validate_password, validate_name
 
+# Force redeploy - using httpx instead of requests to avoid urllib3 conflicts
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 
 
