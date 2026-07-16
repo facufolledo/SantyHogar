@@ -46,6 +46,7 @@ function normalizeProduct(p: ProductDto): Product {
     reviews: Number(p.reviews),
     stock: Number(p.stock),
     images,
+    description: p.description ? String(p.description).trim() : '',
     specs,
   };
 }

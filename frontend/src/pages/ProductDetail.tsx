@@ -192,7 +192,7 @@ const ProductDetail = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
         <div className="card p-6">
           <h2 className="font-bold text-gray-900 mb-3">Descripción</h2>
-          {product.description ? (
+          {product.description && product.description.trim() ? (
             <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
           ) : (
             <p className="text-gray-400 text-sm italic">Sin descripción disponible</p>
