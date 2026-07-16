@@ -26,6 +26,7 @@ import CategoriesManagement from './pages/admin/CategoriesManagement';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminCustomers from './pages/admin/AdminCustomers';
+import AdminUsers from './pages/admin/AdminUsers';
 import BulkImport from './pages/admin/BulkImport';
 import PriceManagement from './pages/admin/PriceManagement';
 // User
@@ -94,6 +95,7 @@ function App() {
               <Route path="precios" element={<PriceManagement />} />
               <Route path="pedidos" element={<AdminOrders />} />
               <Route path="clientes" element={<AdminCustomers />} />
+              <Route path="usuarios" element={<AdminUsers />} />
               <Route path="importar" element={<BulkImport />} />
             </Route>
 

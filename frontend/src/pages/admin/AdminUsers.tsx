@@ -227,8 +227,6 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-400">
                       {formatDateArg(user.created_at, 'date')}
-                        day: 'numeric',
-                      })}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button

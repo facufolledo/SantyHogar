@@ -11,6 +11,7 @@ const navItems = [
   { to: '/admin/precios', label: 'Gestión de Precios', icon: DollarSign },
   { to: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
   { to: '/admin/clientes', label: 'Clientes', icon: Users },
+  { to: '/admin/usuarios', label: 'Usuarios Admin', icon: Users },
   { to: '/admin/importar', label: 'Importar Stock', icon: Upload },
 ];
 
