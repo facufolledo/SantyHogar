@@ -130,7 +130,7 @@ const Shop = () => {
         <div className="flex flex-wrap gap-2 mb-4">
           {activeCat && (
             <span className="flex items-center gap-1 bg-primary-50 text-primary-700 text-xs font-medium px-3 py-1.5 rounded-full">
-              {catLabels[activeCat]}
+              {getCategoryLabel(activeCat)}
               <button onClick={() => setCategory('')}><X size={12} /></button>
             </span>
           )}

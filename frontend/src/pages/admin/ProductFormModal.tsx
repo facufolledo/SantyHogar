@@ -5,7 +5,7 @@ import type { Product } from '../../data/products';
 import { createProduct, updateProduct, uploadProductImage, type CreateProductRequest, type UpdateProductRequest } from '../../api/productsApi';
 import { useCategories } from '../../hooks/useCategories';
 
-type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'envio';
+type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'envio' | 'especificaciones';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'general', label: '📋 General' },
@@ -13,6 +13,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'stock', label: '📦 Stock' },
   { id: 'imagenes', label: '🖼️ Imágenes' },
   { id: 'envio', label: '🚚 Envío' },
+  { id: 'especificaciones', label: '⚙️ Especificaciones' },
 ];
 
 interface Props {
@@ -43,6 +44,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
     weight: '',
     dimensions: '',
     images: product?.images || [],
+    specifications: product?.specs || {},
   });
 
   const set = (key: string, val: unknown) => setForm(p => ({ ...p, [key]: val }));
@@ -70,6 +72,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
           originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
           stock: Number(form.stock),
           images: form.images.length > 0 ? form.images : undefined,
+          specs: Object.keys(form.specifications).length > 0 ? form.specifications : undefined,
         };
         await updateProduct(product.id, updateData);
         alert('✅ Producto actualizado correctamente');
@@ -101,6 +104,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
           brand: form.brand,
           description: form.description || undefined,
           images: form.images.length > 0 ? form.images : undefined,
+          specs: Object.keys(form.specifications).length > 0 ? form.specifications : undefined,
         };
         console.log('📤 Enviando producto:', createData);
         await createProduct(createData);
@@ -291,6 +295,15 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                   ℹ️ Estos datos se usan para calcular el costo de envío automáticamente.
                 </div>
               </motion.div>
+            )}
+
+            {/* ESPECIFICACIONES */}
+            {tab === 'especificaciones' && (
+              <SpecificationsTab
+                specifications={form.specifications}
+                setSpecifications={(specs) => set('specifications', specs)}
+                di={di}
+              />
             )}
           </fieldset>
 
@@ -611,6 +624,121 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
     {children}
   </div>
 );
+
+interface SpecificationsTabProps {
+  specifications: Record<string, string>;
+  setSpecifications: (specs: Record<string, string>) => void;
+  di: string;
+}
+
+function SpecificationsTab({ specifications, setSpecifications, di }: SpecificationsTabProps) {
+  const [specKey, setSpecKey] = useState('');
+  const [specValue, setSpecValue] = useState('');
+
+  const addSpecification = () => {
+    if (!specKey.trim() || !specValue.trim()) {
+      alert('❌ Por favor completa nombre y valor de la especificación');
+      return;
+    }
+
+    const key = specKey.trim();
+    if (specifications[key]) {
+      alert(`❌ La especificación "${key}" ya existe`);
+      return;
+    }
+
+    setSpecifications({
+      ...specifications,
+      [key]: specValue.trim(),
+    });
+
+    setSpecKey('');
+    setSpecValue('');
+  };
+
+  const removeSpecification = (key: string) => {
+    const updated = { ...specifications };
+    delete updated[key];
+    setSpecifications(updated);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addSpecification();
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+      <div className="space-y-3">
+        <Field label="Nombre de especificación">
+          <input
+            type="text"
+            value={specKey}
+            onChange={e => setSpecKey(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Ej: Capacidad, Color, Material, Voltaje"
+            className={di}
+          />
+        </Field>
+        <Field label="Valor de especificación">
+          <input
+            type="text"
+            value={specValue}
+            onChange={e => setSpecValue(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Ej: 8kg, Blanco, Acero inoxidable, 220V"
+            className={di}
+          />
+        </Field>
+        <button
+          type="button"
+          onClick={addSpecification}
+          className="w-full px-4 py-2.5 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          + Agregar especificación
+        </button>
+      </div>
+
+      {Object.keys(specifications).length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-400">Especificaciones agregadas:</p>
+          <div className="space-y-2">
+            {Object.entries(specifications).map(([key, value]) => (
+              <div key={key} className="flex items-center justify-between p-3 bg-gray-800 border border-gray-700 rounded-lg group">
+                <div>
+                  <p className="text-sm font-medium text-gray-300">{key}</p>
+                  <p className="text-xs text-gray-500">{value}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeSpecification(key)}
+                  className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-xs text-gray-600 p-4 bg-gray-800 border border-gray-700 rounded-lg">
+          <AlertCircle size={14} /> <span>Sin especificaciones agregadas</span>
+        </div>
+      )}
+
+      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-sm text-blue-400 space-y-1">
+        <p className="font-medium">💡 Ejemplos de especificaciones:</p>
+        <ul className="text-xs text-blue-300 space-y-1 ml-2">
+          <li>• <strong>Lavarropas:</strong> Capacidad: 8kg, Velocidad: 1200 RPM, Color: Blanco</li>
+          <li>• <strong>Colchón:</strong> Material: Resortes ensacados, Firmeza: Media, Medida: 140x190</li>
+          <li>• <strong>Heladera:</strong> Capacidad: 500L, Tipo: Frost Free, Puerta: Francesa</li>
+        </ul>
+      </div>
+    </motion.div>
+  );
+}
 
 function CategorySelect({ formCategory, setCategory, di }: { formCategory: string, setCategory: (val: string) => void, di: string }) {
   const { categories, loading, error } = useCategories();
