@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, ChevronRight, Star, Truck, Shield, RefreshCw, Minus, Plus, Lock, CreditCard } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
+import ImageZoom from '../components/ImageZoom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -95,7 +96,12 @@ const ProductDetail = () => {
             animate={{ opacity: 1 }}
             className="aspect-square rounded-2xl overflow-hidden bg-gray-50 mb-3"
           >
-            <img src={product.images[activeImg]} alt={product.name} className="w-full h-full object-cover" />
+            <ImageZoom 
+              src={product.images[activeImg]} 
+              alt={product.name}
+              className="w-full h-full object-cover"
+              zoomLevel={2.5}
+            />
           </motion.div>
           {product.images.length > 1 && (
             <div className="flex gap-2">
@@ -103,7 +109,7 @@ const ProductDetail = () => {
                 <button
                   key={i}
                   onClick={() => setActiveImg(i)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === activeImg ? 'border-primary-600' : 'border-transparent'}`}
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === activeImg ? 'border-primary-600' : 'border-transparent hover:border-gray-300'}`}
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" />
                 </button>
