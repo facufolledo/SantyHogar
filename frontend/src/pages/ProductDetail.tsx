@@ -192,18 +192,26 @@ const ProductDetail = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
         <div className="card p-6">
           <h2 className="font-bold text-gray-900 mb-3">Descripción</h2>
-          <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
+          {product.description ? (
+            <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
+          ) : (
+            <p className="text-gray-400 text-sm italic">Sin descripción disponible</p>
+          )}
         </div>
         <div className="card p-6">
           <h2 className="font-bold text-gray-900 mb-3">Especificaciones</h2>
-          <dl className="space-y-2">
-            {Object.entries(product.specs).map(([k, v]) => (
-              <div key={k} className="flex justify-between text-sm border-b border-gray-50 pb-2">
-                <dt className="text-gray-500">{k}</dt>
-                <dd className="font-medium text-gray-800">{v}</dd>
-              </div>
-            ))}
-          </dl>
+          {product.specs && Object.keys(product.specs).length > 0 ? (
+            <dl className="space-y-2">
+              {Object.entries(product.specs).map(([k, v]) => (
+                <div key={k} className="flex justify-between text-sm border-b border-gray-50 pb-2">
+                  <dt className="text-gray-500">{k}</dt>
+                  <dd className="font-medium text-gray-800">{String(v)}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="text-gray-400 text-sm italic">Sin especificaciones agregadas</p>
+          )}
         </div>
       </div>
 
