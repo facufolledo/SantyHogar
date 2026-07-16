@@ -2,13 +2,9 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import List
-import requests
-import urllib3
+import httpx
 from app.config import get_config
 from app.utils.validation import validate_password, validate_name
-
-# Deshabilitar advertencias de SSL (solo para desarrollo)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 
@@ -71,12 +67,12 @@ async def list_admin_users():
         url = f"{config.supabase_url}/auth/v1/admin/users"
         print(f"DEBUG: Consultando {url}")
         
-        response = requests.get(
-            url,
-            headers=headers,
-            timeout=10,
-            verify=False  # Deshabilitar verificación SSL (solo para desarrollo)
-        )
+        async with httpx.AsyncClient(verify=False) as client:
+            response = await client.get(
+                url,
+                headers=headers,
+                timeout=10,
+            )
         
         print(f"DEBUG: Status code: {response.status_code}")
         print(f"DEBUG: Response: {response.text[:500]}")
@@ -114,8 +110,8 @@ async def list_admin_users():
         
     except HTTPException:
         raise
-    except requests.exceptions.RequestException as e:
-        print(f"ERROR: RequestException: {str(e)}")
+    except httpx.RequestError as e:
+        print(f"ERROR: RequestError: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al comunicarse con Supabase: {str(e)}")
     except Exception as e:
         print(f"ERROR: Exception: {str(e)}")
@@ -161,13 +157,13 @@ async def create_admin_user(request: CreateAdminRequest):
             }
         }
         
-        response = requests.post(
-            f"{config.supabase_url}/auth/v1/admin/users",
-            headers=headers,
-            json=payload,
-            timeout=10,
-            verify=False  # Deshabilitar verificación SSL (solo para desarrollo)
-        )
+        async with httpx.AsyncClient(verify=False) as client:
+            response = await client.post(
+                f"{config.supabase_url}/auth/v1/admin/users",
+                headers=headers,
+                json=payload,
+                timeout=10,
+            )
         
         if response.status_code == 403:
             raise HTTPException(
@@ -192,7 +188,7 @@ async def create_admin_user(request: CreateAdminRequest):
         
     except HTTPException:
         raise
-    except requests.exceptions.RequestException as e:
+    except httpx.RequestError as e:
         raise HTTPException(status_code=500, detail=f"Error al comunicarse con Supabase: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear usuario admin: {str(e)}")
@@ -209,12 +205,12 @@ async def delete_admin_user(user_id: str):
             "Authorization": f"Bearer {config.supabase_key}",
         }
         
-        response = requests.delete(
-            f"{config.supabase_url}/auth/v1/admin/users/{user_id}",
-            headers=headers,
-            timeout=10,
-            verify=False  # Deshabilitar verificación SSL (solo para desarrollo)
-        )
+        async with httpx.AsyncClient(verify=False) as client:
+            response = await client.delete(
+                f"{config.supabase_url}/auth/v1/admin/users/{user_id}",
+                headers=headers,
+                timeout=10,
+            )
         
         if response.status_code == 403:
             raise HTTPException(
@@ -228,7 +224,7 @@ async def delete_admin_user(user_id: str):
         
     except HTTPException:
         raise
-    except requests.exceptions.RequestException as e:
+    except httpx.RequestError as e:
         raise HTTPException(status_code=500, detail=f"Error al comunicarse con Supabase: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al eliminar usuario: {str(e)}")
