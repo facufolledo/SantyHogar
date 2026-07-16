@@ -357,10 +357,10 @@ async def create_product(
     client = get_supabase()
     try:
         cat_res = client.table("categorias").select("nombre").eq("id_categoria", str(product_data.category_id)).limit(1).execute()
-        categoria_nombre = cat_res.data[0]["nombre"] if cat_res.data else "Sin categoría"
+        categoria_nombre = cat_res.data[0]["nombre"].lower() if cat_res.data else "sin categoría"
     except Exception as e:
         logger.warning(f"Could not fetch category name: {e}")
-        categoria_nombre = "Sin categoría"
+        categoria_nombre = "sin categoría"
     
     # Convertir de camelCase a snake_case para la BD
     db_data = {
