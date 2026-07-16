@@ -14,6 +14,7 @@ type CartAction =
   | { type: 'ADD_ITEM'; product: Product }
   | { type: 'REMOVE_ITEM'; id: string }
   | { type: 'UPDATE_QTY'; id: string; quantity: number }
+  | { type: 'CLEAN_INVALID'; validProductIds: string[] }
   | { type: 'CLEAR' };
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
@@ -42,6 +43,12 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       };
     case 'CLEAR':
       return { items: [] };
+    case 'CLEAN_INVALID':
+      return { 
+        items: state.items.filter(i => 
+          action.validProductIds.includes(i.product.id) && i.product.stock > 0
+        ) 
+      };
     default:
       return state;
   }
@@ -53,6 +60,7 @@ interface CartContextType {
   removeItem: (id: string) => void;
   updateQty: (id: string, quantity: number) => void;
   clearCart: () => void;
+  cleanInvalid: (validProducts: Product[]) => void;
   total: number;
   count: number;
 }
@@ -85,6 +93,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       removeItem: (id) => dispatch({ type: 'REMOVE_ITEM', id }),
       updateQty: (id, quantity) => dispatch({ type: 'UPDATE_QTY', id, quantity }),
       clearCart: () => dispatch({ type: 'CLEAR' }),
+      cleanInvalid: (validProducts) => dispatch({ type: 'CLEAN_INVALID', validProductIds: validProducts.map(p => p.id) }),
       total,
       count,
     }}>

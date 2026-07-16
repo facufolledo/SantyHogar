@@ -33,21 +33,26 @@ function normalizeProduct(p: ProductDto): Product {
     p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs)
       ? (p.specs as Record<string, string>)
       : {};
+  const description = p.description ? String(p.description).trim() : '';
 
   return {
-    ...p,
     id: String(p.id),
+    name: p.name,
+    slug: p.slug,
     categoryId: (p as any).categoryId || '',
     categoryName: (p as any).categoryName || '',
     category: (p as any).category || (p as any).categoryName || '',
+    subcategory: p.subcategory || '',
     price: Number(p.price),
     originalPrice: p.originalPrice != null ? Number(p.originalPrice) : undefined,
+    images,
+    description,
+    specs,
+    stock: Number(p.stock),
+    featured: (p as any).featured || false,
+    brand: (p as any).brand || '',
     rating: Number(p.rating),
     reviews: Number(p.reviews),
-    stock: Number(p.stock),
-    images,
-    description: p.description ? String(p.description).trim() : '',
-    specs,
   };
 }
 

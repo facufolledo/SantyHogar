@@ -6,6 +6,7 @@ import {
   Package, Clock, Eye, Loader2, RefreshCw, ShoppingCart
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useProducts } from '../context/ProductsContext';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/format';
 import { formatDateArg } from '../utils/dateUtils';
@@ -22,8 +23,6 @@ const statusLabels: Record<string, string> = {
   paid:      'Pagado',
   cancelled: 'Cancelado',
 };
-
-// â”€â”€â”€ SecciÃ³n: mis pedidos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function MyOrdersSection() {
   const { user } = useAuth();
@@ -50,16 +49,15 @@ function MyOrdersSection() {
     loadOrders();
   }, [loadOrders]);
 
-  // Usuario no logueado
   if (!user) {
     return (
       <div className="text-center py-16 px-4">
         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Package size={32} className="text-gray-400" />
         </div>
-        <h3 className="font-bold text-gray-800 mb-2">IniciÃ¡ sesiÃ³n para ver tus pedidos</h3>
+        <h3 className="font-bold text-gray-800 mb-2">Inicia sesion para ver tus pedidos</h3>
         <p className="text-sm text-gray-500 mb-6">
-          Registrate o iniciÃ¡ sesiÃ³n para acceder al historial de compras.
+          Registrate o inicia sesion para acceder al historial de compras.
         </p>
         <Link to="/tienda" className="btn-primary inline-block">
           Ir a la tienda
@@ -72,7 +70,7 @@ function MyOrdersSection() {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
         <Loader2 size={32} className="animate-spin" />
-        <p className="text-sm">Cargando tus pedidosâ€¦</p>
+        <p className="text-sm">Cargando tus pedidos...</p>
       </div>
     );
   }
@@ -98,9 +96,9 @@ function MyOrdersSection() {
         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Package size={32} className="text-gray-400" />
         </div>
-        <h3 className="font-semibold text-gray-700 mb-1">TodavÃ­a no tenÃ©s pedidos</h3>
+        <h3 className="font-semibold text-gray-700 mb-1">Todavia no tenes pedidos</h3>
         <p className="text-sm text-gray-400 mb-6">
-          Cuando realices una compra aparecerÃ¡ acÃ¡.
+          Cuando realices una compra aparecera aca.
         </p>
         <Link to="/tienda" className="btn-primary inline-block">
           Ver productos
@@ -116,7 +114,7 @@ function MyOrdersSection() {
           {orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'} realizados
         </p>
         <Link to="/cuenta/pedidos" className="text-xs text-primary-600 hover:underline font-medium">
-          Ver todos â†’
+          Ver todos →
         </Link>
       </div>
 
@@ -147,7 +145,7 @@ function MyOrdersSection() {
                     <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-400">
                       <Clock size={11} />
                       <span>{date}</span>
-                      <span>Â·</span>
+                      <span>·</span>
                       <span>{order.itemCount} {order.itemCount === 1 ? 'producto' : 'productos'}</span>
                     </div>
                   </div>
@@ -179,20 +177,32 @@ function MyOrdersSection() {
   );
 }
 
-// â”€â”€â”€ Componente principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 type Tab = 'carrito' | 'pedidos';
 
 const Cart = () => {
-  const { items, removeItem, updateQty, total, clearCart } = useCart();
+  const { items, removeItem, updateQty, total, clearCart, cleanInvalid } = useCart();
+  const { products } = useProducts();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Si se navega desde CheckoutSuccess con state={tab:'pedidos'}, activar esa tab automÃ¡ticamente
   const initialTab: Tab = (location.state as any)?.tab === 'pedidos' ? 'pedidos' : 'carrito';
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
-  const shipping = 0; // Solo retiro en depÃ³sito â€” envÃ­o gratis
+  const shipping = 0;
+
+  // Limpiar carrito de productos sin stock o que no existen
+  useEffect(() => {
+    if (items.length > 0 && products.length > 0) {
+      const validItems = items.filter(item => {
+        const product = products.find(p => p.id === item.product.id);
+        return product && product.stock > 0;
+      });
+      
+      if (validItems.length !== items.length) {
+        cleanInvalid(products);
+      }
+    }
+  }, [products, items.length, cleanInvalid]);
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'carrito', label: 'Mi carrito', icon: <ShoppingCart size={16} /> },
@@ -207,7 +217,6 @@ const Cart = () => {
           : 'Mis pedidos'}
       </h1>
 
-      {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 w-fit">
         {tabs.map(tab => (
           <button
@@ -227,7 +236,6 @@ const Cart = () => {
 
       <AnimatePresence mode="wait">
 
-        {/* â”€â”€ Tab: carrito â”€â”€ */}
         {activeTab === 'carrito' && (
           <motion.div
             key="carrito"
@@ -238,13 +246,12 @@ const Cart = () => {
             {items.length === 0 ? (
               <div className="text-center py-20">
                 <ShoppingBag size={64} className="mx-auto text-gray-200 mb-4" />
-                <h2 className="text-xl font-bold text-gray-800 mb-2">Tu carrito estÃ¡ vacÃ­o</h2>
-                <p className="text-gray-500 mb-6">AgregÃ¡ productos para continuar</p>
+                <h2 className="text-xl font-bold text-gray-800 mb-2">Tu carrito esta vacio</h2>
+                <p className="text-gray-500 mb-6">Agrega productos para continuar</p>
                 <Link to="/tienda" className="btn-primary inline-block">Ver productos</Link>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Items */}
                 <div className="lg:col-span-2 space-y-3">
                   <AnimatePresence>
                     {items.map(({ product, quantity }) => (
@@ -267,7 +274,6 @@ const Cart = () => {
                           <p className="text-xs text-gray-400 mt-0.5">{product.brand}</p>
 
                           <div className="flex items-center justify-between mt-3">
-                            {/* Qty controls */}
                             <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                               <button onClick={() => updateQty(product.id, quantity - 1)} className="px-2.5 py-1.5 hover:bg-gray-50 transition-colors">
                                 <Minus size={13} />
@@ -295,7 +301,6 @@ const Cart = () => {
                   </button>
                 </div>
 
-                {/* Summary */}
                 <div className="lg:col-span-1">
                   <div className="card p-6 sticky top-24">
                     <h2 className="font-bold text-gray-900 mb-4">Resumen del pedido</h2>
@@ -306,7 +311,7 @@ const Cart = () => {
                         <span>{formatPrice(total)}</span>
                       </div>
                       <div className="flex justify-between text-gray-600">
-                        <span>EnvÃ­o</span>
+                        <span>Envio</span>
                         <span className="text-green-600 font-medium">
                           {shipping === 0 ? 'Retiro gratis' : formatPrice(shipping)}
                         </span>
@@ -334,7 +339,6 @@ const Cart = () => {
           </motion.div>
         )}
 
-        {/* â”€â”€ Tab: pedidos â”€â”€ */}
         {activeTab === 'pedidos' && (
           <motion.div
             key="pedidos"

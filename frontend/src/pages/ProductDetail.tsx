@@ -204,7 +204,7 @@ const ProductDetail = () => {
           {product.description && product.description.trim() ? (
             <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
           ) : (
-            <p className="text-gray-400 text-sm italic">Sin descripción disponible</p>
+            <p className="text-gray-400 text-sm italic">Sin descripción disponible para este producto. Contáctanos para más información.</p>
           )}
         </div>
         <div className="card p-6">
