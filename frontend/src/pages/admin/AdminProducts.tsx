@@ -11,10 +11,34 @@ import { TableRowSkeleton } from '../../components/SkeletonLoader';
 
 const PAGE_SIZE = 20;
 
-const catColors: Record<string, string> = {
-  electrodomesticos: 'bg-blue-500/20 text-blue-400',
-  muebleria: 'bg-purple-500/20 text-purple-400',
-  colchoneria: 'bg-green-500/20 text-green-400',
+// Colores de categorías - dinámicos con fallback
+const getCategoryColor = (category: string): string => {
+  const colors: Record<string, string> = {
+    electrodomesticos: 'bg-blue-500/20 text-blue-400',
+    muebleria: 'bg-purple-500/20 text-purple-400',
+    colchoneria: 'bg-green-500/20 text-green-400',
+    cocinas: 'bg-orange-500/20 text-orange-400',
+    baños: 'bg-cyan-500/20 text-cyan-400',
+    dormitorios: 'bg-pink-500/20 text-pink-400',
+    living: 'bg-indigo-500/20 text-indigo-400',
+    comedor: 'bg-amber-500/20 text-amber-400',
+  };
+  
+  // Si existe el color específico, usarlo
+  if (colors[category]) {
+    return colors[category];
+  }
+  
+  // Fallback: generar color consistente basado en el nombre
+  const hash = category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const colorOptions = [
+    'bg-teal-500/20 text-teal-400',
+    'bg-violet-500/20 text-violet-400',
+    'bg-rose-500/20 text-rose-400',
+    'bg-sky-500/20 text-sky-400',
+    'bg-lime-500/20 text-lime-400',
+  ];
+  return colorOptions[hash % colorOptions.length];
 };
 
 type SortField = 'name' | 'category' | 'price' | 'stock' | 'brand';
@@ -266,7 +290,7 @@ export default function AdminProducts() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${catColors[p.category]}`}>
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getCategoryColor(p.category)}`}>
                           {p.category}
                         </span>
                       </td>
