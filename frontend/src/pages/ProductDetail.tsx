@@ -49,6 +49,15 @@ const ProductDetail = () => {
     </div>
   );
 
+  // Debug logging
+  console.log('📦 ProductDetail:', {
+    name: product.name,
+    description: product.description,
+    descriptionTrim: product.description?.trim(),
+    descriptionLength: product.description?.length,
+    specs: product.specs,
+  });
+
   const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
 
   const handleAdd = () => {
