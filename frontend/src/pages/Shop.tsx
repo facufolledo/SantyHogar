@@ -31,9 +31,11 @@ const Shop = () => {
   const activeCat = params.get('cat') || '';
   const query = params.get('q') || '';
 
+  const { categories: navCategories, loading: categoriesLoading } = useCategoriesNav();
+
   const filtered = useMemo(() => {
     let list = [...products];
-    if (activeCat) {
+    if (activeCat && navCategories.length > 0) {
       // Buscar la categoría por slug para obtener su ID
       const cat = navCategories.find(c => c.slug === activeCat);
       if (cat) {
@@ -52,8 +54,6 @@ const Shop = () => {
     else if (sort === 'rating') list.sort((a, b) => b.rating - a.rating);
     return list;
   }, [activeCat, query, priceRange, sort, products, navCategories]);
-
-  const { categories: navCategories } = useCategoriesNav();
 
   const setCategory = (cat: string) => {
     const p = new URLSearchParams(params);
