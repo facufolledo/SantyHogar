@@ -353,10 +353,20 @@ async def create_product(
     product_service: Annotated[ProductService, Depends(get_product_service)],
 ) -> ProductResponse:
     """Crea un nuevo producto."""
+    # Obtener la categoría para tener el nombre
+    client = get_supabase()
+    try:
+        cat_res = client.table("categorias").select("nombre").eq("id_categoria", str(product_data.category_id)).limit(1).execute()
+        categoria_nombre = cat_res.data[0]["nombre"] if cat_res.data else "Sin categoría"
+    except Exception as e:
+        logger.warning(f"Could not fetch category name: {e}")
+        categoria_nombre = "Sin categoría"
+    
     # Convertir de camelCase a snake_case para la BD
     db_data = {
         "nombre": product_data.name,
         "id_categoria": str(product_data.category_id),
+        "categoria": categoria_nombre,
         "subcategoria": product_data.subcategory,
         "precio": product_data.price,
         "precio_original": product_data.original_price,
