@@ -145,6 +145,17 @@ async def bulk_import_preview(
     # Parsear el archivo
     validations = parse_xlsx_file(content)
     
+    # Obtener categorías válidas de la BD
+    from app.services.bulk_import_service import get_valid_categories
+    valid_category_slugs = await get_valid_categories(supabase)
+    
+    # Validar categorías en cada fila
+    for validation in validations:
+        if validation.valid and validation.data:
+            if validation.data.categoria not in valid_category_slugs:
+                validation.valid = False
+                validation.errors.append(f"Categoria no existe: '{validation.data.categoria}'. Categorias validas: {', '.join(valid_category_slugs)}")
+    
     # Verificar si hay datos
     if not validations or (len(validations) == 1 and not validations[0].valid and validations[0].row_number == 0):
         error_msg = validations[0].errors[0] if validations and validations[0].errors else "El archivo no contiene productos para importar"

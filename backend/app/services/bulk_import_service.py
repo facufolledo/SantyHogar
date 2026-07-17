@@ -151,6 +151,17 @@ def generate_slug(nombre: str) -> str:
     return slug.strip('-')
 
 
+async def get_valid_categories(supabase_client) -> List[str]:
+    """Obtiene lista de categorías válidas de la BD."""
+    try:
+        result = supabase_client.table('categorias').select('slug').execute()
+        if result.data:
+            return [cat['slug'] for cat in result.data]
+    except Exception as e:
+        logger.error(f"Error obteniendo categorías: {str(e)}")
+    return []
+
+
 async def get_category_id_by_slug(supabase_client, categoria_slug: str) -> Optional[UUID]:
     """
     Obtiene el ID de la categoría por slug.
@@ -574,9 +585,6 @@ def _validate_xlsx_row(
         if not subcategoria.strip():
         
         # Validar que la categoria sea valida
-        valid_categories = ("electrodomesticos", "muebleria", "colchoneria")
-        if categoria not in valid_categories:
-            errors.append(f"Categoria invalida: '{categoria_raw}'. Usa: electrodomesticos, muebleria, colchoneria")
     else:
         errors.append("El campo categoria es obligatorio")
     
