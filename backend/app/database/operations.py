@@ -330,9 +330,25 @@ class DatabaseOperations:
             product_data.setdefault("calificacion", 0.0)
             product_data.setdefault("cantidad_resenas", 0)
             
+            # Si se envió id_categoria, obtener el slug de la categoría para llenar 'categoria'
+            if product_data.get("id_categoria") and not product_data.get("categoria"):
+                try:
+                    cat_id = product_data["id_categoria"]
+                    res_cat = self._client().table("categorias")\
+                        .select("slug")\
+                        .eq("id_categoria", cat_id)\
+                        .limit(1)\
+                        .execute()
+                    
+                    if res_cat.data:
+                        product_data["categoria"] = res_cat.data[0]["slug"]
+                        logger.info(f"Mapeado id_categoria={cat_id} → categoria={product_data['categoria']}")
+                except Exception as e:
+                    logger.warning(f"No se pudo mapear categoría {cat_id}: {str(e)}")
+            
             # Log detallado de especificaciones
             specs = product_data.get("especificaciones")
-            logger.info(f"Insertando producto: id={product_id}, nombre={product_data.get('nombre')}, categoria={product_data.get('id_categoria')}")
+            logger.info(f"Insertando producto: id={product_id}, nombre={product_data.get('nombre')}, id_categoria={product_data.get('id_categoria')}, categoria={product_data.get('categoria')}")
             logger.info(f"  - especificaciones type: {type(specs)}, value: {specs}")
             
             res = self._client().table("productos").insert(product_data).execute()
