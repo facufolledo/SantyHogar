@@ -775,7 +775,7 @@ function SpecificationsTab({ specifications, setSpecifications, di }: Specificat
       {Object.keys(specifications).length > 0 ? (
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-400">Especificaciones agregadas ({Object.keys(specifications).length}):</p>
-          <div className="space-y-2">
+          <div className="max-h-64 overflow-y-auto pr-2 space-y-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-800 [&::-webkit-scrollbar-thumb]:bg-primary-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-primary-500">
             {Object.entries(specifications).map(([key, value]) => (
               <div key={key} className="flex items-center justify-between p-3 bg-gray-800 border border-gray-700 rounded-lg group">
                 <div>
