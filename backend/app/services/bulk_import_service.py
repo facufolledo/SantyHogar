@@ -489,6 +489,34 @@ def _parse_category(categoria_raw: str) -> Tuple[str, str]:
         return map_categoria(categoria_raw)
 
 
+def _parse_specifications(specs_raw: str) -> dict:
+    """
+    Parsea especificaciones del formato "Nombre: Valor | Nombre2: Valor2"
+    
+    Args:
+        specs_raw: String con especificaciones separadas por |
+        
+    Returns:
+        Diccionario {nombre: valor}
+    """
+    specs = {}
+    if not specs_raw or not specs_raw.strip():
+        return specs
+    
+    # Dividir por | para separar pares clave-valor
+    pairs = specs_raw.split('|')
+    for pair in pairs:
+        pair = pair.strip()
+        if ':' in pair:
+            key, value = pair.split(':', 1)
+            key = key.strip()
+            value = value.strip()
+            if key and value:
+                specs[key] = value
+    
+    return specs
+
+
 def _validate_xlsx_row(
     row_number: int,
     nombre: str,
@@ -498,6 +526,7 @@ def _validate_xlsx_row(
     stock_raw: str,
     marca: str,
     descripcion: str,
+    especificaciones_raw: str = "",
 ) -> ProductImportValidation:
     """Valida una fila del Excel y retorna un ProductImportValidation."""
     errors: List[str] = []
@@ -513,7 +542,7 @@ def _validate_xlsx_row(
             # Manejar formatos como "1.500,00" o "1500.00"
             cleaned = precio_raw.replace("$", "").replace(" ", "").strip()
             if "," in cleaned and "." in cleaned:
-                # Formato 1.500,00 ÔåÆ remover puntos de miles, coma ÔåÆ punto decimal
+                # Formato 1.500,00 – remover puntos de miles, coma → punto decimal
                 cleaned = cleaned.replace(".", "").replace(",", ".")
             elif "," in cleaned:
                 cleaned = cleaned.replace(",", ".")
@@ -522,7 +551,7 @@ def _validate_xlsx_row(
                 errors.append("El precio no puede ser negativo")
                 precio = 0.0
         except ValueError:
-            errors.append(f"Precio inv├ílido: '{precio_raw}'")
+            errors.append(f"Precio inválido: '{precio_raw}'")
     
     # Parsear stock
     stock = 0
@@ -554,6 +583,9 @@ def _validate_xlsx_row(
         )
     
     try:
+        # Parsear especificaciones
+        especificaciones = _parse_specifications(especificaciones_raw)
+        
         product_row = ProductImportRow(
             nombre=nombre.strip(),
             precio=precio,
@@ -563,6 +595,7 @@ def _validate_xlsx_row(
             marca=marca.strip() if marca.strip() else "Sin marca",
             descripcion=descripcion.strip() if descripcion.strip() else "",
             slug=generate_slug(nombre.strip()),
+            especificaciones=especificaciones,
         )
         
         return ProductImportValidation(

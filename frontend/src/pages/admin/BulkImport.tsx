@@ -16,6 +16,7 @@ interface PreviewRow {
   stock: number;
   marca: string;
   descripcion: string;
+  especificaciones?: Record<string, string>;
   imagen: string | null;
   errors: string[];
 }
@@ -53,6 +54,7 @@ export default function BulkImport() {
         stock: v.data?.stock || 0,
         marca: v.data?.marca || 'Sin marca',
         descripcion: v.data?.descripcion || '',
+        especificaciones: v.data?.especificaciones || {},
         imagen: v.data?.imagen || null,
         errors: v.errors,
       }));
@@ -136,6 +138,7 @@ export default function BulkImport() {
         subcategoria: r.subcategoria,
         marca: r.marca,
         descripcion: r.descripcion,
+        especificaciones: r.especificaciones,
         imagen: r.imagen,
       }));
 
@@ -178,9 +181,10 @@ export default function BulkImport() {
       <div className="text-xs text-gray-600 rounded-lg border border-gray-700/60 bg-gray-800/50 px-3 py-2">
         <p className="mb-1">📋 <strong>Formato esperado del Excel (.xlsx):</strong></p>
         <ul className="list-disc list-inside space-y-0.5 ml-2">
-          <li>Primera fila: encabezados (nombre, categoría, subcategoría, precio, stock, marca, descripción)</li>
+          <li>Primera fila: encabezados (nombre, categoría, subcategoría, precio, stock, marca, descripción, especificaciones)</li>
           <li>Filas siguientes: datos de productos</li>
           <li>Las columnas se detectan automáticamente por nombre</li>
+          <li>Especificaciones: formato "Nombre: Valor | Nombre2: Valor2" (separadas por |)</li>
         </ul>
         <p className="mt-2 text-blue-400">💡 Podés arrastrar imágenes a cada fila en la vista previa antes de confirmar.</p>
       </div>
@@ -257,7 +261,7 @@ export default function BulkImport() {
                           className="rounded border-gray-600"
                         />
                       </th>
-                      {['Fila', 'Nombre', 'Categoría', 'Precio', 'Stock', 'Marca', 'Imagen', 'Estado'].map(h => (
+                      {['Fila', 'Nombre', 'Categoría', 'Precio', 'Stock', 'Marca', 'Especificaciones', 'Imagen', 'Estado'].map(h => (
                         <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">
                           {h}
                         </th>
@@ -290,6 +294,15 @@ export default function BulkImport() {
                         </td>
                         <td className="px-4 py-3 text-gray-300">{row.stock}</td>
                         <td className="px-4 py-3 text-gray-300 max-w-[100px] truncate">{row.marca}</td>
+                        <td className="px-4 py-3 text-gray-400 text-xs">
+                          {row.especificaciones && Object.keys(row.especificaciones).length > 0 ? (
+                            <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs">
+                              {Object.keys(row.especificaciones).length} specs
+                            </span>
+                          ) : (
+                            <span className="text-gray-600">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           {row.imagen ? (
                             <div className="flex items-center gap-1">
