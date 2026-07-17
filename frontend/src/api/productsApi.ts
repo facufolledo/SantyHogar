@@ -102,6 +102,7 @@ export interface BulkImportResponse {
       marca: string;
       descripcion?: string;
       imagen?: string | null;
+      especificaciones?: Record<string, string>;
     };
     errors: string[];
   }>;
@@ -124,6 +125,7 @@ export interface BulkImportPreviewResponse {
       marca: string;
       descripcion?: string;
       imagen?: string | null;
+      especificaciones?: Record<string, string>;
     };
     errors: string[];
   }>;
@@ -138,6 +140,7 @@ export interface BulkImportConfirmRow {
   marca?: string;
   descripcion?: string;
   imagen?: string | null;
+  especificaciones?: Record<string, string>;
 }
 
 export async function bulkImportPreview(file: File): Promise<BulkImportPreviewResponse> {

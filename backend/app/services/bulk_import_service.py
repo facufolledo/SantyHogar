@@ -437,8 +437,10 @@ def _parse_standard_format(rows: list) -> List[ProductImportValidation]:
     raw_headers = [str(cell) if cell is not None else "" for cell in rows[0]]
     column_mapping = _detect_column_mapping(raw_headers)
     
+    logger.info(f"=== PARSE STANDARD FORMAT ===")
     logger.info(f"Headers detectados: {raw_headers}")
     logger.info(f"Mapeo de columnas: {column_mapping}")
+    logger.info(f"Especificaciones en mapeo: {column_mapping.get('especificaciones', 'NO DETECTADA')}")
     
     # Procesar filas de datos (desde la fila 2)
     for row_idx, row in enumerate(rows[1:], start=2):
@@ -457,6 +459,9 @@ def _parse_standard_format(rows: list) -> List[ProductImportValidation]:
         marca = _get_cell_value(row_data, column_mapping.get("marca"))
         descripcion = _get_cell_value(row_data, column_mapping.get("descripcion"))
         especificaciones_raw = _get_cell_value(row_data, column_mapping.get("especificaciones"))
+        
+        if row_idx <= 3 or especificaciones_raw:  # Log first 3 rows and any with specs
+            logger.debug(f"Fila {row_idx}: nombre={nombre}, especificaciones_raw='{especificaciones_raw}'")
         
         # Validar y construir la fila
         validation = _validate_xlsx_row(
@@ -515,7 +520,10 @@ def _parse_specifications(specs_raw: str) -> dict:
     """
     specs = {}
     if not specs_raw or not specs_raw.strip():
+        logger.debug(f"_parse_specifications: specs_raw vacio o None")
         return specs
+    
+    logger.debug(f"_parse_specifications: parseando specs_raw='{specs_raw}'")
     
     # Dividir por coma para separar pares clave-valor
     pairs = specs_raw.split(',')
@@ -527,7 +535,9 @@ def _parse_specifications(specs_raw: str) -> dict:
             value = value.strip()
             if key and value:
                 specs[key] = value
+                logger.debug(f"  - Especificación: {key}={value}")
     
+    logger.debug(f"_parse_specifications: resultado={specs}")
     return specs
 
 
@@ -544,6 +554,11 @@ def _validate_xlsx_row(
 ) -> ProductImportValidation:
     """Valida una fila del Excel y retorna un ProductImportValidation."""
     errors: List[str] = []
+    
+    logger.debug(f"=== Validando fila {row_number} ===")
+    logger.debug(f"  nombre={nombre}")
+    logger.debug(f"  categoria_raw={categoria_raw}")
+    logger.debug(f"  especificaciones_raw='{especificaciones_raw}'")
     
     # Validar nombre (obligatorio)
     if not nombre.strip():
@@ -586,12 +601,9 @@ def _validate_xlsx_row(
     if categoria_raw.strip():
         categoria, default_sub = _parse_category(categoria_raw)
         if not subcategoria.strip():
-        
-        # Validar que la categoria sea valida
+            sub = default_sub
     else:
         errors.append("El campo categoria es obligatorio")
-    
-            sub = default_sub
     
     # Si hay errores de validaci├│n, retornar inv├ílido
     if errors:
@@ -604,6 +616,7 @@ def _validate_xlsx_row(
     try:
         # Parsear especificaciones
         especificaciones = _parse_specifications(especificaciones_raw)
+        logger.debug(f"  especificaciones parsed={especificaciones}")
         
         product_row = ProductImportRow(
             nombre=nombre.strip(),
@@ -617,12 +630,15 @@ def _validate_xlsx_row(
             especificaciones=especificaciones,
         )
         
+        logger.debug(f"  ProductImportRow created with specs={product_row.especificaciones}")
+        
         return ProductImportValidation(
             row_number=row_number,
             valid=True,
             data=product_row,
         )
     except Exception as e:
+        logger.error(f"  Error de validaci├│n: {str(e)}", exc_info=True)
         return ProductImportValidation(
             row_number=row_number,
             valid=False,
@@ -673,7 +689,7 @@ async def process_xlsx_import(
                 'marca': row.marca or 'Sin marca',
                 'descripcion': row.descripcion or '',
                 'imagenes': [row.imagen] if row.imagen else [],
-                'especificaciones': {},
+                'especificaciones': row.especificaciones or {},
                 'destacado': False,
                 'calificacion': 0.0,
                 'cantidad_resenas': 0,
@@ -696,6 +712,7 @@ async def process_xlsx_import(
                         descripcion=row.descripcion or '',
                         slug=slug,
                         imagen=row.imagen,
+                        especificaciones=row.especificaciones or {},
                     ),
                 ))
             else:
