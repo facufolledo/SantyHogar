@@ -166,7 +166,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
           <fieldset
             disabled={readOnly}
-            className="flex-1 min-h-0 overflow-y-auto border-0 px-6 py-5 mx-0 flex flex-col [&:disabled]:opacity-90"
+            className="flex-1 min-h-0 overflow-y-auto border-0 px-5 py-5 mx-0 flex flex-col [&:disabled]:opacity-90 pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-primary-500"
           >
 
             {/* GENERAL */}
@@ -775,7 +775,7 @@ function SpecificationsTab({ specifications, setSpecifications, di }: Specificat
       {Object.keys(specifications).length > 0 ? (
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-400">Especificaciones agregadas ({Object.keys(specifications).length}):</p>
-          <div className="max-h-64 overflow-y-auto pr-2 space-y-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-800 [&::-webkit-scrollbar-thumb]:bg-primary-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-primary-500">
+          <div className="max-h-56 overflow-y-auto pr-1 space-y-2 [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-gray-800/50 [&::-webkit-scrollbar-track]:rounded-lg [&::-webkit-scrollbar-thumb]:bg-gradient-to-b [&::-webkit-scrollbar-thumb]:from-primary-600 [&::-webkit-scrollbar-thumb]:to-primary-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:from-primary-500 [&::-webkit-scrollbar-thumb:hover]:to-primary-600">
             {Object.entries(specifications).map(([key, value]) => (
               <div key={key} className="flex items-center justify-between p-3 bg-gray-800 border border-gray-700 rounded-lg group">
                 <div>
