@@ -39,7 +39,8 @@ const Shop = () => {
       // Buscar la categoría por slug para obtener su ID
       const cat = navCategories.find(c => c.slug === activeCat);
       if (cat) {
-        list = list.filter(p => p.categoryId === cat.id || p.category === cat.nombre);
+        // Filtrar por ID de categoría (UUID) en lugar de por nombre
+        list = list.filter(p => p.categoryId === cat.id_categoria);
       } else {
         list = []; // Si no encuentra la categoría, devuelve vacío
       }
