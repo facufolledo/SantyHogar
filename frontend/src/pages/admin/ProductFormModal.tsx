@@ -151,7 +151,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700 px-6 flex-shrink-0 overflow-x-auto">
+        <div className="flex border-b border-gradient-to-r from-gray-700 via-gray-600 to-gray-700 px-6 flex-shrink-0 overflow-x-auto bg-gradient-to-b from-gray-900/50 to-transparent">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
@@ -715,7 +715,7 @@ function SpecificationsTab({ specifications, setSpecifications, di }: Specificat
           value={bulkText}
           onChange={e => setBulkText(e.target.value)}
           placeholder="Pega aquí tus especificaciones. Formato:&#10;Pulgadas: 32&quot;&#10;Resolución: 1366 × 768&#10;Tipo: Smart TV&#10;Conectividad: Wi-Fi, HDMI&#10;..."
-          className={`${di} min-h-24 resize-none font-mono text-xs`}
+          className={`${di} min-h-24 resize-none font-mono text-xs [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-800 [&::-webkit-scrollbar-thumb]:bg-primary-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-primary-400`}
         />
         <div className="flex gap-2">
           <button
