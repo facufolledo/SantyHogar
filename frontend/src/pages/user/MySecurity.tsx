@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Monitor, Smartphone, LogOut, Shield } from 'lucide-react';
-import { mockSessions } from '../../data/user';
 import { useToast } from '../../context/ToastContext';
 
 export default function MySecurity() {
   const [show, setShow] = useState({ current: false, new: false, confirm: false });
-  const [sessions, setSessions] = useState(mockSessions);
+  const [sessions, setSessions] = useState([]);
   const { toast } = useToast();
 
   const handleChangePassword = (e: React.FormEvent) => {

@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import { useProducts } from '../../context/ProductsContext';
-import { mockUser } from '../../data/user';
 import ProductCard from '../../components/ProductCard';
 
 export default function MyFavorites() {
   const { products } = useProducts();
-  const [favIds, setFavIds] = useState<string[]>(mockUser.favorites);
+  const [favIds, setFavIds] = useState<string[]>([]);
   const favProducts = products.filter(
     p => favIds.includes(p.id) || favIds.includes(p.slug)
   );
