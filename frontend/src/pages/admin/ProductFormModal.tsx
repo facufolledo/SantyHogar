@@ -634,6 +634,43 @@ interface SpecificationsTabProps {
 function SpecificationsTab({ specifications, setSpecifications, di }: SpecificationsTabProps) {
   const [specKey, setSpecKey] = useState('');
   const [specValue, setSpecValue] = useState('');
+  const [bulkText, setBulkText] = useState('');
+  const [bulkError, setBulkError] = useState('');
+
+  const parseSpecifications = (text: string) => {
+    setBulkError('');
+    const lines = text.split('\n').filter(line => line.trim());
+    const parsed: Record<string, string> = {};
+    let lineCount = 0;
+
+    for (const line of lines) {
+      // Match patterns like "Name: Value" or "Name:Value"
+      const match = line.match(/^([^:]+):\s*(.+)$/);
+      if (match) {
+        const key = match[1].trim();
+        const value = match[2].trim();
+        
+        if (key && value) {
+          // Skip lines that don't look like specs (too short or metadata)
+          if (key.length > 2 && value.length > 1) {
+            parsed[key] = value;
+            lineCount++;
+          }
+        }
+      }
+    }
+
+    if (lineCount === 0) {
+      setBulkError('❌ No se encontraron especificaciones. Formato esperado: "Nombre: Valor"');
+      return;
+    }
+
+    // Merge with existing specifications
+    const merged = { ...specifications, ...parsed };
+    setSpecifications(merged);
+    setBulkText('');
+    setBulkError('');
+  };
 
   const addSpecification = () => {
     if (!specKey.trim() || !specValue.trim()) {
@@ -671,7 +708,41 @@ function SpecificationsTab({ specifications, setSpecifications, di }: Specificat
 
   return (
     <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+      {/* Bulk parse section */}
+      <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 space-y-3">
+        <p className="font-medium text-purple-400 text-sm">📋 Pegar especificaciones en lote</p>
+        <textarea
+          value={bulkText}
+          onChange={e => setBulkText(e.target.value)}
+          placeholder="Pega aquí tus especificaciones. Formato:&#10;Pulgadas: 32&quot;&#10;Resolución: 1366 × 768&#10;Tipo: Smart TV&#10;Conectividad: Wi-Fi, HDMI&#10;..."
+          className={`${di} min-h-24 resize-none font-mono text-xs`}
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => parseSpecifications(bulkText)}
+            className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            ✨ Parsear y agregar
+          </button>
+          <button
+            type="button"
+            onClick={() => setBulkText('')}
+            className="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors"
+          >
+            Limpiar
+          </button>
+        </div>
+        {bulkError && (
+          <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2 rounded flex items-center gap-2">
+            <AlertCircle size={14} /> {bulkError}
+          </div>
+        )}
+      </div>
+
+      {/* Manual add section */}
       <div className="space-y-3">
+        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">O agregar manualmente:</p>
         <Field label="Nombre de especificación">
           <input
             type="text"
@@ -703,7 +774,7 @@ function SpecificationsTab({ specifications, setSpecifications, di }: Specificat
 
       {Object.keys(specifications).length > 0 ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-400">Especificaciones agregadas:</p>
+          <p className="text-sm font-medium text-gray-400">Especificaciones agregadas ({Object.keys(specifications).length}):</p>
           <div className="space-y-2">
             {Object.entries(specifications).map(([key, value]) => (
               <div key={key} className="flex items-center justify-between p-3 bg-gray-800 border border-gray-700 rounded-lg group">
