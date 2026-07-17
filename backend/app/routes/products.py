@@ -18,7 +18,7 @@ from app.models.schemas import (
     UpdatePriceResponse,
     UpdateProductRequest,
 )
-from app.services.bulk_import_service import parse_xlsx_file, process_bulk_import, process_xlsx_import
+from app.services.bulk_import_service import parse_xlsx_file, process_bulk_import, process_xlsx_import, get_category_id_by_slug
 from app.services.image_service import ImageService, ImageValidationError
 from app.services.pagination_service import PaginationService
 from app.services.product_service import ProductService
@@ -212,7 +212,7 @@ async def bulk_import_products(
             detail=error_msg
         )
     
-    # Importar filas v├ílidas
+    # Importar filas válidas
     valid_rows = [v for v in validations if v.valid]
     invalid_rows = [v for v in validations if not v.valid]
     imported_count = 0
@@ -220,10 +220,18 @@ async def bulk_import_products(
     for validation in valid_rows:
         if validation.data:
             try:
+                # Obtener ID de categoría por slug
+                category_id = await get_category_id_by_slug(supabase, validation.data.categoria)
+                
+                if not category_id:
+                    validation.valid = False
+                    validation.errors.append(f"Categoría no encontrada: {validation.data.categoria}")
+                    continue
+                
                 product_data = {
                     'nombre': validation.data.nombre,
                     'slug': validation.data.slug,
-                    'categoria': validation.data.categoria,
+                    'id_categoria': str(category_id),
                     'subcategoria': validation.data.subcategoria,
                     'precio': validation.data.precio,
                     'precio_original': None,

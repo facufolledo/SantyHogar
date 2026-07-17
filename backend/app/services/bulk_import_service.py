@@ -151,6 +151,35 @@ def generate_slug(nombre: str) -> str:
     return slug.strip('-')
 
 
+async def get_category_id_by_slug(supabase_client, categoria_slug: str) -> Optional[UUID]:
+    """
+    Obtiene el ID de la categoría por slug.
+    
+    Args:
+        supabase_client: Cliente de Supabase
+        categoria_slug: Slug de la categoría (ej: "electrodomesticos")
+    
+    Returns:
+        UUID de la categoría o None si no existe
+    """
+    try:
+        result = supabase_client.table("categorias")\
+            .select("id_categoria")\
+            .eq("slug", categoria_slug)\
+            .limit(1)\
+            .execute()
+        
+        if result.data:
+            return UUID(result.data[0]["id_categoria"])
+        
+        logger.warning(f"Categoría no encontrada: {categoria_slug}")
+        return None
+    except Exception as e:
+        logger.error(f"Error obteniendo categoría {categoria_slug}: {str(e)}")
+        return None
+    return slug.strip('-')
+
+
 # ------------------------------------------------------------------ #
 # Mapeo de columnas para detecci├│n autom├ítica de headers Excel
 # ------------------------------------------------------------------ #
@@ -554,14 +583,14 @@ async def process_xlsx_import(
     supabase_client,
 ) -> BulkImportResponse:
     """
-    Procesa la importaci├│n de filas confirmadas desde el preview de Excel.
+    Procesa la importación de filas confirmadas desde el preview de Excel.
     
     Args:
         confirmed_rows: Lista de filas confirmadas por el usuario
         supabase_client: Cliente de Supabase para insertar en BD
         
     Returns:
-        Resultado de la importaci├│n
+        Resultado de la importación
     """
     validations: List[ProductImportValidation] = []
     imported_count = 0
@@ -570,10 +599,21 @@ async def process_xlsx_import(
         slug = generate_slug(row.nombre)
         
         try:
+            # Obtener ID de categoría por slug
+            category_id = await get_category_id_by_slug(supabase_client, row.categoria)
+            
+            if not category_id:
+                validations.append(ProductImportValidation(
+                    row_number=idx,
+                    valid=False,
+                    errors=[f"Categoría no encontrada: {row.categoria}"],
+                ))
+                continue
+            
             product_data = {
                 'nombre': row.nombre,
                 'slug': slug,
-                'categoria': row.categoria,
+                'id_categoria': str(category_id),
                 'subcategoria': row.subcategoria or 'General',
                 'precio': row.precio,
                 'precio_original': None,
@@ -892,40 +932,48 @@ async def process_bulk_import(
     supabase_client,
 ) -> BulkImportResponse:
     """
-    Procesa la importaci├│n masiva de productos.
+    Procesa la importación masiva de productos.
     
     Args:
         file_content: Contenido del archivo .doc
         supabase_client: Cliente de Supabase para insertar en BD
     
     Returns:
-        Resultado de la importaci├│n
+        Resultado de la importación
     """
     # Parsear el archivo
     validations = parse_doc_file(file_content)
     
-    # Contar v├ílidos e inv├ílidos
+    # Contar válidos e inválidos
     valid_rows = [v for v in validations if v.valid]
     invalid_rows = [v for v in validations if not v.valid]
     
     imported_count = 0
     
-    # Insertar productos v├ílidos
+    # Insertar productos válidos
     for validation in valid_rows:
         if validation.data:
             try:
-                # Preparar datos para inserci├│n
+                # Obtener ID de categoría por slug
+                category_id = await get_category_id_by_slug(supabase_client, validation.data.categoria)
+                
+                if not category_id:
+                    validation.valid = False
+                    validation.errors.append(f"Categoría no encontrada: {validation.data.categoria}")
+                    continue
+                
+                # Preparar datos para inserción
                 product_data = {
                     'nombre': validation.data.nombre,
                     'slug': validation.data.slug,
-                    'categoria': validation.data.categoria,
+                    'id_categoria': str(category_id),
                     'subcategoria': validation.data.subcategoria,
                     'precio': validation.data.precio,
                     'precio_original': validation.data.precio_costo,
                     'stock': validation.data.stock,
                     'marca': validation.data.marca,
                     'descripcion': validation.data.descripcion or '',
-                    'imagenes': [],  # Sin im├ígenes por defecto
+                    'imagenes': [],  # Sin imágenes por defecto
                     'especificaciones': {},
                     'destacado': False,
                     'calificacion': 0.0,
@@ -948,5 +996,5 @@ async def process_bulk_import(
         invalid_rows=len(invalid_rows),
         imported_count=imported_count,
         validations=validations,
-        message=f"Importaci├│n completada: {imported_count} productos importados de {len(valid_rows)} v├ílidos"
+        message=f"Importación completada: {imported_count} productos importados de {len(valid_rows)} válidos"
     )
