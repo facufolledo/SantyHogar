@@ -572,6 +572,14 @@ def _validate_xlsx_row(
     if categoria_raw.strip():
         categoria, default_sub = _parse_category(categoria_raw)
         if not subcategoria.strip():
+        
+        # Validar que la categoria sea valida
+        valid_categories = ("electrodomesticos", "muebleria", "colchoneria")
+        if categoria not in valid_categories:
+            errors.append(f"Categoria invalida: '{categoria_raw}'. Usa: electrodomesticos, muebleria, colchoneria")
+    else:
+        errors.append("El campo categoria es obligatorio")
+    
             sub = default_sub
     
     # Si hay errores de validaci├│n, retornar inv├ílido
