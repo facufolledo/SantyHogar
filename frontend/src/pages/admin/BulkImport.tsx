@@ -184,7 +184,7 @@ export default function BulkImport() {
           <li>Primera fila: encabezados (nombre, categoría, subcategoría, precio, stock, marca, descripción, especificaciones)</li>
           <li>Filas siguientes: datos de productos</li>
           <li>Las columnas se detectan automáticamente por nombre</li>
-          <li>Especificaciones: formato "Nombre: Valor | Nombre2: Valor2" (separadas por |)</li>
+          <li>Especificaciones: formato "Nombre: Valor, Nombre2: Valor2" (separadas por comas)</li>
         </ul>
         <p className="mt-2 text-blue-400">💡 Podés arrastrar imágenes a cada fila en la vista previa antes de confirmar.</p>
       </div>

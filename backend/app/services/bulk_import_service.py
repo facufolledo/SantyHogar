@@ -491,10 +491,10 @@ def _parse_category(categoria_raw: str) -> Tuple[str, str]:
 
 def _parse_specifications(specs_raw: str) -> dict:
     """
-    Parsea especificaciones del formato "Nombre: Valor | Nombre2: Valor2"
+    Parsea especificaciones del formato "Nombre: Valor, Nombre2: Valor2"
     
     Args:
-        specs_raw: String con especificaciones separadas por |
+        specs_raw: String con especificaciones separadas por comas
         
     Returns:
         Diccionario {nombre: valor}
@@ -503,8 +503,8 @@ def _parse_specifications(specs_raw: str) -> dict:
     if not specs_raw or not specs_raw.strip():
         return specs
     
-    # Dividir por | para separar pares clave-valor
-    pairs = specs_raw.split('|')
+    # Dividir por coma para separar pares clave-valor
+    pairs = specs_raw.split(',')
     for pair in pairs:
         pair = pair.strip()
         if ':' in pair:
