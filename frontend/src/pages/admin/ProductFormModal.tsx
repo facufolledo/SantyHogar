@@ -151,7 +151,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
         </div>
 
         {/* Tabs */}
-        <div className="flex px-6 flex-shrink-0 overflow-x-auto bg-gradient-to-b from-gray-900/50 to-transparent border-b border-gray-800/50">
+        <div className="flex px-6 flex-shrink-0 overflow-x-hidden bg-gradient-to-b from-gray-900/50 to-transparent border-b border-gray-800/50">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
