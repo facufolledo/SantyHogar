@@ -5,14 +5,13 @@ import type { Product } from '../../data/products';
 import { createProduct, updateProduct, uploadProductImage, type CreateProductRequest, type UpdateProductRequest } from '../../api/productsApi';
 import { useCategories } from '../../hooks/useCategories';
 
-type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'envio' | 'especificaciones';
+type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'especificaciones';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'general', label: '📋 General' },
   { id: 'precios', label: '💰 Precios' },
   { id: 'stock', label: '📦 Stock' },
   { id: 'imagenes', label: '🖼️ Imágenes' },
-  { id: 'envio', label: '🚚 Envío' },
   { id: 'especificaciones', label: '⚙️ Especificaciones' },
 ];
 
@@ -41,8 +40,6 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
     stock: product?.stock || 0,
     trackStock: true,
     status: 'active',
-    weight: '',
-    dimensions: '',
     images: product?.images || [],
     specifications: product?.specs || {},
   });
@@ -278,23 +275,6 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                 readOnly={readOnly}
                 di={di}
               />
-            )}
-
-            {/* ENVÍO */}
-            {tab === 'envio' && (
-              <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                <Field label="Peso (kg)">
-                  <input type="number" step="0.1" value={form.weight} onChange={e => set('weight', e.target.value)}
-                    placeholder="Ej: 2.5" className={di} />
-                </Field>
-                <Field label="Dimensiones (cm)">
-                  <input value={form.dimensions} onChange={e => set('dimensions', e.target.value)}
-                    placeholder="Largo x Ancho x Alto • Ej: 60x40x30" className={di} />
-                </Field>
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-sm text-blue-400">
-                  ℹ️ Estos datos se usan para calcular el costo de envío automáticamente.
-                </div>
-              </motion.div>
             )}
 
             {/* ESPECIFICACIONES */}
