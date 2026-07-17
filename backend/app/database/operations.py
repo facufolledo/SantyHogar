@@ -330,12 +330,19 @@ class DatabaseOperations:
             product_data.setdefault("calificacion", 0.0)
             product_data.setdefault("cantidad_resenas", 0)
             
+            # Log detallado de especificaciones
+            specs = product_data.get("especificaciones")
             logger.info(f"Insertando producto: id={product_id}, nombre={product_data.get('nombre')}, categoria={product_data.get('id_categoria')}")
+            logger.info(f"  - especificaciones type: {type(specs)}, value: {specs}")
+            
             res = self._client().table("productos").insert(product_data).execute()
+            
+            logger.info(f"  - insert response: {res}")
             
             if not res.data:
                 raise DatabaseError("No se pudo crear el producto")
             
+            logger.info(f"✅ Producto creado con specs: {res.data[0].get('especificaciones')}")
             return product_id
         except DatabaseError:
             raise
