@@ -197,12 +197,13 @@ async def get_category_id_by_slug(supabase_client, categoria_slug: str) -> Optio
 
 COLUMN_ALIASES: Dict[str, List[str]] = {
     "nombre": ["nombre", "name", "producto", "product", "descripcion_producto", "articulo"],
-    "categoria": ["categor├¡a", "categoria", "category", "cat"],
-    "subcategoria": ["subcategor├¡a", "subcategoria", "subcategory", "sub_categoria", "sub"],
+    "categoria": ["categoría", "categoria", "category", "cat"],
+    "subcategoria": ["subcategoría", "subcategoria", "subcategory", "sub_categoria", "sub"],
     "precio": ["precio", "price", "valor", "monto", "precio_venta"],
     "stock": ["stock", "cantidad", "qty", "quantity", "existencia", "existencias", "unidades"],
     "marca": ["marca", "brand", "fabricante", "manufacturer"],
-    "descripcion": ["descripci├│n", "descripcion", "description", "detalle", "detalles", "desc"],
+    "descripcion": ["descripción", "descripcion", "description", "detalle", "detalles", "desc"],
+    "especificaciones": ["especificaciones", "specs", "caracteristicas", "características", "propiedades"],
 }
 
 
@@ -455,6 +456,7 @@ def _parse_standard_format(rows: list) -> List[ProductImportValidation]:
         stock_raw = _get_cell_value(row_data, column_mapping.get("stock"))
         marca = _get_cell_value(row_data, column_mapping.get("marca"))
         descripcion = _get_cell_value(row_data, column_mapping.get("descripcion"))
+        especificaciones_raw = _get_cell_value(row_data, column_mapping.get("especificaciones"))
         
         # Validar y construir la fila
         validation = _validate_xlsx_row(
@@ -466,6 +468,7 @@ def _parse_standard_format(rows: list) -> List[ProductImportValidation]:
             stock_raw=stock_raw,
             marca=marca,
             descripcion=descripcion,
+            especificaciones_raw=especificaciones_raw,
         )
         validations.append(validation)
     
