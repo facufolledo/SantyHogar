@@ -511,17 +511,24 @@ def _get_cell_value(row: list, col_idx: Optional[int]) -> str:
 
 def _parse_category(categoria_raw: str) -> Tuple[str, str]:
     """
-    Parsea la categor├¡a raw del Excel a (categoria, subcategoria_default).
-    Si no coincide con las categor├¡as v├ílidas, usa 'electrodomesticos' por defecto.
+    Parsea la categoría raw del Excel a (categoria, subcategoria_default).
+    Si no coincide con las categorías válidas, usa 'electrodomesticos' por defecto.
     """
     cat_lower = categoria_raw.lower().strip()
     
-    if cat_lower in ("electrodomesticos", "electrodom├®sticos", "electro"):
+    if cat_lower in ("electrodomesticos", "electrodomésticos", "electro"):
         return ("electrodomesticos", "General")
-    elif cat_lower in ("muebleria", "muebler├¡a", "muebles"):
+    elif cat_lower in ("muebleria", "mueblería", "muebles"):
         return ("muebleria", "General")
-    elif cat_lower in ("colchoneria", "colchoner├¡a", "colchones"):
+    elif cat_lower in ("colchoneria", "colchonería", "colchones"):
         return ("colchoneria", "General")
+    # Detectar categorías personalizadas por patrón
+    elif "smart" in cat_lower or "tv" in cat_lower or "televisor" in cat_lower or "google tv" in cat_lower or "android tv" in cat_lower:
+        # Mapear "Smart 32", "Smart 43", "Smart 50", etc. a "smart-32" (que existe en la BD)
+        return ("smart-32", "General")
+    elif "cocina" in cat_lower or "estufa" in cat_lower:
+        # Si el usuario añade una categoría "Cocinas" en el futuro
+        return ("cocinas", "General")
     else:
         # Intentar mapeo por contenido
         return map_categoria(categoria_raw)

@@ -10,7 +10,7 @@ class ProductImportRow(BaseModel):
     precio: float = Field(default=0.0, ge=0)
     precio_costo: Optional[float] = Field(default=None, ge=0)
     stock: int = Field(ge=0, default=0)
-    categoria: str = Field(pattern="^(electrodomesticos|muebleria|colchoneria)$")
+    categoria: str = Field(min_length=1, max_length=100)  # Flexible - accepts any category slug
     subcategoria: Optional[str] = Field(default="General", max_length=100)
     descripcion: Optional[str] = Field(default="", max_length=5000)
     marca: Optional[str] = Field(default="Sin marca", max_length=100)
@@ -54,7 +54,7 @@ class ExcelImportConfirmRow(BaseModel):
     nombre: str = Field(min_length=1, max_length=255)
     precio: float = Field(default=0.0, ge=0)
     stock: int = Field(ge=0, default=0)
-    categoria: str = Field(pattern="^(electrodomesticos|muebleria|colchoneria)$")
+    categoria: str = Field(min_length=1, max_length=100)  # Flexible - accepts any category slug
     subcategoria: Optional[str] = Field(default="General", max_length=100)
     descripcion: Optional[str] = Field(default="", max_length=5000)
     marca: Optional[str] = Field(default="Sin marca", max_length=100)
