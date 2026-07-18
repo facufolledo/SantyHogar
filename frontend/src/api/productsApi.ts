@@ -29,10 +29,13 @@ function extractProductList(response: unknown): ProductDto[] {
 
 function normalizeProduct(p: ProductDto): Product {
   const images = Array.isArray(p.images) ? p.images : [];
+  // Check both 'specs' (API) and 'especificaciones' (Supabase column name)
   const specs =
-    p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs)
+    (p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs))
       ? (p.specs as Record<string, string>)
-      : {};
+      : ((p as any).especificaciones && typeof (p as any).especificaciones === 'object' && !Array.isArray((p as any).especificaciones))
+        ? ((p as any).especificaciones as Record<string, string>)
+        : {};
   const description = p.description ? String(p.description).trim() : '';
 
   return {
