@@ -229,18 +229,27 @@ def _detect_column_mapping(headers: List[str]) -> Dict[str, int]:
     mapping: Dict[str, int] = {}
     normalized_headers = [_normalize_header(h) for h in headers]
     
+    logger.info(f"COLUMN DETECTION DEBUG:")
+    logger.info(f"  Raw headers: {headers}")
+    logger.info(f"  Normalized: {normalized_headers}")
+    
     for field, aliases in COLUMN_ALIASES.items():
+        logger.info(f"  Searching for field '{field}' with aliases: {aliases}")
         for col_idx, norm_header in enumerate(normalized_headers):
+            # Exact match first
             if norm_header in aliases:
                 mapping[field] = col_idx
+                logger.info(f"    ✓ EXACT MATCH at column {col_idx}: '{norm_header}' -> {field}")
                 break
-            # Tambi├®n buscar coincidencia parcial
+            # Partial match
             for alias in aliases:
                 if alias in norm_header or norm_header in alias:
                     if field not in mapping:
                         mapping[field] = col_idx
+                        logger.info(f"    ✓ PARTIAL MATCH at column {col_idx}: '{norm_header}' contains '{alias}'")
                     break
     
+    logger.info(f"  Final mapping: {mapping}")
     return mapping
 
 
@@ -437,10 +446,20 @@ def _parse_standard_format(rows: list) -> List[ProductImportValidation]:
     raw_headers = [str(cell) if cell is not None else "" for cell in rows[0]]
     column_mapping = _detect_column_mapping(raw_headers)
     
-    logger.info(f"=== PARSE STANDARD FORMAT ===")
-    logger.info(f"Headers detectados: {raw_headers}")
-    logger.info(f"Mapeo de columnas: {column_mapping}")
-    logger.info(f"Especificaciones en mapeo: {column_mapping.get('especificaciones', 'NO DETECTADA')}")
+    logger.info(f"\n{'='*80}")
+    logger.info(f"PARSE STANDARD FORMAT")
+    logger.info(f"{'='*80}")
+    logger.info(f"Headers: {raw_headers}")
+    logger.info(f"Mapping: {column_mapping}")
+    
+    # Verificar si especificaciones fue detectada
+    if "especificaciones" in column_mapping:
+        spec_col = column_mapping["especificaciones"]
+        logger.info(f"✓ ESPECIFICACIONES DETECTADA en columna {spec_col} ('{raw_headers[spec_col]}')")
+    else:
+        logger.warning(f"✗ ESPECIFICACIONES NO DETECTADA")
+    
+    logger.info(f"{'='*80}\n")
     
     # Procesar filas de datos (desde la fila 2)
     for row_idx, row in enumerate(rows[1:], start=2):
@@ -460,8 +479,8 @@ def _parse_standard_format(rows: list) -> List[ProductImportValidation]:
         descripcion = _get_cell_value(row_data, column_mapping.get("descripcion"))
         especificaciones_raw = _get_cell_value(row_data, column_mapping.get("especificaciones"))
         
-        if row_idx <= 3 or especificaciones_raw:  # Log first 3 rows and any with specs
-            logger.debug(f"Fila {row_idx}: nombre={nombre}, especificaciones_raw='{especificaciones_raw}'")
+        if row_idx == 2 or especificaciones_raw:  # Log first row and any with specs
+            logger.debug(f"Fila {row_idx}: nombre={nombre}, especificaciones_raw='{especificaciones_raw[:50]}...' (total: {len(especificaciones_raw)} chars)")
         
         # Validar y construir la fila
         validation = _validate_xlsx_row(
