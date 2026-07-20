@@ -188,6 +188,37 @@ async def get_category_id_by_slug(supabase_client, categoria_slug: str) -> Optio
     except Exception as e:
         logger.error(f"Error obteniendo categoría {categoria_slug}: {str(e)}")
         return None
+
+
+async def get_category_by_slug(supabase_client, categoria_slug: str) -> Optional[dict]:
+    """
+    Obtiene la categoría completa (id_categoria y slug) por slug.
+    
+    Args:
+        supabase_client: Cliente de Supabase
+        categoria_slug: Slug de la categoría (ej: "electrodomesticos")
+    
+    Returns:
+        Dict con {'id_categoria': UUID, 'slug': str} o None si no existe
+    """
+    try:
+        result = supabase_client.table("categorias")\
+            .select("id_categoria, slug")\
+            .eq("slug", categoria_slug)\
+            .limit(1)\
+            .execute()
+        
+        if result.data:
+            return {
+                'id_categoria': UUID(result.data[0]["id_categoria"]),
+                'slug': result.data[0]["slug"]
+            }
+        
+        logger.warning(f"Categoría no encontrada: {categoria_slug}")
+        return None
+    except Exception as e:
+        logger.error(f"Error obteniendo categoría {categoria_slug}: {str(e)}")
+        return None
     return slug.strip('-')
 
 
@@ -698,11 +729,11 @@ async def process_xlsx_import(
         slug = generate_slug(row.nombre)
         
         try:
-            # Obtener ID de categoría por slug
+            # Obtener categoría por slug (retorna id_categoria y slug)
             logger.info(f"  - Buscando categoría: {row.categoria}")
-            category_id = await get_category_id_by_slug(supabase_client, row.categoria)
+            category_data = await get_category_by_slug(supabase_client, row.categoria)
             
-            if not category_id:
+            if not category_data:
                 error_msg = f"Categoría no encontrada: {row.categoria}"
                 logger.error(f"  ✗ {error_msg}")
                 validations.append(ProductImportValidation(
@@ -712,12 +743,15 @@ async def process_xlsx_import(
                 ))
                 continue
             
-            logger.info(f"  ✓ Categoría encontrada: {category_id}")
+            category_id = category_data['id_categoria']
+            category_slug = category_data['slug']
+            logger.info(f"  ✓ Categoría encontrada: {category_slug} ({category_id})")
             
             product_data = {
                 'nombre': row.nombre,
                 'slug': slug,
-                'categoria': str(category_id),
+                'id_categoria': str(category_id),
+                'categoria': category_slug,  # Guardar el slug en el campo categoria
                 'subcategoria': row.subcategoria or 'General',
                 'precio': row.precio,
                 'precio_original': None,
@@ -1071,19 +1105,22 @@ async def process_bulk_import(
     for validation in valid_rows:
         if validation.data:
             try:
-                # Obtener ID de categoría por slug
-                category_id = await get_category_id_by_slug(supabase_client, validation.data.categoria)
+                # Obtener categoría por slug (retorna id_categoria y slug)
+                category_data = await get_category_by_slug(supabase_client, validation.data.categoria)
                 
-                if not category_id:
+                if not category_data:
                     validation.valid = False
                     validation.errors.append(f"Categoría no encontrada: {validation.data.categoria}")
                     continue
                 
+                category_id = category_data['id_categoria']
+                category_slug = category_data['slug']
                 # Preparar datos para inserción
                 product_data = {
                     'nombre': validation.data.nombre,
                     'slug': validation.data.slug,
-                    'categoria': str(category_id),
+                    'id_categoria': str(category_id),
+                    'categoria': category_slug,  # Guardar el slug en el campo categoria
                     'subcategoria': validation.data.subcategoria,
                     'precio': validation.data.precio,
                     'precio_original': validation.data.precio_costo,
