@@ -717,7 +717,7 @@ async def process_xlsx_import(
             product_data = {
                 'nombre': row.nombre,
                 'slug': slug,
-                'id_categoria': str(category_id),
+                'categoria': str(category_id),
                 'subcategoria': row.subcategoria or 'General',
                 'precio': row.precio,
                 'precio_original': None,
@@ -1083,7 +1083,7 @@ async def process_bulk_import(
                 product_data = {
                     'nombre': validation.data.nombre,
                     'slug': validation.data.slug,
-                    'id_categoria': str(category_id),
+                    'categoria': str(category_id),
                     'subcategoria': validation.data.subcategoria,
                     'precio': validation.data.precio,
                     'precio_original': validation.data.precio_costo,
