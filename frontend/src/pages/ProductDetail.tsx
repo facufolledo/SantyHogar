@@ -12,6 +12,7 @@ import { formatPrice } from '../utils/format';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
 import PaymentMethodsModal from '../components/PaymentMethodsModal';
+import SizeSelector from '../components/SizeSelector';
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -19,6 +20,7 @@ const ProductDetail = () => {
   const product = products.find(p => p.slug === slug);
   const [activeImg, setActiveImg] = useState(0);
   const [qty, setQty] = useState(1);
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [showAuth, setShowAuth] = useState(false);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const { addItem } = useCart();
@@ -63,13 +65,22 @@ const ProductDetail = () => {
 
   const handleAdd = () => {
     if (!isLogged) { setShowAuth(true); return; }
-    for (let i = 0; i < qty; i++) addItem(product);
+    if (product.variants && product.variants.length > 0 && !selectedSize) {
+      toast('Por favor selecciona un tamaño');
+      return;
+    }
+    for (let i = 0; i < qty; i++) addItem(product, selectedSize);
     toast(`${product.name} agregado al carrito`);
+    setSelectedSize(''); // Reset after adding
   };
 
   const handleBuyNow = () => {
     if (!isLogged) { setShowAuth(true); return; }
-    for (let i = 0; i < qty; i++) addItem(product);
+    if (product.variants && product.variants.length > 0 && !selectedSize) {
+      toast('Por favor selecciona un tamaño');
+      return;
+    }
+    for (let i = 0; i < qty; i++) addItem(product, selectedSize);
     toast(`${product.name} agregado al carrito`);
     navigate('/carrito');
   };
@@ -148,6 +159,16 @@ const ProductDetail = () => {
               {product.stock > 3 ? 'En stock' : product.stock > 0 ? `Solo ${product.stock} disponibles` : 'Sin stock'}
             </span>
           </div>
+
+          {/* Size selector */}
+          {product.variants && product.variants.length > 0 && (
+            <SizeSelector 
+              variants={product.variants}
+              selectedSize={selectedSize}
+              onSizeChange={setSelectedSize}
+              disabled={product.stock <= 0}
+            />
+          )}
 
           {/* Qty */}
           {product.stock > 0 && (

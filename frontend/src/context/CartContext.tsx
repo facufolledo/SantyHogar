@@ -4,6 +4,7 @@ import type { Product } from '../data/products';
 export interface CartItem {
   product: Product;
   quantity: number;
+  selectedSize?: string; // For products with sizes/variants
 }
 
 interface CartState {
@@ -11,34 +12,52 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; product: Product }
-  | { type: 'REMOVE_ITEM'; id: string }
-  | { type: 'UPDATE_QTY'; id: string; quantity: number }
+  | { type: 'ADD_ITEM'; product: Product; size?: string }
+  | { type: 'REMOVE_ITEM'; id: string; size?: string }
+  | { type: 'UPDATE_QTY'; id: string; quantity: number; size?: string }
   | { type: 'CLEAN_INVALID'; validProductIds: string[] }
   | { type: 'CLEAR' };
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
+  // Helper to create a unique key for a product + size combination
+  const getItemKey = (id: string, size?: string) => size ? `${id}::${size}` : id;
+  
   switch (action.type) {
     case 'ADD_ITEM': {
-      const existing = state.items.find(i => i.product.id === action.product.id);
+      const itemKey = getItemKey(action.product.id, action.size);
+      const existing = state.items.find(i => 
+        i.product.id === action.product.id && i.selectedSize === action.size
+      );
       if (existing) {
         return {
           items: state.items.map(i =>
-            i.product.id === action.product.id
+            i.product.id === action.product.id && i.selectedSize === action.size
               ? { ...i, quantity: Math.min(i.quantity + 1, action.product.stock) }
               : i
           ),
         };
       }
-      return { items: [...state.items, { product: action.product, quantity: 1 }] };
+      return { items: [...state.items, { product: action.product, quantity: 1, selectedSize: action.size }] };
     }
     case 'REMOVE_ITEM':
-      return { items: state.items.filter(i => i.product.id !== action.id) };
+      return { 
+        items: state.items.filter(i => 
+          !(i.product.id === action.id && i.selectedSize === action.size)
+        ) 
+      };
     case 'UPDATE_QTY':
-      if (action.quantity <= 0) return { items: state.items.filter(i => i.product.id !== action.id) };
+      if (action.quantity <= 0) {
+        return { 
+          items: state.items.filter(i => 
+            !(i.product.id === action.id && i.selectedSize === action.size)
+          ) 
+        };
+      }
       return {
         items: state.items.map(i =>
-          i.product.id === action.id ? { ...i, quantity: action.quantity } : i
+          i.product.id === action.id && i.selectedSize === action.size
+            ? { ...i, quantity: action.quantity }
+            : i
         ),
       };
     case 'CLEAR':
@@ -56,9 +75,9 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product) => void;
-  removeItem: (id: string) => void;
-  updateQty: (id: string, quantity: number) => void;
+  addItem: (product: Product, size?: string) => void;
+  removeItem: (id: string, size?: string) => void;
+  updateQty: (id: string, quantity: number, size?: string) => void;
   clearCart: () => void;
   cleanInvalid: (validProducts: Product[]) => void;
   total: number;
@@ -89,9 +108,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <CartContext.Provider value={{
       items: state.items,
-      addItem: (product) => dispatch({ type: 'ADD_ITEM', product }),
-      removeItem: (id) => dispatch({ type: 'REMOVE_ITEM', id }),
-      updateQty: (id, quantity) => dispatch({ type: 'UPDATE_QTY', id, quantity }),
+      addItem: (product, size) => dispatch({ type: 'ADD_ITEM', product, size }),
+      removeItem: (id, size) => dispatch({ type: 'REMOVE_ITEM', id, size }),
+      updateQty: (id, quantity, size) => dispatch({ type: 'UPDATE_QTY', id, quantity, size }),
       clearCart: () => dispatch({ type: 'CLEAR' }),
       cleanInvalid: (validProducts) => dispatch({ type: 'CLEAN_INVALID', validProductIds: validProducts.map(p => p.id) }),
       total,

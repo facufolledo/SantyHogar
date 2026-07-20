@@ -1,3 +1,9 @@
+export interface ProductVariant {
+  size: string;
+  stock: number;
+  sku?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -12,6 +18,7 @@ export interface Product {
   description: string;
   specs: Record<string, string>;
   stock: number;
+  variants?: ProductVariant[]; // Available sizes/variants
   featured: boolean;
   brand: string;
   rating: number;

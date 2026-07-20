@@ -254,9 +254,9 @@ const Cart = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-3">
                   <AnimatePresence>
-                    {items.map(({ product, quantity }) => (
+                    {items.map(({ product, quantity, selectedSize }) => (
                       <motion.div
-                        key={product.id}
+                        key={`${product.id}${selectedSize ? `::${selectedSize}` : ''}`}
                         layout
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -272,21 +272,26 @@ const Cart = () => {
                             {product.name}
                           </Link>
                           <p className="text-xs text-gray-400 mt-0.5">{product.brand}</p>
+                          {selectedSize && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              <span className="font-medium">Tamaño:</span> {selectedSize}
+                            </p>
+                          )}
 
                           <div className="flex items-center justify-between mt-3">
                             <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                              <button onClick={() => updateQty(product.id, quantity - 1)} className="px-2.5 py-1.5 hover:bg-gray-50 transition-colors">
+                              <button onClick={() => updateQty(product.id, quantity - 1, selectedSize)} className="px-2.5 py-1.5 hover:bg-gray-50 transition-colors">
                                 <Minus size={13} />
                               </button>
                               <span className="px-3 py-1.5 text-sm font-semibold border-x border-gray-200">{quantity}</span>
-                              <button onClick={() => updateQty(product.id, quantity + 1)} disabled={quantity >= product.stock} className="px-2.5 py-1.5 hover:bg-gray-50 disabled:opacity-40 transition-colors">
+                              <button onClick={() => updateQty(product.id, quantity + 1, selectedSize)} disabled={quantity >= product.stock} className="px-2.5 py-1.5 hover:bg-gray-50 disabled:opacity-40 transition-colors">
                                 <Plus size={13} />
                               </button>
                             </div>
 
                             <div className="flex items-center gap-3">
                               <p className="font-bold text-gray-900">{formatPrice(product.price * quantity)}</p>
-                              <button onClick={() => removeItem(product.id)} className="text-gray-400 hover:text-red-500 transition-colors">
+                              <button onClick={() => removeItem(product.id, selectedSize)} className="text-gray-400 hover:text-red-500 transition-colors">
                                 <Trash2 size={16} />
                               </button>
                             </div>
