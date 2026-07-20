@@ -43,9 +43,24 @@ def row_to_product(row: dict[str, Any]) -> Product:
     po = row.get("precio_original")
     original = _f(po) if po is not None else None
 
-    # Usar id_categoria si existe, sino usar categoria antigua (string)
+    # Obtener ID de categoría
     id_cat = row.get("id_categoria")
-    cat_name = row.get("categoria_nombre") or row.get("categoria") or "electrodomesticos"
+    
+    # Extraer slug desde el objeto categorias nested (si existe)
+    categoria_slug = None
+    categorias_obj = row.get("categorias")
+    if categorias_obj:
+        if isinstance(categorias_obj, dict):
+            categoria_slug = categorias_obj.get("slug")
+        elif isinstance(categorias_obj, list) and len(categorias_obj) > 0:
+            categoria_slug = categorias_obj[0].get("slug")
+    
+    # Fallback: usar categoria antigua (string) si existe
+    if not categoria_slug:
+        categoria_slug = row.get("categoria") or "electrodomesticos"
+    
+    # Usar categorias_nombre si existe, sino usar el slug
+    cat_name = row.get("categoria_nombre") or categoria_slug or "Desconocida"
 
     sub = row.get("subcategoria") or ""
 
@@ -70,7 +85,7 @@ def row_to_product(row: dict[str, Any]) -> Product:
         name=row.get("nombre") or "",
         slug=row.get("slug") or "",
         id_categoria=UUID(str(id_cat)) if id_cat else None,
-        categoria_nombre=cat_name,
+        categoria_nombre=categoria_slug,  # Usar el slug como categoria_nombre
         subcategory=sub,
         price=_f(row.get("precio", 0)),
         originalPrice=original,

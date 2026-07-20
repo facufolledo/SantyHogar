@@ -65,7 +65,10 @@ class DatabaseOperations:
 
     def _get_all_products_sync(self) -> List[dict[str, Any]]:
         try:
-            res = self._client().table("productos").select("*").execute()
+            # JOIN con categorias para obtener el slug
+            res = self._client().table("productos").select(
+                "*, categorias(id_categoria, nombre, slug)"
+            ).execute()
             return list(res.data or [])
         except Exception as e:
             logger.exception("get_all_products")
@@ -81,7 +84,7 @@ class DatabaseOperations:
             id_strs = [str(i) for i in ids]
             res = (
                 self._client().table("productos")
-                .select("*")
+                .select("*, categorias(id_categoria, nombre, slug)")
                 .in_("id_producto", id_strs)
                 .execute()
             )
