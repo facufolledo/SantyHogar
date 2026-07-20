@@ -689,20 +689,30 @@ async def process_xlsx_import(
     validations: List[ProductImportValidation] = []
     imported_count = 0
     
+    logger.info(f"\n{'='*80}")
+    logger.info(f"BULK IMPORT CONFIRM - Procesando {len(confirmed_rows)} filas")
+    logger.info(f"{'='*80}\n")
+    
     for idx, row in enumerate(confirmed_rows, start=1):
+        logger.info(f"Fila {idx}: {row.nombre}")
         slug = generate_slug(row.nombre)
         
         try:
             # Obtener ID de categoría por slug
+            logger.info(f"  - Buscando categoría: {row.categoria}")
             category_id = await get_category_id_by_slug(supabase_client, row.categoria)
             
             if not category_id:
+                error_msg = f"Categoría no encontrada: {row.categoria}"
+                logger.error(f"  ✗ {error_msg}")
                 validations.append(ProductImportValidation(
                     row_number=idx,
                     valid=False,
-                    errors=[f"Categoría no encontrada: {row.categoria}"],
+                    errors=[error_msg],
                 ))
                 continue
+            
+            logger.info(f"  ✓ Categoría encontrada: {category_id}")
             
             product_data = {
                 'nombre': row.nombre,
@@ -721,10 +731,14 @@ async def process_xlsx_import(
                 'cantidad_resenas': 0,
             }
             
+            logger.info(f"  - Insertando producto en BD...")
+            logger.info(f"    Specs: {product_data.get('especificaciones')}")
+            
             result = supabase_client.table('productos').insert(product_data).execute()
             
             if result.data:
                 imported_count += 1
+                logger.info(f"  ✓ Producto insertado correctamente")
                 validations.append(ProductImportValidation(
                     row_number=idx,
                     valid=True,
@@ -742,20 +756,28 @@ async def process_xlsx_import(
                     ),
                 ))
             else:
+                error_msg = "Error al insertar en la base de datos"
+                logger.error(f"  ✗ {error_msg}")
                 validations.append(ProductImportValidation(
                     row_number=idx,
                     valid=False,
-                    errors=["Error al insertar en la base de datos"],
+                    errors=[error_msg],
                 ))
         except Exception as e:
+            error_msg = f"Error al insertar: {str(e)}"
+            logger.error(f"  ✗ {error_msg}", exc_info=True)
             validations.append(ProductImportValidation(
                 row_number=idx,
                 valid=False,
-                errors=[f"Error al insertar: {str(e)}"],
+                errors=[error_msg],
             ))
     
     valid_count = sum(1 for v in validations if v.valid)
     invalid_count = sum(1 for v in validations if not v.valid)
+    
+    logger.info(f"\n{'='*80}")
+    logger.info(f"RESULTADO: {imported_count} importados, {valid_count} válidos, {invalid_count} con errores")
+    logger.info(f"{'='*80}\n")
     
     return BulkImportResponse(
         total_rows=len(confirmed_rows),
