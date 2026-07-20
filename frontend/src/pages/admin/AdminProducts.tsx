@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, Trash } from 'lucide-react';
 import type { Product } from '../../data/products';
 import { formatPrice } from '../../utils/format';
 import { useProducts } from '../../context/ProductsContext';
@@ -58,6 +58,8 @@ export default function AdminProducts() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [deletingSelected, setDeletingSelected] = useState(false);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -69,6 +71,61 @@ export default function AdminProducts() {
       setSortDirection('asc');
     }
     setPage(1); // Volver a la primera página
+  };
+
+  const toggleSelectProduct = (productId: string) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId);
+    } else {
+      newSelected.add(productId);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === paginated.length) {
+      setSelectedProducts(new Set());
+    } else {
+      const allIds = new Set(paginated.map(p => p.id));
+      setSelectedProducts(allIds);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedProducts.size === 0) return;
+
+    if (!confirm(`¿Estás seguro de que quieres eliminar ${selectedProducts.size} producto(s)?`)) {
+      return;
+    }
+
+    setDeletingSelected(true);
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const productId of selectedProducts) {
+      try {
+        await deleteProduct(productId);
+        successCount++;
+      } catch (error) {
+        console.error('Error al eliminar producto:', error);
+        failureCount++;
+      }
+    }
+
+    setDeletingSelected(false);
+    setSelectedProducts(new Set());
+    
+    if (successCount > 0) {
+      refetch();
+      if (failureCount === 0) {
+        alert(`✅ ${successCount} producto(s) eliminado(s) correctamente`);
+      } else {
+        alert(`⚠️ Se eliminaron ${successCount} producto(s), pero fallaron ${failureCount}`);
+      }
+    } else {
+      alert('❌ Error al eliminar los productos');
+    }
   };
 
   const filtered = useMemo(() => {
@@ -177,6 +234,36 @@ export default function AdminProducts() {
 
       <ProductsErrorBanner />
 
+      {selectedProducts.size > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between gap-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
+        >
+          <p className="text-sm font-medium text-blue-300">
+            {selectedProducts.size} producto(s) seleccionado(s)
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedProducts(new Set())}
+              className="px-3 py-1.5 text-sm text-blue-300 hover:text-blue-200 transition-colors"
+            >
+              Deseleccionar
+            </button>
+            <button
+              onClick={handleDeleteSelected}
+              disabled={deletingSelected}
+              className="flex items-center gap-2 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+            >
+              <Trash size={14} />
+              {deletingSelected ? 'Eliminando...' : 'Eliminar seleccionados'}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      <ProductsErrorBanner />
+
       <div className="flex gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -225,6 +312,14 @@ export default function AdminProducts() {
             <table className="w-full text-sm">
               <thead className="border-b border-gray-700/60">
                 <tr>
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.size === paginated.length && paginated.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-600 cursor-pointer"
+                    />
+                  </th>
                   {[
                     { label: 'Producto', field: 'name' as SortField },
                     { label: 'Categoría', field: 'category' as SortField },
@@ -272,8 +367,16 @@ export default function AdminProducts() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.03 }}
-                      className="hover:bg-gray-700/30 transition-colors"
+                      className={`hover:bg-gray-700/30 transition-colors ${selectedProducts.has(p.id) ? 'bg-primary-500/10' : ''}`}
                     >
+                      <td className="px-4 py-3 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedProducts.has(p.id)}
+                          onChange={() => toggleSelectProduct(p.id)}
+                          className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-600 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {img ? (
