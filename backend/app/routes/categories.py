@@ -2,7 +2,7 @@
 import logging
 import uuid
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, HTTPException, Depends, Query
 from uuid import UUID
@@ -120,7 +120,6 @@ async def create_category(request: CreateCategoryRequest):
         # Crear categoría
         category_id = str(uuid.uuid4())
         # Usar horario de Argentina (UTC-3)
-        from datetime import timezone, timedelta
         argentina_tz = timezone(timedelta(hours=-3))
         now = datetime.now(argentina_tz).isoformat()
         
