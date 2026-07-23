@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, DollarSign, Save, AlertCircle, Filter, TrendingUp } from 'lucide-react';
+import { Search, DollarSign, Save, AlertCircle, Sliders, TrendingUp } from 'lucide-react';
 import { useProducts } from '../../context/ProductsContext';
 import { useCategoriesNav } from '../../hooks/useCategoriesNav';
 import { formatPrice } from '../../utils/format';
@@ -218,7 +218,7 @@ export default function PriceManagement() {
               : 'bg-gray-800 border border-gray-700/60 text-gray-400 hover:text-white'
           }`}
         >
-          <Filter size={15} />
+          <Sliders size={15} />
           Solo sin precio
         </button>
       </div>
