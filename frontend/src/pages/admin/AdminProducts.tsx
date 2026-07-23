@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, Trash, Filter } from 'lucide-react';
+import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, Trash, Sliders } from 'lucide-react';
 import type { Product } from '../../data/products';
 import { formatPrice } from '../../utils/format';
 import { useProducts } from '../../context/ProductsContext';
@@ -286,7 +286,7 @@ export default function AdminProducts() {
         {/* Category Filter */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <Filter size={16} className="text-primary-400" />
+            <Sliders size={16} className="text-primary-400" />
             <span className="text-sm font-medium text-gray-400">Categoría:</span>
           </div>
           <div className="flex flex-wrap gap-2">
