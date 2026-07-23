@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Truck, CreditCard, Shield, RefreshCw, ChevronLeft, LayoutGrid } from 'lucide-react';
+import { ChevronRight, ChevronLeft, LayoutGrid } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import { useCategories } from '../hooks/useCategories';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
@@ -39,13 +39,6 @@ const Home = () => {
       };
     });
   }, [apiCategories]);
-  
-  const trust = [
-    { icon: Truck, label: 'Envíos a todo el país', sub: 'Gratis en compras +$200.000' },
-    { icon: CreditCard, label: 'Todos los medios de pago', sub: 'Hasta 12 cuotas sin interés' },
-    { icon: Shield, label: 'Compra segura', sub: 'Datos protegidos' },
-    { icon: RefreshCw, label: 'Garantía oficial', sub: 'Respaldo de fábrica' },
-  ];
   
   const categoryCards = useMemo(() => {
     return apiCategories.filter(c => c.active).map(cat => {
@@ -158,28 +151,6 @@ const Home = () => {
             </div>
           </>
         )}
-      </section>
-
-      {/* Trust bar */}
-      <section className="bg-gray-100 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {trust.map(({ icon: Icon, label, sub }) => (
-              <div 
-                key={label} 
-                className="flex items-center gap-3"
-              >
-                <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
-                  <Icon size={18} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-800 uppercase leading-tight">{label}</p>
-                  <p className="text-xs text-gray-600">{sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
 
       <ProductsErrorBanner />

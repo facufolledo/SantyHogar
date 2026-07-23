@@ -37,8 +37,6 @@ import MyAddresses from './pages/user/MyAddresses';
 import MyFavorites from './pages/user/MyFavorites';
 import MySecurity from './pages/user/MySecurity';
 
-import LowStockBanner from './components/LowStockBanner';
-
 const PageWrap = ({ children }: { children: React.ReactNode }) => (
   <motion.div
     initial={{ opacity: 0, y: 12 }}
@@ -54,7 +52,6 @@ const MainLayout = () => {
   const location = useLocation();
   return (
     <div className="min-h-screen flex flex-col">
-      <LowStockBanner />
       <Navbar />
       <main className="flex-1">
         <AnimatePresence mode="wait">
@@ -102,7 +99,6 @@ function App() {
             {/* Panel de usuario — con Navbar/Footer */}
             <Route path="/cuenta/*" element={
               <div className="min-h-screen flex flex-col">
-                <LowStockBanner />
                 <Navbar />
                 <main className="flex-1">
                   <UserLayout />
