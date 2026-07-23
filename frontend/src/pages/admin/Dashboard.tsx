@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, ShoppingBag, Package, ArrowUpRight, DollarSign } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Package, ArrowUpRight, DollarSign, Filter } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import { formatDateArg } from '../../utils/dateUtils';
 import useDashboardStats from '../../hooks/useDashboardStats';
 import { useOrders } from '../../context/OrdersContext';
+import { useCategoriesNav } from '../../hooks/useCategoriesNav';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/20 text-yellow-400',
@@ -27,6 +29,8 @@ const statusLabels: Record<string, string> = {
 export default function Dashboard() {
   const { stats, weeklyData, loading } = useDashboardStats();
   const { orders } = useOrders();
+  const { categories } = useCategoriesNav();
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   if (loading) {
     return (
@@ -43,6 +47,16 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  // Helper function to get category color
+  const getCategoryColor = (categorySlug: string): string => {
+    const colors: Record<string, string> = {
+      electrodomesticos: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      cocinas: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      smart: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    };
+    return colors[categorySlug] || 'bg-gray-700/50 text-gray-400 border-gray-600/30';
+  };
 
   const statCards = [
     { label: 'Ventas del día', value: formatPrice(stats?.salesDay || 0), change: '+0%', icon: DollarSign, color: 'bg-blue-500/10 text-blue-400', bar: 'bg-blue-500' },
@@ -61,6 +75,43 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
+      {/* Category Filter */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
+        className="bg-gray-800 border border-gray-700/60 rounded-xl p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Filter size={18} className="text-primary-400" />
+          <label className="text-sm font-semibold text-gray-300">Filtrar por categoría:</label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              selectedCategory === 'all'
+                ? 'bg-primary-500 text-white border border-primary-400'
+                : 'bg-gray-700/50 text-gray-300 border border-gray-600/30 hover:border-gray-500'
+            }`}
+          >
+            Todas las categorías
+          </button>
+          {categories.map(cat => {
+            const isSelected = selectedCategory === cat.slug;
+            return (
+              <button
+                key={cat.id_categoria}
+                onClick={() => setSelectedCategory(cat.slug)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+                  isSelected
+                    ? getCategoryColor(cat.slug)
+                    : 'bg-gray-700/50 text-gray-300 border-gray-600/30 hover:border-gray-500'
+                }`}
+              >
+                {cat.nombre}
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((s, i) => (
@@ -76,6 +127,9 @@ export default function Dashboard() {
             </div>
             <p className="text-xl font-black text-white leading-tight">{s.value}</p>
             <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+            {selectedCategory !== 'all' && (
+              <p className="text-xs text-primary-400 mt-2">{categories.find(c => c.slug === selectedCategory)?.nombre}</p>
+            )}
           </motion.div>
         ))}
       </div>

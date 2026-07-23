@@ -25,7 +25,7 @@ export function useCategoriesNav() {
         setLoading(true);
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
         
-        const response = await fetch(`${apiUrl}/categories`);
+        const response = await fetch(`${apiUrl}/api/categories`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch categories: ${response.status}`);

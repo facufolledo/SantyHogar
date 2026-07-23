@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Truck, CreditCard, Shield, RefreshCw, ChevronLeft, LayoutGrid } from 'lucide-react';
@@ -12,17 +12,32 @@ const Home = () => {
   const { categories: apiCategories, loading: categoriesLoading } = useCategories();
   const [slide, setSlide] = useState(0);
   
+  // Helper para determinar género de categoría y ajustar acuerdo gramatical
+  const getGenderAgreeement = (categoryName: string) => {
+    const feminineEndings = ['a', 'ería', 'ía'];
+    const isFeminine = feminineEndings.some(ending => categoryName.toLowerCase().endsWith(ending));
+    
+    return {
+      article: isFeminine ? 'Las' : 'Los',
+      adjective: isFeminine ? 'mejores' : 'mejores',
+      determiner: isFeminine ? 'nuestras' : 'nuestros',
+    };
+  };
+
   // Hero slides dinámicos basados en categorías
   const slides = useMemo(() => {
     if (apiCategories.length === 0) return [];
-    return apiCategories.slice(0, 3).map((cat, idx) => ({
-      title: 'Los mejores',
-      highlight: cat.name,
-      subtitle: `Descubrí nuestros ${cat.name.toLowerCase()}`,
-      cta: `Ver ${cat.name.toLowerCase()}`,
-      link: `/tienda?cat=${cat.slug}`,
-      image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=800&q=80',
-    }));
+    return apiCategories.slice(0, 3).map((cat) => {
+      const gender = getGenderAgreeement(cat.name);
+      return {
+        title: `${gender.article} ${gender.adjective}`,
+        highlight: cat.name,
+        subtitle: `Descubrí ${gender.determiner} ${cat.name.toLowerCase()}`,
+        cta: `Ver ${cat.name.toLowerCase()}`,
+        link: `/tienda?cat=${cat.slug}`,
+        image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=800&q=80',
+      };
+    });
   }, [apiCategories]);
   
   const trust = [

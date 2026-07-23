@@ -35,7 +35,7 @@ export const useCategories = (): UseCategoriesReturn => {
       setLoading(true);
       setError(null);
 
-      const data = await apiFetch<Category[]>("/categories");
+      const data = await apiFetch<Category[]>("/api/categories");
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error desconocido";
