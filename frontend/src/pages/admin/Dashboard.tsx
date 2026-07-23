@@ -61,43 +61,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      {/* Category Filter */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
-        className="bg-gray-800 border border-gray-700/60 rounded-xl p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <Filter size={18} className="text-primary-400" />
-          <label className="text-sm font-semibold text-gray-300">Filtrar por categoría:</label>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              selectedCategory === 'all'
-                ? 'bg-primary-500 text-white border border-primary-400'
-                : 'bg-gray-700/50 text-gray-300 border border-gray-600/30 hover:border-gray-500'
-            }`}
-          >
-            Todas las categorías
-          </button>
-          {categories.map(cat => {
-            const isSelected = selectedCategory === cat.slug;
-            return (
-              <button
-                key={cat.id_categoria}
-                onClick={() => setSelectedCategory(cat.slug)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
-                  isSelected
-                    ? getCategoryColor(cat.slug)
-                    : 'bg-gray-700/50 text-gray-300 border-gray-600/30 hover:border-gray-500'
-                }`}
-              >
-                {cat.nombre}
-              </button>
-            );
-          })}
-        </div>
-      </motion.div>
-
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((s, i) => (
@@ -113,9 +76,6 @@ export default function Dashboard() {
             </div>
             <p className="text-xl font-black text-white leading-tight">{s.value}</p>
             <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-            {selectedCategory !== 'all' && (
-              <p className="text-xs text-primary-400 mt-2">{categories.find(c => c.slug === selectedCategory)?.nombre}</p>
-            )}
           </motion.div>
         ))}
       </div>
