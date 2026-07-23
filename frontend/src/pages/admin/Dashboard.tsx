@@ -1,11 +1,9 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, ShoppingBag, Package, ArrowUpRight, DollarSign, Filter } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Package, ArrowUpRight, DollarSign } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import { formatDateArg } from '../../utils/dateUtils';
 import useDashboardStats from '../../hooks/useDashboardStats';
 import { useOrders } from '../../context/OrdersContext';
-import { useCategoriesNav } from '../../hooks/useCategoriesNav';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/20 text-yellow-400',
@@ -29,8 +27,6 @@ const statusLabels: Record<string, string> = {
 export default function Dashboard() {
   const { stats, weeklyData, loading } = useDashboardStats();
   const { orders } = useOrders();
-  const { categories } = useCategoriesNav();
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   if (loading) {
     return (
@@ -47,16 +43,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  // Helper function to get category color
-  const getCategoryColor = (categorySlug: string): string => {
-    const colors: Record<string, string> = {
-      electrodomesticos: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      cocinas: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      smart: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-    };
-    return colors[categorySlug] || 'bg-gray-700/50 text-gray-400 border-gray-600/30';
-  };
 
   const statCards = [
     { label: 'Ventas del día', value: formatPrice(stats?.salesDay || 0), change: '+0%', icon: DollarSign, color: 'bg-blue-500/10 text-blue-400', bar: 'bg-blue-500' },

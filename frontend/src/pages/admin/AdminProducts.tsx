@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, Trash } from 'lucide-react';
+import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, Trash, Filter } from 'lucide-react';
 import type { Product } from '../../data/products';
 import { formatPrice } from '../../utils/format';
 import { useProducts } from '../../context/ProductsContext';
+import { useCategoriesNav } from '../../hooks/useCategoriesNav';
 import ProductsErrorBanner from '../../components/ProductsErrorBanner';
 import ProductFormModal from './ProductFormModal';
 import { deleteProduct } from '../../api/productsApi';
@@ -50,7 +51,9 @@ function shortId(id: string) {
 
 export default function AdminProducts() {
   const { products, loading, error, refetch } = useProducts();
+  const { categories } = useCategoriesNav();
   const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -131,8 +134,9 @@ export default function AdminProducts() {
   const filtered = useMemo(() => {
     let result = products.filter(
       p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.brand.toLowerCase().includes(search.toLowerCase())
+        (p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.brand.toLowerCase().includes(search.toLowerCase())) &&
+        (filterCategory === 'all' || p.category === filterCategory)
     );
 
     // Ordenar según el campo seleccionado
@@ -161,7 +165,7 @@ export default function AdminProducts() {
     });
 
     return result;
-  }, [products, search, sortField, sortDirection]);
+  }, [products, search, filterCategory, sortField, sortDirection]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -264,17 +268,52 @@ export default function AdminProducts() {
 
       <ProductsErrorBanner />
 
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            type="text"
-            placeholder="Buscar productos..."
-            value={search}
-            onChange={e => handleSearch(e.target.value)}
-            disabled={loading || Boolean(error)}
-            className="w-full pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700/60 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-          />
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Buscar productos..."
+              value={search}
+              onChange={e => handleSearch(e.target.value)}
+              disabled={loading || Boolean(error)}
+              className="w-full pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700/60 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+            />
+          </div>
+        </div>
+
+        {/* Category Filter */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-primary-400" />
+            <span className="text-sm font-medium text-gray-400">Categoría:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterCategory('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                filterCategory === 'all'
+                  ? 'bg-primary-500 text-white border border-primary-400'
+                  : 'bg-gray-700/50 text-gray-300 border border-gray-600/30 hover:border-gray-500'
+              }`}
+            >
+              Todas
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat.id_categoria}
+                onClick={() => setFilterCategory(cat.slug)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                  filterCategory === cat.slug
+                    ? `${getCategoryColor(cat.slug)} border-opacity-100`
+                    : 'bg-gray-700/50 text-gray-300 border-gray-600/30 hover:border-gray-500'
+                }`}
+              >
+                {cat.nombre}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
