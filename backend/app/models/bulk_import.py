@@ -66,3 +66,60 @@ class ExcelImportConfirmRequest(BaseModel):
     """Request para confirmar importación de filas seleccionadas."""
 
     rows: List[ExcelImportConfirmRow] = Field(min_length=1)
+
+
+# ================================================================== #
+# BULK IMAGE UPLOAD
+# ================================================================== #
+
+class BulkImageUploadRow(BaseModel):
+    """Fila de producto con URLs de imágenes."""
+    
+    nombre_producto: str = Field(min_length=1, max_length=255, description="Nombre del producto a matchear")
+    imagenes: List[str] = Field(min_length=1, description="Lista de URLs de imágenes")
+
+
+class BulkImageUploadPreviewRow(BaseModel):
+    """Resultado de preview de una fila de upload de imágenes."""
+    
+    row_number: int
+    nombre_producto: str
+    imagenes_solicitadas: int
+    producto_encontrado: bool
+    producto_id: Optional[str] = None
+    producto_nombre_encontrado: Optional[str] = None
+    errors: List[str] = Field(default_factory=list)
+
+
+class BulkImageUploadPreviewResponse(BaseModel):
+    """Respuesta del preview de bulk image upload."""
+    
+    total_rows: int
+    matched_products: int
+    unmatched_products: int
+    total_images: int
+    previews: List[BulkImageUploadPreviewRow]
+
+
+class BulkImageUploadConfirmRow(BaseModel):
+    """Fila confirmada para upload de imágenes."""
+    
+    producto_id: str = Field(description="UUID del producto")
+    imagenes: List[str] = Field(min_length=1, description="URLs de imágenes a descargar")
+
+
+class BulkImageUploadConfirmRequest(BaseModel):
+    """Request para confirmar upload de imágenes."""
+    
+    rows: List[BulkImageUploadConfirmRow] = Field(min_length=1)
+
+
+class BulkImageUploadResponse(BaseModel):
+    """Respuesta del endpoint de bulk image upload."""
+    
+    total_products: int
+    successful_uploads: int
+    failed_uploads: int
+    total_images_uploaded: int
+    details: List[dict] = Field(default_factory=list)
+    message: str

@@ -449,3 +449,138 @@ async def delete_product(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
+
+
+
+# ================================================================== #
+# BULK IMAGE UPLOAD - Carga masiva de imágenes por URL
+# ================================================================== #
+
+from app.models.bulk_import import (
+    BulkImageUploadPreviewResponse,
+    BulkImageUploadConfirmRequest,
+    BulkImageUploadResponse,
+)
+from app.services.bulk_image_upload_service import (
+    preview_bulk_image_upload,
+    process_bulk_image_upload,
+)
+import json
+
+
+@router.post(
+    "/products/bulk-images/preview",
+    response_model=BulkImageUploadPreviewResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def bulk_images_preview(
+    file: UploadFile = File(...),
+    supabase = Depends(get_supabase),
+) -> BulkImageUploadPreviewResponse:
+    """
+    Preview para carga masiva de imágenes por URL.
+    
+    Formato Excel esperado:
+    - Columna 1: nombre_producto (nombre exacto del producto)
+    - Columna 2+: imagen_url, imagen_url_2, etc. (URLs de imágenes)
+    
+    Matchea nombres de productos con productos existentes en la BD.
+    Valida que las URLs sean accesibles.
+    
+    Retorna un preview con:
+    - Productos encontrados
+    - Productos no encontrados
+    - URLs válidas
+    - Errores detectados
+    """
+    try:
+        if not file.filename.endswith('.xlsx'):
+            raise HTTPException(
+                status_code=400,
+                detail="Solo se aceptan archivos Excel (.xlsx)"
+            )
+        
+        # Leer archivo
+        contents = await file.read()
+        
+        # Parsear Excel
+        from openpyxl import load_workbook
+        from io import BytesIO
+        
+        wb = load_workbook(BytesIO(contents), read_only=True, data_only=True)
+        ws = wb.active
+        
+        if ws is None:
+            raise HTTPException(status_code=400, detail="El archivo no contiene hojas")
+        
+        rows = list(ws.iter_rows(values_only=True))
+        
+        if len(rows) < 2:
+            raise HTTPException(status_code=400, detail="El archivo debe tener al menos 2 filas (header + datos)")
+        
+        # Primera fila = headers
+        headers = [str(cell).strip().lower() if cell else "" for cell in rows[0]]
+        logger.info(f"Headers detectados: {headers}")
+        
+        # Procesar datos
+        preview_rows = []
+        for row_idx, row in enumerate(rows[1:], start=2):
+            if all(cell is None or str(cell).strip() == "" for cell in row):
+                continue
+            
+            nombre_producto = str(row[0]).strip() if row[0] else ""
+            if not nombre_producto:
+                continue
+            
+            # Extraer URLs de las columnas restantes
+            imagenes = [str(cell).strip() for cell in row[1:] if cell and str(cell).strip()]
+            
+            if not imagenes:
+                continue
+            
+            preview_rows.append({
+                "nombre_producto": nombre_producto,
+                "imagenes": imagenes,
+            })
+        
+        wb.close()
+        
+        logger.info(f"Procesadas {len(preview_rows)} filas del Excel")
+        
+        # Hacer preview
+        preview_result = await preview_bulk_image_upload(supabase, preview_rows)
+        
+        return BulkImageUploadPreviewResponse(**preview_result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en bulk_images_preview: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error al procesar archivo: {str(e)}")
+
+
+@router.post(
+    "/products/bulk-images/confirm",
+    response_model=BulkImageUploadResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def bulk_images_confirm(
+    body: BulkImageUploadConfirmRequest,
+    supabase = Depends(get_supabase),
+) -> BulkImageUploadResponse:
+    """
+    Confirma y procesa la carga masiva de imágenes.
+    
+    Recibe la lista de productos con sus URLs de imágenes.
+    Descarga las imágenes y las sube a Supabase Storage.
+    Vincula las imágenes a los productos en la BD.
+    """
+    try:
+        logger.info(f"Iniciando bulk_images_confirm con {len(body.rows)} productos")
+        
+        result = await process_bulk_image_upload(supabase, body.rows)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error en bulk_images_confirm: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error procesando imágenes: {str(e)}")

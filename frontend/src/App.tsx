@@ -28,6 +28,7 @@ import AdminOrders from './pages/admin/AdminOrders';
 import AdminCustomers from './pages/admin/AdminCustomers';
 import AdminUsers from './pages/admin/AdminUsers';
 import BulkImport from './pages/admin/BulkImport';
+import BulkImageUpload from './pages/admin/BulkImageUpload';
 import PriceManagement from './pages/admin/PriceManagement';
 // User
 import UserLayout from './pages/user/UserLayout';
@@ -94,6 +95,7 @@ function App() {
               <Route path="clientes" element={<AdminCustomers />} />
               <Route path="usuarios" element={<AdminUsers />} />
               <Route path="importar" element={<BulkImport />} />
+              <Route path="cargar-imagenes" element={<BulkImageUpload />} />
             </Route>
 
             {/* Panel de usuario — con Navbar/Footer */}

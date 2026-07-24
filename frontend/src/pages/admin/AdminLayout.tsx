@@ -13,6 +13,7 @@ const navItems = [
   { to: '/admin/clientes', label: 'Clientes', icon: Users },
   { to: '/admin/usuarios', label: 'Usuarios Admin', icon: Users },
   { to: '/admin/importar', label: 'Importar Stock', icon: Upload },
+  { to: '/admin/cargar-imagenes', label: 'Cargar Imágenes', icon: Upload },
 ];
 
 const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
