@@ -46,10 +46,16 @@ def cancel_expired_orders():
             
             try:
                 fecha_exp = orden["fecha_expiracion_pago"]
+                
+                # Convertir string a datetime si es necesario
                 if isinstance(fecha_exp, str):
                     fecha_exp = datetime.fromisoformat(
                         fecha_exp.replace('Z', '+00:00')
                     )
+                
+                # Asegurar que ambos son aware (con timezone)
+                if fecha_exp.tzinfo is None:
+                    fecha_exp = fecha_exp.replace(tzinfo=timezone.utc)
                 
                 # Si expiró, agregar a lista
                 if fecha_exp < now:
@@ -57,7 +63,7 @@ def cancel_expired_orders():
                     logger.info(f"⏰ Orden {orden['id_orden']} EXPIRADA")
                     
             except Exception as e:
-                logger.error(f"❌ Error procesando fecha: {e}")
+                logger.error(f"❌ Error procesando fecha para orden {orden.get('id_orden')}: {e}")
         
         if not expired_orders:
             logger.info("✓ No hay órdenes expiradas")

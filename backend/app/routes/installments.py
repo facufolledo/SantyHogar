@@ -1,11 +1,11 @@
-"""Rutas para obtener información de cuotas con Mercado Pago."""
+"""Rutas de consulta de cuotas de Mercado Pago."""
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.services.installments_service import InstallmentsService
 from app.exceptions import MercadoPagoError
+from app.config import get_config
+from app.services.installments_service import InstallmentsService
 
 router = APIRouter(prefix="/api/installments", tags=["installments"])
 logger = logging.getLogger(__name__)
@@ -14,135 +14,43 @@ logger = logging.getLogger(__name__)
 @router.get("/calculate")
 async def calculate_installments(
     amount: float = Query(..., gt=0, description="Monto total en ARS"),
-    bin_number: Optional[str] = Query(
-        None, regex="^[0-9]{6}$", description="Primeros 6 dígitos de la tarjeta"
-    ),
+    bin_number: str = Query(..., description="Primeros 6-8 dígitos de la tarjeta"),
 ):
-    """
-    Calcula opciones de cuotas disponibles para un monto.
+    """Devuelve cuotas reales para monto y BIN, sin iniciar una compra."""
     
-    En DEBUG mode retorna datos mock sin llamar a MP.
-    """
-    from app.config import get_config
-    cfg = get_config()
+    # Validar BIN localmente
+    if not bin_number or not bin_number.isdigit():
+        raise HTTPException(status_code=400, detail="BIN debe contener solo dígitos")
     
-    # En desarrollo, retornar datos MOCK
-    if cfg.debug:
-        logger.info(f"🔧 DEBUG: Retornando cuotas mock para ${amount}")
-        return [
-            {
-                "payment_method_id": "visa",
-                "payment_type_id": "credit_card",
-                "name": "Visa",
-                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/visa.gif",
-                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/visa.gif",
-                "payer_costs": [
-                    {"installments": 1, "installment_amount": round(amount, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": []},
-                    {"installments": 3, "installment_amount": round(amount / 3, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["CFT_0%"]},
-                    {"installments": 6, "installment_amount": round(amount / 6, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["CFT_0%"]},
-                    {"installments": 12, "installment_amount": round(amount / 12, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["CFT_0%"]},
-                ],
-            },
-            {
-                "payment_method_id": "master",
-                "payment_type_id": "credit_card",
-                "name": "Mastercard",
-                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/master.gif",
-                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/master.gif",
-                "payer_costs": [
-                    {"installments": 1, "installment_amount": round(amount, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": []},
-                    {"installments": 3, "installment_amount": round(amount / 3 * 1.05, 2), "total_amount": round(amount * 1.05, 2), "interest_rate": 0.05, "labels": ["CFT_5%"]},
-                    {"installments": 6, "installment_amount": round(amount / 6 * 1.10, 2), "total_amount": round(amount * 1.10, 2), "interest_rate": 0.10, "labels": ["CFT_10%"]},
-                    {"installments": 12, "installment_amount": round(amount / 12 * 1.20, 2), "total_amount": round(amount * 1.20, 2), "interest_rate": 0.20, "labels": ["CFT_20%"]},
-                ],
-            },
-            {
-                "payment_method_id": "amex",
-                "payment_type_id": "credit_card",
-                "name": "American Express",
-                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/amex.gif",
-                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/amex.gif",
-                "payer_costs": [
-                    {"installments": 1, "installment_amount": round(amount, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": []},
-                    {"installments": 3, "installment_amount": round(amount / 3, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["CFT_0%"]},
-                ],
-            },
-        ]
-    
-    try:
-        service = InstallmentsService()
-        result = await service.get_installments(
-            amount=amount,
-            bin_number=bin_number,
+    if len(bin_number) < 6 or len(bin_number) > 8:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"BIN debe tener 6-8 dígitos, recibió {len(bin_number)}"
         )
+    
+    if get_config().debug:
+        # En local no se llama a MP: se preserva el flujo simulador para desarrollo.
+        return InstallmentsService.get_development_installments(amount)
 
-        # Retornar directamente el array de métodos de pago con el formato esperado por el frontend
-        if not isinstance(result, list):
-            logger.error(f"Resultado no es lista: {type(result)} - {result}")
-            # Retornar array vacío en lugar de lanzar error para que el frontend no falle
-            return []
-        
-        formatted_methods = []
-        for payment_method in result:
-            if isinstance(payment_method, dict):
-                formatted_methods.append({
-                    "payment_method_id": payment_method.get("payment_method_id", ""),
-                    "payment_type_id": payment_method.get("payment_type_id", "credit_card"),
-                    "name": payment_method.get("name", ""),
-                    "secure_thumbnail": payment_method.get("secure_thumbnail", ""),
-                    "thumbnail": payment_method.get("thumbnail", ""),
-                    "payer_costs": payment_method.get("payer_costs", []),
-                })
-
-        logger.info(f"Retornando {len(formatted_methods)} métodos de pago formateados")
-        return formatted_methods
-
-    except MercadoPagoError as e:
-        logger.error(f"Error MP en cuotas: {str(e)}")
-        # Retornar array vacío en vez de HTTP error para que el frontend no falle
-        return []
-    except Exception as e:
-        logger.error(f"Error calculando cuotas: {str(e)}")
-        # Retornar array vacío en vez de HTTP error  
-        return []
+    try:
+        return await InstallmentsService().get_installments(amount=amount, bin_number=bin_number)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except MercadoPagoError as exc:
+        logger.warning("Error de Mercado Pago al consultar cuotas: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/installment-price")
 async def get_installment_price(
-    amount: float = Query(..., gt=0, description="Monto total en ARS"),
-    installments: int = Query(
-        ..., gt=0, le=12, description="Número de cuotas (1-12)"
-    ),
-    bin_number: Optional[str] = Query(
-        None, regex="^[0-9]{6}$", description="Primeros 6 dígitos de la tarjeta"
-    ),
+    amount: float = Query(..., gt=0),
+    installments: int = Query(..., gt=0, le=36),
+    bin_number: str = Query(..., min_length=6, max_length=8, pattern="^[0-9]+$"),
 ):
-    """
-    Obtiene el precio por cuota para un número específico de cuotas.
-    
-    Parámetros:
-    - amount: Monto total en ARS (obligatorio)
-    - installments: Número de cuotas, 1-12 (obligatorio)
-    - bin_number: Primeros 6 dígitos de la tarjeta (opcional)
-    
-    Ejemplo:
-    GET /api/installments/installment-price?amount=10000&installments=6&bin_number=453036
-    """
-    try:
-        service = InstallmentsService()
-        result = await service.calculate_installment_price(
-            amount=amount,
-            installments=installments,
-            bin_number=bin_number,
-        )
-
-        return result
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except MercadoPagoError as e:
-        logger.error(f"Error MP calculando precio: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error inesperado: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    """Devuelve una opción de cuota real para el BIN informado."""
+    methods = await calculate_installments(amount, bin_number)
+    for method in methods:
+        for cost in method["payer_costs"]:
+            if cost["installments"] == installments:
+                return {**cost, "payment_method_id": method["payment_method_id"]}
+    raise HTTPException(status_code=404, detail="La tarjeta no ofrece esa cantidad de cuotas.")

@@ -88,16 +88,27 @@ const getDisplayName = (name: string): string => {
 
 export default function PaymentMethodsModal({ amount, isOpen, onClose }: Props) {
   const [methods, setMethods] = useState<PaymentMethodInstallments[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [binNumber, setBinNumber] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedMethod, setExpandedMethod] = useState<string | null>(null);
   const [showAllMethods, setShowAllMethods] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchInstallments();
+    if (!isOpen) {
+      setBinNumber('');
+      setMethods([]);
+      setError(null);
+      setExpandedMethod(null);
+      return;
     }
-  }, [isOpen, amount]);
+    if (binNumber.length >= 6) {
+      fetchInstallments();
+    } else {
+      setMethods([]);
+      setError(null);
+    }
+  }, [isOpen, amount, binNumber]);
 
   const fetchInstallments = async () => {
     try {
@@ -113,7 +124,7 @@ export default function PaymentMethodsModal({ amount, isOpen, onClose }: Props) 
       }
 
       const response = await fetch(
-        `${apiBase}/api/installments/calculate?amount=${amount}`,
+        `${apiBase}/api/installments/calculate?amount=${encodeURIComponent(amount)}&bin_number=${encodeURIComponent(binNumber)}`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -121,7 +132,8 @@ export default function PaymentMethodsModal({ amount, isOpen, onClose }: Props) 
       );
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}`);
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.detail || `Error ${response.status}`);
       }
 
       const data = await response.json();
@@ -198,7 +210,33 @@ export default function PaymentMethodsModal({ amount, isOpen, onClose }: Props) 
 
           {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
-            {loading ? (
+            <div className="mb-5 rounded-xl border border-primary-100 bg-primary-50 p-4">
+              <label htmlFor="installments-bin" className="block text-sm font-semibold text-gray-900">
+                Consultá las cuotas de tu tarjeta
+              </label>
+              <p className="mt-1 text-xs text-gray-600">
+                Ingresá los primeros 6 a 8 dígitos. Mercado Pago calcula las cuotas reales sin iniciar una compra.
+              </p>
+              <input
+                id="installments-bin"
+                inputMode="numeric"
+                autoComplete="cc-number"
+                maxLength={8}
+                value={binNumber}
+                onChange={(event) => setBinNumber(event.target.value.replace(/\D/g, '').slice(0, 8))}
+                placeholder="Ej.: 450995"
+                className="mt-3 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              />
+              {binNumber.length > 0 && binNumber.length < 6 && (
+                <p className="mt-2 text-xs text-amber-700">Faltan {6 - binNumber.length} dígitos para consultar.</p>
+              )}
+            </div>
+
+            {binNumber.length < 6 ? (
+              <div className="text-center py-8 text-gray-500">
+                Ingresá el inicio de tu tarjeta para ver las cuotas disponibles.
+              </div>
+            ) : loading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <Loader className="animate-spin text-primary-600 mb-3" size={32} />
                 <p className="text-gray-500">Cargando opciones de pago...</p>

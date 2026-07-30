@@ -1,31 +1,10 @@
-"""Servicio para calcular cuotas con Mercado Pago.
-
-En desarrollo (DEBUG=true en .env), la verificación SSL se deshabilita automáticamente
-para evitar problemas con certificados en Windows local. En producción (DEBUG=false),
-se usa verificación SSL normal (recomendado).
-"""
+"""Consulta de cuotas a Mercado Pago sin crear pagos ni preferencias."""
 from __future__ import annotations
 
-import asyncio
 import logging
-import os
-import ssl
-import warnings
-from typing import Any, Optional
+from typing import Any
 
-import requests
-import urllib3
-from requests.adapters import HTTPAdapter
-from urllib3.poolmanager import PoolManager
-
-# Deshabilitar SSL warnings en desarrollo
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-warnings.filterwarnings('ignore', message='Unverified HTTPS request')
-
-# Variables de entorno para deshabilitar SSL en desarrollo
-os.environ['PYTHONHTTPSVERIFY'] = '0'
-os.environ['CURL_CA_BUNDLE'] = ''
-os.environ['REQUESTS_CA_BUNDLE'] = ''
+import httpx
 
 from app.config import get_config
 from app.exceptions import MercadoPagoError
@@ -33,301 +12,120 @@ from app.exceptions import MercadoPagoError
 logger = logging.getLogger(__name__)
 
 
-class SSLAdapter(HTTPAdapter):
-    """Adaptador que deshabilita verificación SSL para desarrollo."""
-    
-    def init_poolmanager(self, *args, **kwargs):
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        kwargs['ssl_context'] = ctx
-        return super().init_poolmanager(*args, **kwargs)
-
-
 class InstallmentsService:
-    """Servicio para obtener información de cuotas disponibles de Mercado Pago."""
+    """Obtiene las cuotas reales disponibles para la tarjeta informada.
 
-    def __init__(self, access_token: Optional[str] = None) -> None:
-        cfg = get_config()
-        self.access_token = access_token or cfg.mercadopago_access_token
+    Mercado Pago determina las cuotas a partir del BIN (los primeros dígitos de
+    la tarjeta), el emisor y el monto. Esta consulta es de sólo lectura: no crea
+    una preferencia, orden ni intento de cobro.
+    """
+
+    def __init__(self) -> None:
+        self.access_token = get_config().mercadopago_access_token
         self.base_url = "https://api.mercadopago.com"
-        self.debug = cfg.debug  # Usar debug mode para SSL verification
 
-    async def get_installments(
-        self,
-        amount: float,
-        bin_number: Optional[str] = None,
-        payment_method_id: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
+    @staticmethod
+    def get_development_installments(amount: float) -> list[dict[str, Any]]:
+        """Datos de muestra exclusivos para desarrollo local.
+
+        Nunca se usan como respaldo en producción: allí un error de Mercado
+        Pago se informa al cliente para no mostrar condiciones falsas.
         """
-        Obtiene opciones de cuotas disponibles para un monto dado.
-        
-        Args:
-            amount: Monto total en ARS
-            bin_number: Primeros 6 dígitos de la tarjeta (ej: "453036")
-            payment_method_id: ID del método de pago (ej: "visa", "master")
-        
-        Returns:
-            Lista de métodos de pago con opciones de cuotas
-        """
-
-        def _call() -> list[dict[str, Any]]:
-            # En desarrollo, retornar datos mock para evitar problemas de SSL
-            if self.debug:
-                logger.info(f"🔧 DEBUG MODE: Retornando cuotas mock para ${amount}")
-                return self._get_mock_installments(amount)
-            
-            # Métodos de pago soportados
-            payment_methods = ["visa", "master", "amex"]
-            
-            # Si se especifica un método, usar solo ese
-            if payment_method_id:
-                payment_methods = [payment_method_id]
-            
-            all_methods = []
-            
-            for method_id in payment_methods:
-                try:
-                    params = {
-                        "amount": str(amount),
-                        "payment_method_id": method_id,
-                        "access_token": self.access_token,
-                    }
-
-                    if bin_number:
-                        params["bin"] = bin_number
-
-                    url = f"{self.base_url}/v1/payment_methods/installments"
-
-                    headers = {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json",
-                    }
-
-                    logger.info(
-                        f"Consultando cuotas MP: amount={amount}, "
-                        f"method={method_id}, bin={bin_number}"
-                    )
-
-                    # Crear sesión con adaptador custom
-                    session = requests.Session()
-                    session.mount('https://', SSLAdapter())
-                    session.verify = False
-                    
-                    response = session.get(
-                        url,
-                        params=params,
-                        headers=headers,
-                        timeout=10,
-                    )
-
-                    response.raise_for_status()
-                    result = response.json()
-
-                    logger.info(f"Respuesta cuotas MP para {method_id}: {result}")
-
-                    # MP retorna un dict con la lista de métodos de pago
-                    if isinstance(result, dict) and "payment_methods" in result:
-                        methods = result.get("payment_methods", [])
-                        if methods:
-                            all_methods.extend(methods)
-                    elif isinstance(result, list):
-                        all_methods.extend(result)
-                        
-                except requests.exceptions.RequestException as e:
-                    logger.warning(f"Error consultando MP para {method_id}: {str(e)}")
-                    # Continuar con el siguiente método si falla uno
-                    continue
-            
-            if not all_methods:
-                logger.warning("No se obtuvieron métodos de pago de MP, usando mock")
-                return self._get_mock_installments(amount)
-            
-            return all_methods
-
-        return await asyncio.to_thread(_call)
-    
-    def _get_mock_installments(self, amount: float) -> list[dict[str, Any]]:
-        """Retorna datos mock de cuotas para desarrollo local."""
         return [
             {
                 "payment_method_id": "visa",
                 "payment_type_id": "credit_card",
-                "name": "Visa",
+                "name": "Visa (simulado)",
                 "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/visa.gif",
                 "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/visa.gif",
                 "payer_costs": [
-                    {
-                        "installments": 1,
-                        "installment_amount": round(amount, 2),
-                        "total_amount": round(amount, 2),
-                        "interest_rate": 0,
-                        "labels": [],
-                    },
-                    {
-                        "installments": 3,
-                        "installment_amount": round(amount / 3, 2),
-                        "total_amount": round(amount, 2),
-                        "interest_rate": 0,
-                        "labels": ["CFT_0%"],
-                    },
-                    {
-                        "installments": 6,
-                        "installment_amount": round(amount / 6, 2),
-                        "total_amount": round(amount, 2),
-                        "interest_rate": 0,
-                        "labels": ["CFT_0%"],
-                    },
+                    {"installments": 1, "installment_amount": round(amount, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["SIMULADO"]},
+                    {"installments": 3, "installment_amount": round(amount / 3, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["SIMULADO", "CFT_0%"]},
+                    {"installments": 6, "installment_amount": round(amount / 6, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["SIMULADO", "CFT_0%"]},
                 ],
             },
             {
                 "payment_method_id": "master",
                 "payment_type_id": "credit_card",
-                "name": "Mastercard",
+                "name": "Mastercard (simulado)",
                 "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/master.gif",
                 "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/master.gif",
                 "payer_costs": [
-                    {
-                        "installments": 1,
-                        "installment_amount": round(amount, 2),
-                        "total_amount": round(amount, 2),
-                        "interest_rate": 0,
-                        "labels": [],
-                    },
-                    {
-                        "installments": 3,
-                        "installment_amount": round(amount / 3 * 1.05, 2),
-                        "total_amount": round(amount * 1.05, 2),
-                        "interest_rate": 0.05,
-                        "labels": ["CFT_5%"],
-                    },
-                    {
-                        "installments": 6,
-                        "installment_amount": round(amount / 6 * 1.10, 2),
-                        "total_amount": round(amount * 1.10, 2),
-                        "interest_rate": 0.10,
-                        "labels": ["CFT_10%"],
-                    },
-                    {
-                        "installments": 12,
-                        "installment_amount": round(amount / 12 * 1.15, 2),
-                        "total_amount": round(amount * 1.15, 2),
-                        "interest_rate": 0.15,
-                        "labels": ["CFT_15%"],
-                    },
-                ],
-            },
-            {
-                "payment_method_id": "amex",
-                "payment_type_id": "credit_card",
-                "name": "American Express",
-                "secure_thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/amex.gif",
-                "thumbnail": "https://www.mercadopago.com/org-img/MP3/API/logos/amex.gif",
-                "payer_costs": [
-                    {
-                        "installments": 1,
-                        "installment_amount": round(amount, 2),
-                        "total_amount": round(amount, 2),
-                        "interest_rate": 0,
-                        "labels": [],
-                    },
-                    {
-                        "installments": 3,
-                        "installment_amount": round(amount / 3, 2),
-                        "total_amount": round(amount, 2),
-                        "interest_rate": 0,
-                        "labels": ["CFT_0%"],
-                    },
+                    {"installments": 1, "installment_amount": round(amount, 2), "total_amount": round(amount, 2), "interest_rate": 0, "labels": ["SIMULADO"]},
+                    {"installments": 3, "installment_amount": round(amount * 1.05 / 3, 2), "total_amount": round(amount * 1.05, 2), "interest_rate": 0.05, "labels": ["SIMULADO"]},
                 ],
             },
         ]
 
-    async def get_installments_by_card(
-        self,
-        amount: float,
-        bin_number: str,
-    ) -> dict[str, Any]:
-        """
-        Obtiene cuotas específicamente por número de tarjeta (BIN).
-        
-        Args:
-            amount: Monto total
-            bin_number: Primeros 6 dígitos de la tarjeta
-        
-        Returns:
-            Información de cuotas disponibles para esa tarjeta
-        """
-        return await self.get_installments(
-            amount=amount,
-            bin_number=bin_number,
-        )
+    async def get_installments(self, amount: float, bin_number: str) -> list[dict[str, Any]]:
+        if not bin_number or not bin_number.isdigit() or not 6 <= len(bin_number) <= 8:
+            raise ValueError("Ingresá entre 6 y 8 dígitos iniciales de la tarjeta para consultar las cuotas.")
 
-    async def calculate_installment_price(
-        self,
-        amount: float,
-        installments: int,
-        bin_number: Optional[str] = None,
-    ) -> dict[str, Any]:
-        """
-        Calcula el precio por cuota para un número específico de cuotas.
-        
-        Args:
-            amount: Monto total en ARS
-            installments: Número de cuotas (ej: 3, 6, 12)
-            bin_number: Primeros 6 dígitos de la tarjeta (opcional)
-        
-        Returns:
-            Dict con:
-                - installment_amount: Precio por cuota
-                - total_amount: Monto total con interés
-                - interest_rate: Tasa de interés aplicada
-                - tea: Tasa efectiva anual
-                - cft: Costo financiero total
-        """
-        if installments < 1:
-            raise ValueError("Las cuotas deben ser >= 1")
+        headers = {"Authorization": f"Bearer {self.access_token}", "Accept": "application/json"}
+        params = {"amount": f"{amount:.2f}", "bin": bin_number}
 
-        # Obtener información de cuotas disponibles
-        installments_info = await self.get_installments(
-            amount=amount,
-            bin_number=bin_number,
-        )
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                installments_response = await client.get(
+                    f"{self.base_url}/v1/payment_methods/installments",
+                    params=params,
+                    headers=headers,
+                )
+                installments_response.raise_for_status()
+                methods_response = await client.get(
+                    f"{self.base_url}/v1/payment_methods", headers=headers
+                )
+                methods_response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            detail = exc.response.text[:500]
+            logger.warning("Mercado Pago rechazó la consulta de cuotas: %s", detail)
+            raise MercadoPagoError("Mercado Pago no pudo informar cuotas para esa tarjeta.") from exc
+        except httpx.HTTPError as exc:
+            logger.exception("No se pudo conectar con Mercado Pago para consultar cuotas")
+            raise MercadoPagoError("No se pudo consultar Mercado Pago. Intentá nuevamente.") from exc
 
-        # Buscar la información para el número de cuotas solicitado
-        for payment_method in installments_info:
-            if isinstance(payment_method, dict):
-                payer_costs = payment_method.get("payer_costs", [])
-                for cost in payer_costs:
-                    if cost.get("installments") == installments:
-                        return {
-                            "installments": installments,
-                            "installment_amount": float(cost.get("installment_amount", 0)),
-                            "total_amount": float(cost.get("total_amount", amount)),
-                            "interest_rate": float(cost.get("installment_rate", 0)) * 100,
-                            "tea": float(cost.get("installment_rate", 0))
-                            * 100
-                            * 12,  # Aproximación
-                            "cft": float(cost.get("installment_rate", 0))
-                            * 100
-                            * 12,  # CFT aproximado
-                            "discount": float(cost.get("discount", 0)),
-                            "labels": cost.get("labels", []),
-                        }
+        raw_installments = installments_response.json()
+        if isinstance(raw_installments, dict):
+            raw_installments = raw_installments.get("payment_methods", [])
+        if not isinstance(raw_installments, list):
+            raise MercadoPagoError("Respuesta inválida de Mercado Pago al consultar cuotas.")
 
-        # Si no encuentra la opción, calcular manualmente
-        logger.warning(
-            f"No se encontró opción de {installments} cuotas en MP. "
-            f"Calculando manualmente."
-        )
+        catalog = methods_response.json()
+        metadata_by_id = {
+            method.get("id"): method
+            for method in catalog
+            if isinstance(method, dict) and method.get("id")
+        } if isinstance(catalog, list) else {}
+
+        return [self._format_method(method, metadata_by_id) for method in raw_installments if isinstance(method, dict)]
+
+    @staticmethod
+    def _format_method(method: dict[str, Any], metadata_by_id: dict[str, dict[str, Any]]) -> dict[str, Any]:
+        method_id = str(method.get("payment_method_id") or method.get("id") or "")
+        metadata = metadata_by_id.get(method_id, {})
+        payer_costs = []
+        for cost in method.get("payer_costs", []):
+            if not isinstance(cost, dict):
+                continue
+            installments = int(cost.get("installments", 0))
+            installment_amount = float(cost.get("installment_amount", 0))
+            if installments < 1 or installment_amount <= 0:
+                continue
+            # Mercado Pago expresa installment_rate como porcentaje (ej. 12.5).
+            rate_percent = float(cost.get("installment_rate") or 0)
+            payer_costs.append({
+                "installments": installments,
+                "installment_amount": installment_amount,
+                "total_amount": float(cost.get("total_amount") or installment_amount * installments),
+                "interest_rate": rate_percent / 100,
+                "labels": cost.get("labels") or [],
+            })
 
         return {
-            "installments": installments,
-            "installment_amount": round(amount / installments, 2),
-            "total_amount": amount,
-            "interest_rate": 0,
-            "tea": 0,
-            "cft": 0,
-            "discount": 0,
-            "labels": [],
-            "warning": "Cálculo manual - no verificado con MP",
+            "payment_method_id": method_id,
+            "payment_type_id": method.get("payment_type_id") or metadata.get("payment_type_id", "credit_card"),
+            "name": metadata.get("name") or method.get("name") or method_id,
+            "secure_thumbnail": metadata.get("secure_thumbnail") or metadata.get("thumbnail") or "",
+            "thumbnail": metadata.get("thumbnail") or "",
+            "payer_costs": payer_costs,
         }
