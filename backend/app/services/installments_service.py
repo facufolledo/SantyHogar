@@ -77,62 +77,73 @@ class InstallmentsService:
                 logger.info(f"🔧 DEBUG MODE: Retornando cuotas mock para ${amount}")
                 return self._get_mock_installments(amount)
             
-            params = {
-                "amount": str(amount),
-                "access_token": self.access_token,
-            }
-
-            if bin_number:
-                params["bin"] = bin_number
-
+            # Métodos de pago soportados
+            payment_methods = ["visa", "master", "amex"]
+            
+            # Si se especifica un método, usar solo ese
             if payment_method_id:
-                params["payment_method_id"] = payment_method_id
+                payment_methods = [payment_method_id]
+            
+            all_methods = []
+            
+            for method_id in payment_methods:
+                try:
+                    params = {
+                        "amount": str(amount),
+                        "payment_method_id": method_id,
+                        "access_token": self.access_token,
+                    }
 
-            url = f"{self.base_url}/v1/payment_methods/installments"
+                    if bin_number:
+                        params["bin"] = bin_number
 
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            }
+                    url = f"{self.base_url}/v1/payment_methods/installments"
 
-            try:
-                logger.info(
-                    f"Consultando cuotas MP: amount={amount}, "
-                    f"bin={bin_number}, method={payment_method_id}"
-                )
+                    headers = {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    }
 
-                # Crear sesión con adaptador custom
-                session = requests.Session()
-                session.mount('https://', SSLAdapter())
-                session.verify = False
-                
-                response = session.get(
-                    url,
-                    params=params,
-                    headers=headers,
-                    timeout=10,
-                )
+                    logger.info(
+                        f"Consultando cuotas MP: amount={amount}, "
+                        f"method={method_id}, bin={bin_number}"
+                    )
 
-                response.raise_for_status()
-                result = response.json()
+                    # Crear sesión con adaptador custom
+                    session = requests.Session()
+                    session.mount('https://', SSLAdapter())
+                    session.verify = False
+                    
+                    response = session.get(
+                        url,
+                        params=params,
+                        headers=headers,
+                        timeout=10,
+                    )
 
-                logger.info(f"Respuesta cuotas MP: {result}")
+                    response.raise_for_status()
+                    result = response.json()
 
-                # MP retorna un dict con la lista de métodos de pago
-                # Necesitamos retornar la lista directamente
-                if isinstance(result, dict) and "payment_methods" in result:
-                    return result.get("payment_methods", [])
-                elif isinstance(result, list):
-                    return result
-                else:
-                    logger.warning(f"Formato inesperado de MP: {type(result)}")
-                    return []
+                    logger.info(f"Respuesta cuotas MP para {method_id}: {result}")
 
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Error consultando MP: {str(e)}")
-                raise MercadoPagoError(
-                    f"Error al obtener cuotas de Mercado Pago: {str(e)}"
-                )
+                    # MP retorna un dict con la lista de métodos de pago
+                    if isinstance(result, dict) and "payment_methods" in result:
+                        methods = result.get("payment_methods", [])
+                        if methods:
+                            all_methods.extend(methods)
+                    elif isinstance(result, list):
+                        all_methods.extend(result)
+                        
+                except requests.exceptions.RequestException as e:
+                    logger.warning(f"Error consultando MP para {method_id}: {str(e)}")
+                    # Continuar con el siguiente método si falla uno
+                    continue
+            
+            if not all_methods:
+                logger.warning("No se obtuvieron métodos de pago de MP, usando mock")
+                return self._get_mock_installments(amount)
+            
+            return all_methods
 
         return await asyncio.to_thread(_call)
     
