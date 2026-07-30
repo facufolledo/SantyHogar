@@ -186,11 +186,11 @@ const ProductDetail = () => {
             </div>
           )}
 
-          {/* Payment options button */}
+          {/* Payment options button - No login required */}
           {product.stock > 0 && (
             <button
               onClick={() => setShowPaymentMethods(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 font-semibold rounded-xl transition-all mb-5"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-green-600 text-green-600 hover:bg-green-50 font-semibold rounded-xl transition-all mb-5"
             >
               <CreditCard size={18} />
               Ver medios de pago y cuotas
@@ -201,10 +201,10 @@ const ProductDetail = () => {
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <button onClick={handleAdd} disabled={product.stock <= 0 || product.price <= 0} className="flex-1 flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 disabled:opacity-40 disabled:cursor-not-allowed font-semibold py-3 rounded-xl transition-all">
               {!isLogged && product.stock > 0 && product.price > 0 ? <Lock size={18} /> : <ShoppingCart size={18} />}
-              {product.stock <= 0 ? 'Sin stock' : product.price <= 0 ? 'Consultar precio' : !isLogged ? 'Iniciá sesión para comprar' : 'Agregar al carrito'}
+              {product.stock <= 0 ? 'Sin stock' : product.price <= 0 ? 'Consultar precio' : !isLogged ? 'Inicia sesión para comprar' : 'Agregar al carrito'}
             </button>
             <button onClick={handleBuyNow} disabled={product.stock <= 0 || product.price <= 0} className="flex-1 bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all active:scale-95">
-              {product.stock <= 0 ? 'Sin stock' : product.price <= 0 ? 'Consultar precio' : !isLogged ? 'Registrate' : 'Comprar ahora'}
+              {product.stock <= 0 ? 'Sin stock' : product.price <= 0 ? 'Consultar precio' : !isLogged ? 'Registrate para comprar' : 'Comprar ahora'}
             </button>
           </div>
 
