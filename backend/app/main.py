@@ -338,10 +338,16 @@ def create_app() -> FastAPI:
         
         if not existing_customer.data:
             # Crear cliente minimal si no existe
+            # Usar email del body, no hardcodeado
+            customer_email = body.get("customer_email", "").strip()
+            if not customer_email:
+                # Si no viene email, generar uno único basado en el ID
+                customer_email = f"customer+{customer_id_str[:8]}@santyhogar.local"
+            
             customer_payload = {
                 "id_cliente": customer_id_str,
                 "nombre": body.get("customer_name", "Unnamed"),
-                "email": body.get("customer_email", "admin@santyhogar.com"),
+                "email": customer_email,
                 "telefono": body.get("customer_phone", ""),
                 "total_gastado": 0,
                 "cantidad_ordenes": 0,

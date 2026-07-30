@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-import { X, Loader, CreditCard, ChevronDown, LayoutGrid } from 'lucide-react';
+import { useState } from 'react';
+import { X, CreditCard, ChevronDown, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getApiBase } from '../api/config';
 
 interface InstallmentOption {
   installments: number;
@@ -86,81 +85,40 @@ const getDisplayName = (name: string): string => {
   return mapping[normalized] || name;
 };
 
+const FINANCING_PLANS = [
+  {
+    payment_method_id: 'visa',
+    payment_type_id: 'credit_card',
+    name: 'Visa',
+    installments: [1, 2, 3, 6, 12, 18, 24],
+  },
+  {
+    payment_method_id: 'naranjax',
+    payment_type_id: 'credit_card',
+    name: 'Naranja X',
+    installments: [1, 2, 3, 6],
+  },
+] as const;
+
+function getManualFinancing(amount: number): PaymentMethodInstallments[] {
+  return FINANCING_PLANS.map((plan) => ({
+    ...plan,
+    secure_thumbnail: '',
+    thumbnail: '',
+    payer_costs: plan.installments.map((installments) => ({
+      installments,
+      installment_amount: Math.round((amount / installments) * 100) / 100,
+      total_amount: amount,
+      interest_rate: 0,
+      labels: ['Sin interés'],
+    })),
+  }));
+}
+
 export default function PaymentMethodsModal({ amount, isOpen, onClose }: Props) {
-  const [methods, setMethods] = useState<PaymentMethodInstallments[]>([]);
-  const [binNumber, setBinNumber] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [expandedMethod, setExpandedMethod] = useState<string | null>(null);
   const [showAllMethods, setShowAllMethods] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setBinNumber('');
-      setMethods([]);
-      setError(null);
-      setExpandedMethod(null);
-      return;
-    }
-    if (binNumber.length >= 6) {
-      fetchInstallments();
-    } else {
-      setMethods([]);
-      setError(null);
-    }
-  }, [isOpen, amount, binNumber]);
-
-  const fetchInstallments = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setExpandedMethod(null);
-      
-      const apiBase = getApiBase();
-      if (!apiBase) {
-        setError('API no configurada');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(
-        `${apiBase}/api/installments/calculate?amount=${encodeURIComponent(amount)}&bin_number=${encodeURIComponent(binNumber)}`,
-        {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.detail || `Error ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      let methods_data: PaymentMethodInstallments[] = [];
-      
-      if (Array.isArray(data)) {
-        methods_data = data;
-      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
-        console.warn('Respuesta no es un array:', data);
-        if ('detail' in data) {
-          setError(data.detail);
-        } else {
-          setError('Formato de respuesta inesperado');
-        }
-        setLoading(false);
-        return;
-      }
-      
-      setMethods(methods_data);
-    } catch (err) {
-      console.error('Error fetching installments:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const methods = getManualFinancing(amount);
 
   // Filtrar y ordenar métodos
   const popularMethods = methods.filter(m => isPopularMethod(m.name));
@@ -194,7 +152,7 @@ export default function PaymentMethodsModal({ amount, isOpen, onClose }: Props) 
                 <CreditCard className="text-primary-600" size={20} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Medios de pago</h2>
+                <h2 className="text-xl font-bold text-gray-900">Financiación disponible</h2>
                 <p className="text-sm text-gray-500">
                   Monto: ${amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </p>
@@ -210,50 +168,10 @@ export default function PaymentMethodsModal({ amount, isOpen, onClose }: Props) 
 
           {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
-            <div className="mb-5 rounded-xl border border-primary-100 bg-primary-50 p-4">
-              <label htmlFor="installments-bin" className="block text-sm font-semibold text-gray-900">
-                Consultá las cuotas de tu tarjeta
-              </label>
-              <p className="mt-1 text-xs text-gray-600">
-                Ingresá los primeros 6 a 8 dígitos. Mercado Pago calcula las cuotas reales sin iniciar una compra.
-              </p>
-              <input
-                id="installments-bin"
-                inputMode="numeric"
-                autoComplete="cc-number"
-                maxLength={8}
-                value={binNumber}
-                onChange={(event) => setBinNumber(event.target.value.replace(/\D/g, '').slice(0, 8))}
-                placeholder="Ej.: 450995"
-                className="mt-3 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-              />
-              {binNumber.length > 0 && binNumber.length < 6 && (
-                <p className="mt-2 text-xs text-amber-700">Faltan {6 - binNumber.length} dígitos para consultar.</p>
-              )}
+            <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+              Cuotas sin interés calculadas sobre el precio publicado. La disponibilidad final se confirma en Mercado Pago al pagar.
             </div>
-
-            {binNumber.length < 6 ? (
-              <div className="text-center py-8 text-gray-500">
-                Ingresá el inicio de tu tarjeta para ver las cuotas disponibles.
-              </div>
-            ) : loading ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Loader className="animate-spin text-primary-600 mb-3" size={32} />
-                <p className="text-gray-500">Cargando opciones de pago...</p>
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-3">
-                  <X className="text-red-600" size={24} />
-                </div>
-                <p className="text-red-600 font-medium">Error al cargar</p>
-                <p className="text-gray-500 text-sm">{error}</p>
-              </div>
-            ) : methods.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                No hay opciones de pago disponibles
-              </div>
-            ) : (
+            {(
               <div className="space-y-6">
                 {/* Métodos populares - Plegables */}
                 {popularMethods.length > 0 && (
