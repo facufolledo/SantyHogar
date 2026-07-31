@@ -28,6 +28,13 @@ export default function AdminOrders() {
 
   useEffect(() => {
     loadOrders();
+    
+    // Polling automático cada 5 segundos
+    const interval = setInterval(() => {
+      loadOrders();
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const loadOrders = async () => {
