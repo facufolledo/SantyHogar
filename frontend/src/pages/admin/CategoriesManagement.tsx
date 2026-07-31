@@ -13,6 +13,7 @@ interface FormData {
   description: string;
   color: string;
   icon: string;
+  imageUrl?: string;
   order: number;
 }
 
@@ -25,9 +26,11 @@ const CategoriesManagement: React.FC = () => {
     description: "",
     color: "#3B82F6",
     icon: "",
+    imageUrl: "",
     order: 0,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Resetear formulario
@@ -37,6 +40,7 @@ const CategoriesManagement: React.FC = () => {
       description: "",
       color: "#3B82F6",
       icon: "",
+      imageUrl: "",
       order: 0,
     });
     setEditingId(null);
@@ -50,6 +54,41 @@ const CategoriesManagement: React.FC = () => {
       ...prev,
       [name]: name === "order" ? parseInt(value) || 0 : value,
     }));
+  };
+
+  // Subir imagen de categoría
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append("file", file);
+
+      const response = await fetch(`${API_URL}/api/categories/${editingId}/upload-image`, {
+        method: "POST",
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Error al subir imagen");
+      }
+
+      const data = await response.json();
+      setFormData((prev) => ({
+        ...prev,
+        imageUrl: data.url,
+      }));
+      setMessage({ type: "success", text: "Imagen subida exitosamente" });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al subir imagen";
+      setMessage({ type: "error", text: message });
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Crear categoría
@@ -70,6 +109,7 @@ const CategoriesManagement: React.FC = () => {
           description: formData.description || undefined,
           color: formData.color || undefined,
           icon: formData.icon || undefined,
+          imageUrl: formData.imageUrl || undefined,
           order: formData.order,
         }),
       });
@@ -98,6 +138,7 @@ const CategoriesManagement: React.FC = () => {
       description: category.description || "",
       color: category.color || "#3B82F6",
       icon: category.icon || "",
+      imageUrl: category.imageUrl || "",
       order: category.order,
     });
     setEditingId(category.id);
@@ -119,6 +160,7 @@ const CategoriesManagement: React.FC = () => {
           description: formData.description || undefined,
           color: formData.color || undefined,
           icon: formData.icon || undefined,
+          imageUrl: formData.imageUrl || undefined,
           order: formData.order,
         }),
       });
@@ -315,6 +357,35 @@ const CategoriesManagement: React.FC = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Imagen de categoría */}
+              {editingId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Imagen de Categoría
+                  </label>
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleImageUpload}
+                        disabled={uploading}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">PNG, JPEG o WEBP. Máximo 5MB</p>
+                    </div>
+                    {formData.imageUrl && (
+                      <img
+                        src={formData.imageUrl}
+                        alt="preview"
+                        className="w-16 h-16 object-cover rounded border border-gray-200"
+                      />
+                    )}
+                  </div>
+                  {uploading && <p className="text-sm text-blue-600 mt-2">Subiendo imagen...</p>}
+                </div>
+              )}
 
               {/* Botones */}
               <div className="flex gap-2 justify-end">

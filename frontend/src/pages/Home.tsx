@@ -43,12 +43,11 @@ const Home = () => {
   const categoryCards = useMemo(() => {
     return apiCategories.filter(c => c.active).map(cat => {
       const categoryProducts = products.filter(p => p.categoryId === cat.id || p.category === cat.slug);
-      const firstProductWithImage = categoryProducts.find(p => p.images && p.images.length > 0);
       return {
         id: cat.slug,
         name: cat.name,
         count: categoryProducts.length,
-        image: firstProductWithImage?.images[0] || 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=400&q=80',
+        image: cat.imageUrl || 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=400&q=80',
         color: cat.color || '#F97316'
       };
     });

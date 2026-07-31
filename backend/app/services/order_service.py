@@ -125,6 +125,26 @@ class OrderService:
                 f"No se pudo obtener numero_orden único: {last_err}"
             ) from last_err
 
+        # Actualizar o crear cliente con el teléfono
+        if req.customerEmail and req.customerPhone:
+            try:
+                # Verificar si el cliente existe
+                existing_customer = await self._db.get_customer_by_email(req.customerEmail)
+                
+                if existing_customer:
+                    # Actualizar cliente existente con el teléfono
+                    customer_id = existing_customer.get("id_cliente")
+                    await self._db.update_customer(
+                        customer_id,
+                        {"telefono": req.customerPhone}
+                    )
+                    logger.info(f"✅ Cliente {customer_id} actualizado con teléfono: {req.customerPhone}")
+                else:
+                    # Crear nuevo cliente si no existe
+                    logger.info(f"ℹ️ Cliente con email {req.customerEmail} no encontrado, se creó en la orden pero no en tabla clientes")
+            except Exception as e:
+                logger.warning(f"⚠️ Error actualizando/creando cliente: {e}")
+
         row = await self._db.get_order_by_id(order_id)
         if not row:
             raise DatabaseError("Orden creada pero no se pudo leer.")

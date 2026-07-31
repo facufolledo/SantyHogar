@@ -34,6 +34,7 @@ class CategoryResponse(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = None
     icon: Optional[str] = None
+    imageUrl: Optional[str] = None
     order: int = 0
     active: bool = True
     createdAt: str
@@ -47,6 +48,7 @@ class CreateCategoryRequest(BaseModel):
     description: Optional[str] = Field(default=None, max_length=1000)
     color: Optional[str] = Field(default=None, max_length=7)
     icon: Optional[str] = Field(default=None, max_length=50)
+    imageUrl: Optional[str] = Field(default=None, max_length=500)
     order: int = Field(default=0, ge=0)
 
     @field_validator("name", mode="before")
@@ -69,6 +71,7 @@ class UpdateCategoryRequest(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = Field(default=None, max_length=7)
     icon: Optional[str] = Field(default=None, max_length=50)
+    imageUrl: Optional[str] = Field(default=None, max_length=500)
     order: Optional[int] = Field(default=None, ge=0)
     active: Optional[bool] = None
 

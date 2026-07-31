@@ -193,16 +193,14 @@ const Cart = () => {
   // Limpiar carrito de productos sin stock o que no existen
   useEffect(() => {
     if (items.length > 0 && products.length > 0) {
-      const validItems = items.filter(item => {
-        const product = products.find(p => p.id === item.product.id);
-        return product && product.stock > 0;
-      });
+      const validProductIds = products.filter(p => p.stock > 0).map(p => p.id);
+      const validItems = items.filter(item => validProductIds.includes(item.product.id));
       
       if (validItems.length !== items.length) {
         cleanInvalid(products);
       }
     }
-  }, [products, items.length, cleanInvalid]);
+  }, [products.length, items.length, cleanInvalid]);
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'carrito', label: 'Mi carrito', icon: <ShoppingCart size={16} /> },

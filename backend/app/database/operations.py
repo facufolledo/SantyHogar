@@ -543,11 +543,14 @@ class DatabaseOperations:
             update_data = {k: v for k, v in customer_data.items() if v is not None}
             
             if not update_data:
+                logger.warning(f"No fields to update for customer {cid}")
                 return
             
-            self._client().table("clientes").update(update_data).eq(
+            logger.info(f"Updating customer {cid} with data: {update_data}")
+            result = self._client().table("clientes").update(update_data).eq(
                 "id_cliente", cid
             ).execute()
+            logger.info(f"Update result: {result}")
         except Exception as e:
             logger.exception("update_customer")
             self._raise_db_error(e)

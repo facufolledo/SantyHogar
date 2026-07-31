@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import type { Product } from '../data/products';
 
 export interface CartItem {
@@ -105,6 +105,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const total = state.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const count = state.items.reduce((sum, i) => sum + i.quantity, 0);
 
+  const cleanInvalid = useCallback((validProducts: Product[]) => {
+    dispatch({ type: 'CLEAN_INVALID', validProductIds: validProducts.map(p => p.id) });
+  }, []);
+
   return (
     <CartContext.Provider value={{
       items: state.items,
@@ -112,7 +116,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       removeItem: (id, size) => dispatch({ type: 'REMOVE_ITEM', id, size }),
       updateQty: (id, quantity, size) => dispatch({ type: 'UPDATE_QTY', id, quantity, size }),
       clearCart: () => dispatch({ type: 'CLEAR' }),
-      cleanInvalid: (validProducts) => dispatch({ type: 'CLEAN_INVALID', validProductIds: validProducts.map(p => p.id) }),
+      cleanInvalid,
       total,
       count,
     }}>

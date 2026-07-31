@@ -12,6 +12,7 @@ export interface Category {
   description?: string;
   color?: string;
   icon?: string;
+  imageUrl?: string;
   order: number;
   active: boolean;
   createdAt: string;

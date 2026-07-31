@@ -99,6 +99,14 @@ const Checkout = () => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ VALIDACIÓN DE STOCK - Verificar si hay items sin stock
+    const outOfStockItems = items.filter(({ product }) => product.stock <= 0);
+    if (outOfStockItems.length > 0) {
+      toast(`⚠️ ${outOfStockItems.length === 1 ? 'El producto' : 'Los productos'} ${outOfStockItems.map(i => i.product.name).join(', ')} ya no tiene stock. Por favor actualizá tu carrito.`, 'error');
+      return;
+    }
+    
     if (user?.customerId && selectedAddressId === 'new') {
       const isDifferent = !savedAddresses.some(addr => 
         addr.street.trim().toLowerCase() === shippingAddress.street.trim().toLowerCase()
@@ -432,7 +440,7 @@ const Checkout = () => {
                     </a>
                   </div>
                   <p className="text-xs text-gray-400 mt-3">
-                    Te avisaremos por email cuando tu pedido esté listo para retirar.
+                    Te avisaremos por WhatsApp cuando tu pedido esté listo para retirar.
                   </p>
                 </div>
 
@@ -526,7 +534,7 @@ const Checkout = () => {
                 <Clock size={15} className="flex-shrink-0" />
                 <span>{DEPOSITO.hours}</span>
               </div>
-              <p className="text-xs text-green-600">Te avisaremos por email cuando esté listo para retirar.</p>
+              <p className="text-xs text-green-600">Te avisaremos por WhatsApp cuando esté listo para retirar.</p>
             </div>
 
             <div className="flex gap-3 justify-center">

@@ -4,7 +4,7 @@ import uuid
 from typing import List
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, File, UploadFile, status
 from uuid import UUID
 
 from app.database.connection import get_supabase_client
@@ -12,7 +12,10 @@ from app.models.schemas import (
     CategoryResponse,
     CreateCategoryRequest,
     UpdateCategoryRequest,
+    ImageUploadResponse,
 )
+from app.services.image_service import ImageService
+from app.deps import get_image_service
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +25,23 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 def generate_slug(name: str) -> str:
     """Genera un slug a partir del nombre de la categoría."""
     return name.lower().replace(" ", "-").replace("_", "-")
+
+
+def _category_to_response(cat: dict) -> CategoryResponse:
+    """Convierte un registro de categoría a CategoryResponse."""
+    return CategoryResponse(
+        id=UUID(cat["id_categoria"]),
+        name=cat["nombre"],
+        slug=cat["slug"],
+        description=cat.get("descripcion"),
+        color=cat.get("color"),
+        icon=cat.get("icono"),
+        imageUrl=cat.get("image_url"),
+        order=cat.get("orden", 0),
+        active=cat.get("activo", True),
+        createdAt=cat["fecha_creacion"],
+        updatedAt=cat["fecha_actualizacion"],
+    )
 
 
 # ────────────────────────────────────────────────────────────────────────
@@ -58,23 +78,7 @@ async def list_categories(
         if not response.data:
             return []
         
-        # Formatear respuesta
-        categories = []
-        for cat in response.data:
-            categories.append(CategoryResponse(
-                id=UUID(cat["id_categoria"]),
-                name=cat["nombre"],
-                slug=cat["slug"],
-                description=cat.get("descripcion"),
-                color=cat.get("color"),
-                icon=cat.get("icono"),
-                order=cat.get("orden", 0),
-                active=cat.get("activo", True),
-                createdAt=cat["fecha_creacion"],
-                updatedAt=cat["fecha_actualizacion"],
-            ))
-        
-        return categories
+        return [_category_to_response(cat) for cat in response.data]
         
     except Exception as e:
         logger.error(f"Error listing categories: {e}")
@@ -130,6 +134,7 @@ async def create_category(request: CreateCategoryRequest):
             "descripcion": request.description,
             "color": request.color,
             "icono": request.icon,
+            "image_url": request.imageUrl,
             "orden": request.order,
             "activo": True,
             "fecha_creacion": now,
@@ -141,20 +146,7 @@ async def create_category(request: CreateCategoryRequest):
         if not response.data:
             raise HTTPException(status_code=400, detail="Error al crear categoría")
         
-        cat = response.data[0]
-        return CategoryResponse(
-            id=UUID(cat["id_categoria"]),
-            name=cat["nombre"],
-            slug=cat["slug"],
-            description=cat.get("descripcion"),
-            color=cat.get("color"),
-            icon=cat.get("icono"),
-            order=cat.get("orden", 0),
-            active=cat.get("activo", True),
-            createdAt=cat["fecha_creacion"],
-            updatedAt=cat["fecha_actualizacion"],
-        )
-        
+        return _category_to_response(response.data[0])
     except HTTPException:
         raise
     except Exception as e:
@@ -187,19 +179,7 @@ async def get_category(category_id: UUID):
         if not response.data:
             raise HTTPException(status_code=404, detail="Categoría no encontrada")
         
-        cat = response.data[0]
-        return CategoryResponse(
-            id=UUID(cat["id_categoria"]),
-            name=cat["nombre"],
-            slug=cat["slug"],
-            description=cat.get("descripcion"),
-            color=cat.get("color"),
-            icon=cat.get("icono"),
-            order=cat.get("orden", 0),
-            active=cat.get("activo", True),
-            createdAt=cat["fecha_creacion"],
-            updatedAt=cat["fecha_actualizacion"],
-        )
+        return _category_to_response(response.data[0])
         
     except HTTPException:
         raise
@@ -256,6 +236,8 @@ async def update_category(
             updates["color"] = request.color
         if request.icon is not None:
             updates["icono"] = request.icon
+        if request.imageUrl is not None:
+            updates["image_url"] = request.imageUrl
         if request.order is not None:
             updates["orden"] = request.order
         if request.active is not None:
@@ -272,19 +254,7 @@ async def update_category(
         if not response.data:
             raise HTTPException(status_code=400, detail="Error al actualizar categoría")
         
-        cat = response.data[0]
-        return CategoryResponse(
-            id=UUID(cat["id_categoria"]),
-            name=cat["nombre"],
-            slug=cat["slug"],
-            description=cat.get("descripcion"),
-            color=cat.get("color"),
-            icon=cat.get("icono"),
-            order=cat.get("orden", 0),
-            active=cat.get("activo", True),
-            createdAt=cat["fecha_creacion"],
-            updatedAt=cat["fecha_actualizacion"],
-        )
+        return _category_to_response(response.data[0])
         
     except HTTPException:
         raise
@@ -338,3 +308,71 @@ async def delete_category(category_id: UUID):
     except Exception as e:
         logger.error(f"Error deleting category {category_id}: {e}")
         raise HTTPException(status_code=500, detail="Error al eliminar categoría")
+
+
+# ────────────────────────────────────────────────────────────────────────
+# POST /api/categories/{id}/upload-image - Subir imagen de categoría
+# ────────────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/{category_id}/upload-image",
+    response_model=ImageUploadResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_category_image(
+    category_id: UUID,
+    file: UploadFile = File(...),
+    image_service: ImageService = Depends(get_image_service),
+):
+    """
+    Sube una imagen para una categoría y actualiza image_url en la BD.
+    
+    Parámetros:
+    - category_id: ID de la categoría (UUID)
+    - file: Archivo de imagen (JPEG, PNG, WEBP, máx 5MB)
+    
+    Retorna: URL pública de la imagen subida
+    """
+    try:
+        client = get_supabase_client()
+        
+        # Verificar que la categoría existe
+        existing = client.table("categorias")\
+            .select("id_categoria")\
+            .eq("id_categoria", str(category_id))\
+            .execute()
+        
+        if not existing.data:
+            raise HTTPException(
+                status_code=404,
+                detail="Categoría no encontrada"
+            )
+        
+        # Subir imagen a Supabase Storage
+        url, filename = await image_service.upload_image(file)
+        
+        # Actualizar image_url en la BD
+        argentina_tz = timezone(timedelta(hours=-3))
+        now = datetime.now(argentina_tz).isoformat()
+        
+        update_response = client.table("categorias")\
+            .update({
+                "image_url": url,
+                "fecha_actualizacion": now,
+            })\
+            .eq("id_categoria", str(category_id))\
+            .execute()
+        
+        if not update_response.data:
+            raise HTTPException(
+                status_code=500,
+                detail="Error al actualizar imagen en BD"
+            )
+        
+        return ImageUploadResponse(url=url, filename=filename)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading category image: {e}")
+        raise HTTPException(status_code=500, detail="Error al subir imagen")
