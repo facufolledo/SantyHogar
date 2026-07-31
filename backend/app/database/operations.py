@@ -191,9 +191,11 @@ class DatabaseOperations:
         self, order_id: UUID, preference_id: str
     ) -> None:
         try:
-            self._client().table("ordenes").update({"id_preferencia": preference_id}).eq(
-                "id_orden", str(order_id)
-            ).execute()
+            # Actualizar ambas columnas para compatibilidad
+            self._client().table("ordenes").update({
+                "id_preferencia": preference_id,  # Para compatibilidad con migración 001
+                "id_preferencia_mp": preference_id  # Para migración 015
+            }).eq("id_orden", str(order_id)).execute()
         except Exception as e:
             logger.exception("update_order_preference_id")
             self._raise_db_error(e)
@@ -256,6 +258,19 @@ class DatabaseOperations:
         self, preference_id: str
     ) -> Optional[dict[str, Any]]:
         try:
+            # Buscar por id_preferencia_mp (migración 015) primero
+            res = (
+                self._client().table("ordenes")
+                .select("*")
+                .eq("id_preferencia_mp", preference_id)
+                .limit(1)
+                .execute()
+            )
+            rows = res.data or []
+            if rows:
+                return rows[0]
+            
+            # Si no encuentra, buscar por id_preferencia (migración 001) como fallback
             res = (
                 self._client().table("ordenes")
                 .select("*")

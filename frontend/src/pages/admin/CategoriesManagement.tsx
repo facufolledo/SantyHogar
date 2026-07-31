@@ -3,7 +3,7 @@
  * CRUD completo: crear, editar, eliminar y reordenar categorías
  */
 import React, { useState } from "react";
-import { useCategories, type Category } from "@/hooks/useCategories";
+import { useCategoriesAdmin, type CategoryAdmin } from "@/hooks/useCategoriesAdmin";
 import { Plus, Edit, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -18,7 +18,7 @@ interface FormData {
 }
 
 const CategoriesManagement: React.FC = () => {
-  const { categories, loading, error, refetch } = useCategories();
+  const { categories, loading, error, refetch } = useCategoriesAdmin();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
@@ -132,7 +132,7 @@ const CategoriesManagement: React.FC = () => {
   };
 
   // Editar categoría
-  const handleEdit = (category: Category) => {
+  const handleEdit = (category: CategoryAdmin) => {
     setFormData({
       name: category.name,
       description: category.description || "",
@@ -205,21 +205,45 @@ const CategoriesManagement: React.FC = () => {
   };
 
   // Cambiar orden (subir/bajar)
-  const handleReorder = async (category: Category, direction: "up" | "down") => {
-    const newOrder = direction === "up" ? category.order - 1 : category.order + 1;
-    if (newOrder < 0) return;
+  const handleReorder = async (category: CategoryAdmin, direction: "up" | "down") => {
+    const currentIndex = categories.findIndex(c => c.id === category.id);
+    if (currentIndex === -1) return;
 
+    // Determinar el índice con el que intercambiar
+    const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    
+    // Validar límites
+    if (swapIndex < 0 || swapIndex >= categories.length) return;
+
+    const swapCategory = categories[swapIndex];
+    
     try {
-      const response = await fetch(`${API_URL}/api/categories/${category.id}`, {
+      // Intercambiar órdenes entre las dos categorías
+      const response1 = await fetch(`${API_URL}/api/categories/${category.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: newOrder }),
+        body: JSON.stringify({ order: swapCategory.order }),
       });
 
-      if (!response.ok) throw new Error("Error reordenando");
-      await refetch();
+      const response2 = await fetch(`${API_URL}/api/categories/${swapCategory.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: category.order }),
+      });
+
+      if (!response1.ok || !response2.ok) {
+        throw new Error("Error reordenando");
+      }
+
+      setMessage({ type: "success", text: "Orden actualizado" });
+      
+      // Refetch después de un pequeño delay para asegurar que BD se actualizó
+      setTimeout(async () => {
+        await refetch();
+      }, 300);
     } catch (err) {
       setMessage({ type: "error", text: "Error al reordenar" });
+      console.error("Reorder error:", err);
     }
   };
 
@@ -232,15 +256,35 @@ const CategoriesManagement: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900">Gestión de Categorías</h1>
             <p className="text-gray-600 mt-1">Crea y administra las categorías de tu tienda</p>
           </div>
-          {!showForm && (
+          <div className="flex gap-2">
             <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              onClick={async () => {
+                try {
+                  const response = await fetch(`${API_URL}/api/categories/admin/resequence`, {
+                    method: "POST",
+                  });
+                  if (response.ok) {
+                    setMessage({ type: "success", text: "Órdenes reasignadas correctamente" });
+                    await refetch();
+                  }
+                } catch (err) {
+                  setMessage({ type: "error", text: "Error al reasignar órdenes" });
+                }
+              }}
+              className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm"
             >
-              <Plus size={20} />
-              Nueva Categoría
+              Ordenar automático
             </button>
-          )}
+            {!showForm && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                <Plus size={20} />
+                Nueva Categoría
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Mensaje */}
@@ -429,6 +473,7 @@ const CategoriesManagement: React.FC = () => {
               <thead className="bg-gray-100 border-b">
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Nombre</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Imagen</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Productos</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Orden</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Color</th>
@@ -440,7 +485,20 @@ const CategoriesManagement: React.FC = () => {
                 {categories.map((category) => (
                   <tr key={category.id} className="border-b hover:bg-gray-50 transition">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">-</td>
+                    <td className="px-6 py-4">
+                      {category.imageUrl ? (
+                        <img
+                          src={category.imageUrl}
+                          alt={category.name}
+                          className="w-12 h-12 object-cover rounded border border-gray-200"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400">Sin imagen</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      <span className="font-medium">{category.productCount ?? 0}</span>
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{category.order}</td>
                     <td className="px-6 py-4">
                       {category.color && (

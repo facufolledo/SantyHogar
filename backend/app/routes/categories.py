@@ -44,6 +44,88 @@ def _category_to_response(cat: dict) -> CategoryResponse:
     )
 
 
+# ════════════════════════════════════════════════════════════════════════
+# IMPORTANTE: Rutas más específicas deben ir ANTES que rutas genéricas
+# ════════════════════════════════════════════════════════════════════════
+
+from pydantic import BaseModel
+
+class CategoryWithCount(BaseModel):
+    id: str
+    name: str
+    slug: str
+    description: str | None
+    color: str | None
+    icon: str | None
+    imageUrl: str | None
+    order: int
+    active: bool
+    productCount: int
+
+
+# ────────────────────────────────────────────────────────────────────────
+# GET /api/categories/admin/list - Listar categorías con conteo de productos (para admin)
+# NOTA: Va ANTES que GET /api/categories para evitar que se matchee "/" primero
+# ────────────────────────────────────────────────────────────────────────
+
+@router.get("/admin/list", response_model=List[CategoryWithCount])
+async def list_categories_with_count():
+    """
+    Obtiene todas las categorías con el conteo de productos en cada una.
+    Usado por el panel de admin para mostrar conteos en la tabla.
+    
+    Retorna: Lista de categorías con productCount incluido
+    """
+    try:
+        client = get_supabase_client()
+        
+        # Obtener categorías
+        categories_response = client.table("categorias")\
+            .select("*")\
+            .order("orden")\
+            .execute()
+        
+        if not categories_response.data:
+            return []
+        
+        # Obtener productos
+        products_response = client.table("productos")\
+            .select("id_categoria")\
+            .execute()
+        
+        products = products_response.data or []
+        
+        # Contar productos por categoría
+        product_counts = {}
+        for product in products:
+            cat_id = product.get("id_categoria")
+            if cat_id:
+                product_counts[str(cat_id)] = product_counts.get(str(cat_id), 0) + 1
+        
+        # Construir respuesta con conteos
+        result = []
+        for cat in categories_response.data:
+            cat_id = str(cat["id_categoria"])
+            result.append(CategoryWithCount(
+                id=cat_id,
+                name=cat["nombre"],
+                slug=cat["slug"],
+                description=cat.get("descripcion"),
+                color=cat.get("color"),
+                icon=cat.get("icono"),
+                imageUrl=cat.get("image_url"),
+                order=cat.get("orden", 0),
+                active=cat.get("activo", True),
+                productCount=product_counts.get(cat_id, 0)
+            ))
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error listing categories with count: {e}")
+        raise HTTPException(status_code=500, detail="Error al listar categorías")
+
+
 # ────────────────────────────────────────────────────────────────────────
 # GET /api/categories - Listar todas las categorías activas
 # ────────────────────────────────────────────────────────────────────────
@@ -311,8 +393,51 @@ async def delete_category(category_id: UUID):
 
 
 # ────────────────────────────────────────────────────────────────────────
-# POST /api/categories/{id}/upload-image - Subir imagen de categoría
+# POST /api/categories/admin/resequence - Asignar órdenes secuenciales
 # ────────────────────────────────────────────────────────────────────────
+
+@router.post("/admin/resequence", status_code=status.HTTP_200_OK)
+async def resequence_categories():
+    """
+    Asigna órdenes secuenciales (0, 1, 2, ...) a todas las categorías
+    manteniendo el orden actual de la BD.
+    
+    Útil cuando hay categorías con órdenes duplicadas o sin asignar.
+    """
+    try:
+        client = get_supabase_client()
+        
+        # Obtener todas las categorías ordenadas por su orden actual
+        response = client.table("categorias")\
+            .select("id_categoria")\
+            .order("orden")\
+            .execute()
+        
+        if not response.data:
+            return {"message": "Sin categorías", "count": 0}
+        
+        # Asignar órdenes secuenciales
+        argentina_tz = timezone(timedelta(hours=-3))
+        now = datetime.now(argentina_tz).isoformat()
+        
+        for index, cat in enumerate(response.data):
+            client.table("categorias")\
+                .update({
+                    "orden": index,
+                    "fecha_actualizacion": now
+                })\
+                .eq("id_categoria", cat["id_categoria"])\
+                .execute()
+        
+        logger.info(f"✓ Resequenced {len(response.data)} categories")
+        return {
+            "message": f"Órdenes reasignadas a {len(response.data)} categorías",
+            "count": len(response.data)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error resequencing categories: {e}")
+        raise HTTPException(status_code=500, detail="Error al reasignar órdenes")
 
 @router.post(
     "/{category_id}/upload-image",

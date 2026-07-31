@@ -1,11 +1,11 @@
 /**
- * Hook para gestionar categorías dinámicas
- * Obtiene la lista de categorías desde la API
+ * Hook para gestionar categorías en el panel de admin
+ * Obtiene categorías CON conteo de productos desde /api/categories/admin/list
  */
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api/client";
 
-export interface Category {
+export interface CategoryAdmin {
   id: string;
   name: string;
   slug: string;
@@ -15,23 +15,18 @@ export interface Category {
   imageUrl?: string;
   order: number;
   active: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CategoryWithCount extends Category {
   productCount: number;
 }
 
-interface UseCategoriesReturn {
-  categories: Category[];
+interface UseCategoriesAdminReturn {
+  categories: CategoryAdmin[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
 
-export const useCategories = (): UseCategoriesReturn => {
-  const [categories, setCategories] = useState<Category[]>([]);
+export const useCategoriesAdmin = (): UseCategoriesAdminReturn => {
+  const [categories, setCategories] = useState<CategoryAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,12 +35,12 @@ export const useCategories = (): UseCategoriesReturn => {
       setLoading(true);
       setError(null);
 
-      const data = await apiFetch<Category[]>("/api/categories");
+      const data = await apiFetch<CategoryAdmin[]>("/api/categories/admin/list");
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
-      console.error("Error fetching categories:", err);
+      console.error("Error fetching admin categories:", err);
     } finally {
       setLoading(false);
     }
@@ -63,4 +58,4 @@ export const useCategories = (): UseCategoriesReturn => {
   };
 };
 
-export default useCategories;
+export default useCategoriesAdmin;

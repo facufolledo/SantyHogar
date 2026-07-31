@@ -17,7 +17,10 @@ def cancel_expired_orders():
     - Reduce queries de 1+N+M a ~3 queries totales
     """
     supabase = get_supabase_client()
-    now = datetime.now(timezone.utc)
+    # IMPORTANTE: Usar la MISMA timezone que cuando se creó la orden (Argentina UTC-3)
+    from datetime import timedelta
+    argentina_tz = timezone(timedelta(hours=-3))
+    now = datetime.now(argentina_tz)
     
     logger.info("🔍 Verificando órdenes expiradas (optimizado con JOINs)...")
     
@@ -105,31 +108,29 @@ def cancel_expired_orders():
             except Exception as e:
                 logger.error(f"   ❌ Error actualizando stock {prod_id}: {e}")
         
-        # 4. Eliminar items Y órdenes en batch
+        # 4. Marcar órdenes como "cancelada" (en lugar de eliminarlas)
         orden_ids = [o["id_orden"] for o in expired_orders]
         
-        logger.info(f"🗑️  Eliminando órdenes ({len(orden_ids)})...")
+        logger.info(f"🗑️  Marcando órdenes como canceladas ({len(orden_ids)})...")
         
         try:
-            # Eliminar todos los items de órdenes expiradas de una vez
-            for orden_id in orden_ids:
-                supabase.table("items_orden").delete().eq(
-                    "id_orden", orden_id
-                ).execute()
+            # Marcar órdenes como canceladas EN LUGAR DE ELIMINARLAS
+            # Esto permite que el webhook aún pueda procesarlas si llega el pago tarde
+            from datetime import datetime, timedelta, timezone
+            argentina_tz = timezone(timedelta(hours=-3))
+            now = datetime.now(argentina_tz).isoformat()
             
-            logger.info(f"   ✓ Items eliminados")
-            
-            # Eliminar órdenes
             for orden_id in orden_ids:
-                supabase.table("ordenes").delete().eq(
-                    "id_orden", orden_id
-                ).execute()
+                supabase.table("ordenes").update({
+                    "estado": "cancelada",
+                    "fecha_actualizacion": now
+                }).eq("id_orden", orden_id).execute()
                 expired_count += 1
             
-            logger.info(f"   ✅ {expired_count} órdenes eliminadas")
+            logger.info(f"   ✅ {expired_count} órdenes marcadas como canceladas")
             
         except Exception as e:
-            logger.error(f"   ❌ Error eliminando: {e}")
+            logger.error(f"   ❌ Error marcando órdenes como canceladas: {e}")
         
         logger.info(f"\n✅ Completado: {expired_count} órdenes canceladas")
         logger.info(f"   Queries usadas: ~3 (antes: 1 + N + M)")

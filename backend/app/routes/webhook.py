@@ -102,25 +102,34 @@ async def mercadopago_webhook(
     external_reference = payment_data.get("external_reference")
     preference_id = payment_data.get("preference_id")
     
+    logger.info(f"Webhook búsqueda de orden: external_reference={external_reference}, preference_id={preference_id}")
+    
     order = None
     if preference_id:
         try:
             order = await order_service.get_order_by_preference_id(preference_id)
+            if order:
+                logger.info(f"✓ Orden encontrada por preference_id: {order.id}")
         except Exception as e:
             logger.warning(f"No se encontró orden por preference_id {preference_id}: {e}")
     
     if not order and external_reference:
         try:
             order = await order_service.get_order_by_id(UUID(external_reference))
+            if order:
+                logger.info(f"✓ Orden encontrada por external_reference: {order.id}")
         except Exception as e:
             logger.warning(f"No se encontró orden por external_reference {external_reference}: {e}")
 
     if not order:
-        logger.warning(f"Webhook: orden no encontrada para pago {payment_id}")
+        logger.error(f"❌ Webhook: orden NO encontrada para pago {payment_id} (ext_ref={external_reference}, pref={preference_id})")
         return {"status": "ok"}
 
+    logger.info(f"✓ Orden encontrada: {order.id} (estado actual: {order.status})")
+
     # Evitar procesamiento doble (idempotencia)
-    if skip_webhook_side_effects(order.status):
+    # Permitir procesar órdenes en estado "cancelada" si llega el pago (pueden recuperarse)
+    if skip_webhook_side_effects(order.status) and order.status != "cancelada":
         logger.info(f"Webhook: orden {order.id} ya fue procesada (estado: {order.status})")
         return {"status": "ok"}
 
@@ -129,16 +138,18 @@ async def mercadopago_webhook(
     try:
         # Actualizar estado de la orden a "pagada"
         pref_key = order.preference_id or preference_id
+        logger.info(f"Attempting to update order: pref_key={pref_key}, new_status='pagada'")
+        
         if pref_key:
             await order_service.update_order_status_by_preference(
                 pref_key, "pagada", payment_id=str(payment_id)  # Changed: paid → pagada
             )
             logger.info(f"✅ Orden {order.id} marcada como pagada")
         else:
-            logger.warning(f"No se pudo actualizar orden {order.id}: sin preference_id")
+            logger.error(f"❌ No se pudo actualizar orden {order.id}: sin preference_id (order.preference_id={order.preference_id}, payment_data.preference_id={preference_id})")
     
     except Exception as e:
-        logger.error(f"Error actualizando orden {order.id}: {str(e)}")
+        logger.error(f"❌ Error actualizando orden {order.id}: {str(e)}", exc_info=True)
         # No fallar, responder OK de todas formas
 
     try:
