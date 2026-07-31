@@ -97,22 +97,7 @@ const Navbar = () => {
   return (
     <>
       <div className="sticky top-0 z-50">
-        {/* Barra de confianza */}
-        <div className={`hidden md:block ${NAV_BG} backdrop-blur-lg text-gray-400 text-xs py-1.5 px-4 border-b ${NAV_BORDER}`}>
-          <div className="max-w-7xl mx-auto flex items-center justify-center gap-6">
-            <span className="flex items-center gap-1.5">
-              <Truck size={12} className="text-orange-400" />
-              Envíos a todo el país
-            </span>
-            <span className="text-gray-600">·</span>
-            <span className="flex items-center gap-1.5">
-              <CreditCard size={12} className="text-orange-400" />
-              Hasta 12 cuotas sin interés
-            </span>
-            <span className="text-gray-600">·</span>
-            <span>Atención al cliente: 351-200-5937 | santyhogarcba@gmail.com</span>
-          </div>
-        </div>
+
 
         <header className={`${NAV_BG} backdrop-blur-lg border-b ${NAV_BORDER} transition-all duration-300 ${scrolled ? 'shadow-2xl shadow-black/30' : 'shadow-lg shadow-black/20'}`}>
           {/* Main bar */}
@@ -370,12 +355,6 @@ const Navbar = () => {
                 className={`md:hidden overflow-hidden bg-[#111827] border-t ${NAV_BORDER}`}
               >
                 <div className="px-4 py-3 space-y-1">
-                  {/* Trust info mobile */}
-                  <div className={`flex flex-col gap-1 pb-3 mb-2 border-b ${NAV_BORDER} text-xs text-gray-400`}>
-                    <span className="flex items-center gap-1.5"><Truck size={12} className="text-orange-400" /> Envíos a todo el país</span>
-                    <span className="flex items-center gap-1.5"><CreditCard size={12} className="text-orange-400" /> Hasta 12 cuotas sin interés</span>
-                  </div>
-
                   {isLogged && (
                     <div className={`flex items-center gap-3 py-3 border-b ${NAV_BORDER} mb-2`}>
                       <div className="w-9 h-9 bg-primary-600 rounded-full flex items-center justify-center text-white text-sm font-bold">

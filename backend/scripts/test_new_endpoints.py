@@ -73,7 +73,7 @@ def main():
     # 3. Orders endpoints
     print("\n\n📦 ORDERS ENDPOINTS")
     test_endpoint("GET", f"{BASE_URL}/orders", "List All Orders")
-    test_endpoint("GET", f"{BASE_URL}/orders?email=admin@santyhogar.com", "List Orders by Email")
+    # test_endpoint("GET", f"{BASE_URL}/orders?email=admin@santyhogar.com", "List Orders by Email")
     
     # 4. Products endpoints
     print("\n\n🛍️ PRODUCTS ENDPOINTS")

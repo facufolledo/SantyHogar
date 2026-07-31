@@ -131,13 +131,6 @@ export default function AuthModal({ onClose, onSuccess }: Props) {
             </div>
           </div>
 
-          {/* Hint for demo */}
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 text-xs text-blue-700">
-            <p className="font-semibold mb-0.5">Cuentas de prueba:</p>
-            <p>Admin: admin@santyhogar.com / admin123</p>
-            <p>Cliente: maria@email.com / 123456</p>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-3">
             <AnimatePresence>
               {mode === 'register' && (
