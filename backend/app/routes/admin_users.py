@@ -134,7 +134,7 @@ async def create_admin_user(request: CreateAdminRequest):
                 detail="La contraseña maestra no está configurada. Configura ADMIN_MASTER_PASSWORD en backend/.env"
             )
         
-        if request.master_password != config.admin_master_password:
+        if request.master_password.strip() != config.admin_master_password.strip():
             raise HTTPException(
                 status_code=403,
                 detail="Contraseña maestra incorrecta"
@@ -222,7 +222,7 @@ async def delete_admin_user(user_id: str, request: DeleteAdminRequest):
                 detail="La contraseña maestra no está configurada"
             )
         
-        if request.master_password != config.admin_master_password:
+        if request.master_password.strip() != config.admin_master_password.strip():
             raise HTTPException(
                 status_code=403,
                 detail="Contraseña maestra incorrecta"

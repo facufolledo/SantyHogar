@@ -448,7 +448,19 @@ class DatabaseOperations:
 
     def _update_order_status_by_id_sync(self, order_id: UUID, status: str) -> None:
         try:
-            self._client().table("ordenes").update({"estado": status}).eq(
+            # Mapear estado de inglés a español para guardar en BD
+            reverse_status_map = {
+                "pending": "pendiente_pago",
+                "paid": "pagada",
+                "cancelled": "cancelada",
+                # Aceptar también valores ya en español
+                "pendiente_pago": "pendiente_pago",
+                "pagada": "pagada",
+                "cancelada": "cancelada",
+            }
+            db_status = reverse_status_map.get(status, "pendiente_pago")
+            
+            self._client().table("ordenes").update({"estado": db_status}).eq(
                 "id_orden", str(order_id)
             ).execute()
         except Exception as e:

@@ -20,6 +20,13 @@ from app.utils.validation import (
 PaymentMethodLiteral = List  # Placeholder
 OrderStatusLiteral = List  # Placeholder
 
+# Status mapping: español (DB) -> inglés (API)
+STATUS_MAPPING = {
+    "pendiente_pago": "pending",
+    "pagada": "paid",
+    "cancelada": "cancelled",
+}
+
 
 # ================================================================== #
 # CATEGORÍAS
