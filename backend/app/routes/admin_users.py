@@ -174,10 +174,16 @@ async def create_admin_user(request: CreateAdminRequest):
         
         if response.status_code == 422:
             error_data = response.json()
-            if 'already registered' in str(error_data).lower():
+            error_msg = str(error_data)
+            if 'already registered' in error_msg.lower():
                 raise HTTPException(status_code=400, detail="Este email ya está registrado")
+            # Retornar el error de Supabase más específico
+            raise HTTPException(status_code=422, detail=f"Error de validación: {error_msg}")
         
-        response.raise_for_status()
+        if response.status_code >= 400:
+            error_data = response.json()
+            raise HTTPException(status_code=response.status_code, detail=f"Error de Supabase: {str(error_data)}")
+        
         user_data = response.json()
         
         return AdminUserResponse(
@@ -192,14 +198,35 @@ async def create_admin_user(request: CreateAdminRequest):
     except httpx.RequestError as e:
         raise HTTPException(status_code=500, detail=f"Error al comunicarse con Supabase: {str(e)}")
     except Exception as e:
+        import traceback
+        print(f"ERROR en create_admin_user: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error al crear usuario admin: {str(e)}")
 
 
+class DeleteAdminRequest(BaseModel):
+    """Request para eliminar un usuario admin."""
+    master_password: str  # Contraseña maestra para autorizar la eliminación
+
+
 @router.delete("/{user_id}")
-async def delete_admin_user(user_id: str):
-    """Elimina un usuario admin."""
+async def delete_admin_user(user_id: str, request: DeleteAdminRequest):
+    """Elimina un usuario admin. Requiere contraseña maestra."""
     try:
         config = get_config()
+        
+        # Verificar contraseña maestra
+        if not config.admin_master_password:
+            raise HTTPException(
+                status_code=500,
+                detail="La contraseña maestra no está configurada"
+            )
+        
+        if request.master_password != config.admin_master_password:
+            raise HTTPException(
+                status_code=403,
+                detail="Contraseña maestra incorrecta"
+            )
         
         headers = {
             "apikey": config.supabase_key,

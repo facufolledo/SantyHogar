@@ -94,7 +94,7 @@ def create_app() -> FastAPI:
         title="Santy Hogar API",
         description="Backend e-commerce: productos, órdenes y Mercado Pago.",
         # Subí este número cuando cambien rutas visibles en /docs (así ves si el proceso cargó el código nuevo).
-        version="1.0.1",
+        version="1.0.2",
         lifespan=lifespan,
     )
 
