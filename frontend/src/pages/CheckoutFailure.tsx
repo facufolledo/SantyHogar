@@ -10,7 +10,6 @@ export default function CheckoutFailure() {
 
   useEffect(() => {
     // Opcional: Trackear fallo en analytics
-    console.log('❌ Pago fallido:', { paymentId, externalReference });
   }, [paymentId, externalReference]);
 
   return (

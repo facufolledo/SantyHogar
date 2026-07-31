@@ -36,7 +36,6 @@ export default function CheckoutSuccess() {
     // Refrescar productos para reflejar stock actualizado
     refetch();
 
-    console.log('✅ Pago exitoso:', { paymentId, externalReference });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

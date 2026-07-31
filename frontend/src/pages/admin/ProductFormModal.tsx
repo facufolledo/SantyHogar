@@ -103,7 +103,6 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
           images: form.images.length > 0 ? form.images : undefined,
           specs: Object.keys(form.specifications).length > 0 ? form.specifications : undefined,
         };
-        console.log('📤 Enviando producto:', createData);
         await createProduct(createData);
         alert('✅ Producto creado correctamente');
       }
@@ -794,14 +793,11 @@ function SpecificationsTab({ specifications, setSpecifications, di }: Specificat
 function CategorySelect({ formCategory, setCategory, di }: { formCategory: string, setCategory: (val: string) => void, di: string }) {
   const { categories, loading, error } = useCategories();
   
-  console.log('🔍 CategorySelect - Categories loaded:', categories);
-  
   return (
     <Field label="Categoría">
       <select 
         value={formCategory} 
         onChange={e => {
-          console.log('📝 Selected category:', e.target.value);
           setCategory(e.target.value);
         }}
         className={di}

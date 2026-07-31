@@ -54,8 +54,6 @@ const ProductDetail = () => {
 
   // Debug logging
   console.log('📦 ProductDetail:', {
-    name: product.name,
-    description: product.description,
     descriptionTrim: product.description?.trim(),
     descriptionLength: product.description?.length,
     specs: product.specs,

@@ -10,7 +10,6 @@ export default function CheckoutPending() {
 
   useEffect(() => {
     // Opcional: Trackear pago pendiente en analytics
-    console.log('⏳ Pago pendiente:', { paymentId, externalReference });
   }, [paymentId, externalReference]);
 
   return (
