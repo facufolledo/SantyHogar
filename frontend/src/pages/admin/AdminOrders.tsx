@@ -6,16 +6,16 @@ import { formatDateArg } from '../../utils/dateUtils';
 import { fetchOrders, fetchOrderDetail, updateOrderStatus, type OrderStatus, type OrderList, type OrderDetail } from '../../api/ordersApi';
 
 const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-500/20 text-yellow-400',
-  paid: 'bg-green-500/20 text-green-400',
-  cancelled: 'bg-red-500/20 text-red-400',
+  pending_pago: 'bg-yellow-500/20 text-yellow-400',
+  pagada: 'bg-green-500/20 text-green-400',
+  cancelada: 'bg-red-500/20 text-red-400',
 };
 const statusLabels: Record<string, string> = {
-  pending: 'Pendiente',
-  paid: 'Pagado',
-  cancelled: 'Cancelado',
+  pending_pago: 'Pendiente',
+  pagada: 'Pagado',
+  cancelada: 'Cancelado',
 };
-const ALL_STATUSES: OrderStatus[] = ['pending', 'paid', 'cancelled'];
+const ALL_STATUSES: OrderStatus[] = ['pending_pago', 'pagada', 'cancelada'];
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<OrderList[]>([]);

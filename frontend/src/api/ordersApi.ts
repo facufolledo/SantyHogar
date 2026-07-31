@@ -1,6 +1,6 @@
 import { apiFetch } from './client';
 
-export type OrderStatus = 'pending' | 'paid' | 'cancelled';
+export type OrderStatus = 'pending_pago' | 'pagada' | 'cancelada';
 
 export interface OrderItem {
   id: string;

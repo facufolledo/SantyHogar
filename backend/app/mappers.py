@@ -128,19 +128,10 @@ def row_to_order(row: dict[str, Any]) -> Order:
     mp = row["metodo_pago"]
     if mp not in ("mp", "fiserv"):
         mp = "mp"
-    
     st = row["estado"]
-    # Mapear estados españoles a ingleses
-    status_map = {
-        "pendiente_pago": "pending",
-        "pagada": "paid",
-        "cancelada": "cancelled",
-        # Aceptar también valores ya en inglés
-        "pending": "pending",
-        "paid": "paid",
-        "cancelled": "cancelled",
-    }
-    mapped_status = status_map.get(st, "pending")
+    # Allowed states: pendiente_pago, pagada, cancelada
+    if st not in ("pendiente_pago", "pagada", "cancelada"):
+        st = "pendiente_pago"
 
     uid = row.get("id_usuario")
     return Order(
@@ -151,7 +142,7 @@ def row_to_order(row: dict[str, Any]) -> Order:
         customerPhone=row["telefono_cliente"],
         total=_f(row["total"]),
         paymentMethod=mp,  # type: ignore[arg-type]
-        status=mapped_status,  # type: ignore[arg-type]
+        status=st,  # type: ignore[arg-type]
         preference_id=row.get("id_preferencia"),
         payment_id=row.get("payment_id"),
         orderNumber=row["numero_orden"],
