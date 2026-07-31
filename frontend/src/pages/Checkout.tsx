@@ -331,9 +331,9 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {/* Dirección de envío */}
+                {/* Dirección de facturación */}
                 <div className="card p-6">
-                  <h2 className="font-bold text-gray-900 mb-4">Dirección de envío</h2>
+                  <h2 className="font-bold text-gray-900 mb-4">Dirección de facturación</h2>
                   
                   {user?.customerId && savedAddresses.length > 0 && (
                     <div className="mb-4">
