@@ -160,7 +160,11 @@ const Checkout = () => {
               province: shippingAddress.province,
               zip: shippingAddress.zip,
               isPrimary: savedAddresses.length === 0,
-            });
+              // Pasar datos del cliente para que el backend pueda crear el cliente si no existe
+              customer_name: form.name,
+              customer_email: form.email,
+              customer_phone: form.phone,
+            } as any);
           } catch (err) {
             console.error('Error guardando dirección:', err);
           }
@@ -216,7 +220,11 @@ const Checkout = () => {
                 province: shippingAddress.province,
                 zip: shippingAddress.zip,
                 isPrimary: savedAddresses.length === 0,
-              });
+                // Pasar datos del cliente para que el backend pueda crear el cliente si no existe
+                customer_name: form.name,
+                customer_email: form.email,
+                customer_phone: form.phone,
+              } as any);
             } catch (err) {
               console.error('Error guardando dirección:', err);
             }
