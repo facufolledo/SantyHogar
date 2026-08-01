@@ -5,7 +5,6 @@ import { ChevronRight, ChevronLeft, LayoutGrid } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import { useCategories } from '../hooks/useCategories';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
-import ProductCard from '../components/ProductCard';
 
 const Home = () => {
   const { products, loading: productsLoading } = useProducts();
@@ -52,11 +51,6 @@ const Home = () => {
       };
     });
   }, [apiCategories, products]);
-
-  const featured = useMemo(
-    () => products.filter(p => p.featured).slice(0, 8),
-    [products]
-  );
 
   useEffect(() => {
     if (slides.length === 0) return;
@@ -213,67 +207,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured products */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-2">Productos destacados</h2>
-              <p className="text-gray-600">Los mejores productos seleccionados para vos</p>
-            </div>
-            <Link 
-              to="/tienda" 
-              className="group flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold transition-colors duration-200 cursor-pointer"
-            >
-              Ver todos los productos 
-              <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform duration-200" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {productsLoading && featured.length === 0 ? (
-              <p className="col-span-full text-center text-gray-500 py-12">Cargando productos…</p>
-            ) : (
-            featured.map((p, i) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <ProductCard product={p} />
-              </motion.div>
-            ))
-            )}
-          </div>
-        </div>
-      </section>
 
-      {/* Banner CTA */}
-      <section className="relative overflow-hidden py-20 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-300 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="relative max-w-4xl mx-auto px-6 text-center">
-          <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-10 border border-white/20 shadow-2xl">
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
-              ¿Necesitás financiación?
-            </h2>
-            <p className="text-blue-100 text-lg md:text-xl mb-8 font-medium">
-              Hasta 12 cuotas sin interés con todos los bancos
-            </p>
-            <Link 
-              to="/tienda" 
-              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-10 py-4 rounded-xl transition-all duration-200 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
-            >
-              Ver productos <ChevronRight size={20} />
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };
