@@ -1,0 +1,63 @@
+════════════════════════════════════════════════════════════════════════════════
+                            ✅ FIX APLICADO
+════════════════════════════════════════════════════════════════════════════════
+
+❌ PROBLEMA:
+   ERROR 42601: syntax error at or near "UNIQUE"
+   CREATE INDEX idx_clientes_email ON clientes(email UNIQUE)
+   
+   PostgreSQL no reconoce esta sintaxis
+
+════════════════════════════════════════════════════════════════════════════════
+
+✅ SOLUCIÓN:
+   CREATE UNIQUE INDEX idx_clientes_email ON clientes(email)
+   
+   Sintaxis correcta para PostgreSQL/Supabase
+
+════════════════════════════════════════════════════════════════════════════════
+
+📝 CAMBIOS REALIZADOS:
+
+1. backend/database/migrations/010_add_performance_indexes.sql
+   ├─ Línea 24: idx_clientes_email
+   │  ANTES: CREATE INDEX IF NOT EXISTS idx_clientes_email ON clientes(email UNIQUE)
+   │  DESPUÉS: CREATE UNIQUE INDEX IF NOT EXISTS idx_clientes_email ON clientes(email)
+   │
+   └─ Línea 55: idx_usuarios_admin_email
+      ANTES: CREATE INDEX IF NOT EXISTS idx_usuarios_admin_email ON usuarios_admin(email UNIQUE)
+      DESPUÉS: CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_admin_email ON usuarios_admin(email)
+
+2. SUPABASE_SQL_CORREGIDO.sql (NUEVO)
+   └─ Archivo standalone con el SQL correcto
+   └─ Listo para copiar/pegar en Supabase
+
+════════════════════════════════════════════════════════════════════════════════
+
+🚀 PRÓXIMO PASO (AHORA):
+
+1. Abre: https://app.supabase.com
+2. Ve a: SQL Editor → New Query
+3. Abre archivo: SUPABASE_SQL_CORREGIDO.sql
+4. Copia TODO (Ctrl+A, Ctrl+C)
+5. Pega en Supabase (Ctrl+V)
+6. Click RUN
+7. Espera ✅ verde
+
+════════════════════════════════════════════════════════════════════════════════
+
+📊 COMMITS:
+   c3da219 fix: corregir sintaxis SQL de índices UNIQUE en PostgreSQL
+
+════════════════════════════════════════════════════════════════════════════════
+
+✨ ESTADO FINAL:
+
+Backend:   ✅ Validación integrada + Desplegando
+Database:  ✅ SQL corregido + Listo para ejecutar
+Docs:      ✅ SUPABASE_INDICES_CORREGIDO.md
+
+════════════════════════════════════════════════════════════════════════════════
+
+Ahora: Ejecuta el SQL en Supabase (2 minutos)
+════════════════════════════════════════════════════════════════════════════════

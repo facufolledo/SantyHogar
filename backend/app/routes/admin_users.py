@@ -1,0 +1,259 @@
+"""Rutas para gestión de usuarios admin."""
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import List
+import httpx
+from app.config import get_config
+from app.utils.validation import validate_password, validate_name
+
+# Force redeploy - using httpx instead of requests to avoid urllib3 conflicts
+router = APIRouter(prefix="/admin/users", tags=["admin-users"])
+
+
+class CreateAdminRequest(BaseModel):
+    """Request para crear un usuario admin."""
+    email: EmailStr
+    password: str
+    name: str
+    master_password: str  # Contraseña maestra para autorizar la creación
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        is_valid, error = validate_password(v)
+        if not is_valid:
+            raise ValueError(f"Contraseña débil: {error}")
+        return v
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def validate_admin_name(cls, v: str) -> str:
+        from app.utils.validation import validate_name
+        if not validate_name(v, min_len=2, max_len=100):
+            raise ValueError("Nombre inválido. Usa solo letras, espacios, guiones")
+        return v.strip()
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_admin_email(cls, v: str) -> str:
+        return v.strip().lower()
+
+
+class AdminUserResponse(BaseModel):
+    """Response con datos de un usuario admin."""
+    id: str
+    email: str
+    name: str
+    created_at: str
+
+
+@router.get("", response_model=List[AdminUserResponse])
+async def list_admin_users():
+    """
+    Lista todos los usuarios con rol admin.
+    
+    NOTA: Este endpoint requiere configurar SUPABASE_KEY con la service_role_key en .env
+    para acceder a la API de administración de Supabase.
+    """
+    try:
+        config = get_config()
+        
+        # Usar la API REST de Supabase para consultar auth.users
+        headers = {
+            "apikey": config.supabase_key,
+            "Authorization": f"Bearer {config.supabase_key}",
+        }
+        
+        # Consultar la API de admin de Supabase
+        url = f"{config.supabase_url}/auth/v1/admin/users"
+        print(f"DEBUG: Consultando {url}")
+        
+        async with httpx.AsyncClient(verify=False) as client:
+            response = await client.get(
+                url,
+                headers=headers,
+                timeout=10,
+            )
+        
+        print(f"DEBUG: Status code: {response.status_code}")
+        print(f"DEBUG: Response: {response.text[:500]}")
+        
+        if response.status_code == 403:
+            raise HTTPException(
+                status_code=500,
+                detail="No tienes permisos para listar usuarios. Verifica que SUPABASE_KEY sea la service_role_key"
+            )
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        # Filtrar solo admins
+        admins = []
+        users = data.get('users', []) if isinstance(data, dict) else data
+        
+        print(f"DEBUG: Total usuarios: {len(users)}")
+        
+        for user in users:
+            user_metadata = user.get('user_metadata', {})
+            role = user_metadata.get('role')
+            print(f"DEBUG: Usuario {user.get('email')} - rol: {role}")
+            
+            if role == 'admin':
+                admins.append(AdminUserResponse(
+                    id=user['id'],
+                    email=user.get('email', ''),
+                    name=user_metadata.get('name', 'Sin nombre'),
+                    created_at=user.get('created_at', ''),
+                ))
+        
+        print(f"DEBUG: Admins encontrados: {len(admins)}")
+        return admins
+        
+    except HTTPException:
+        raise
+    except httpx.RequestError as e:
+        print(f"ERROR: RequestError: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al comunicarse con Supabase: {str(e)}")
+    except Exception as e:
+        print(f"ERROR: Exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al listar usuarios admin: {str(e)}")
+
+
+@router.post("", response_model=AdminUserResponse)
+async def create_admin_user(request: CreateAdminRequest):
+    """Crea un nuevo usuario con rol admin."""
+    try:
+        config = get_config()
+        
+        # Verificar contraseña maestra
+        if not config.admin_master_password:
+            raise HTTPException(
+                status_code=500,
+                detail="La contraseña maestra no está configurada. Configura ADMIN_MASTER_PASSWORD en backend/.env"
+            )
+        
+        if request.master_password.strip() != config.admin_master_password.strip():
+            raise HTTPException(
+                status_code=403,
+                detail="Contraseña maestra incorrecta"
+            )
+        
+        # Validación de contraseña ya se hace en el field_validator
+        
+        headers = {
+            "apikey": config.supabase_key,
+            "Authorization": f"Bearer {config.supabase_key}",
+            "Content-Type": "application/json",
+        }
+        
+        payload = {
+            "email": request.email,
+            "password": request.password,
+            "email_confirm": True,
+            "user_metadata": {
+                "name": request.name,
+                "role": "admin",
+            }
+        }
+        
+        async with httpx.AsyncClient(verify=False) as client:
+            response = await client.post(
+                f"{config.supabase_url}/auth/v1/admin/users",
+                headers=headers,
+                json=payload,
+                timeout=10,
+            )
+        
+        if response.status_code == 403:
+            raise HTTPException(
+                status_code=500,
+                detail="No tienes permisos para crear usuarios. Necesitas configurar SUPABASE_KEY con la service_role_key en backend/.env"
+            )
+        
+        if response.status_code == 422:
+            error_data = response.json()
+            error_msg = str(error_data)
+            if 'already registered' in error_msg.lower():
+                raise HTTPException(status_code=400, detail="Este email ya está registrado")
+            # Retornar el error de Supabase más específico
+            raise HTTPException(status_code=422, detail=f"Error de validación: {error_msg}")
+        
+        if response.status_code >= 400:
+            error_data = response.json()
+            raise HTTPException(status_code=response.status_code, detail=f"Error de Supabase: {str(error_data)}")
+        
+        user_data = response.json()
+        
+        return AdminUserResponse(
+            id=user_data['id'],
+            email=user_data.get('email', ''),
+            name=request.name,
+            created_at=user_data.get('created_at', ''),
+        )
+        
+    except HTTPException:
+        raise
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Error al comunicarse con Supabase: {str(e)}")
+    except Exception as e:
+        import traceback
+        print(f"ERROR en create_admin_user: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al crear usuario admin: {str(e)}")
+
+
+class DeleteAdminRequest(BaseModel):
+    """Request para eliminar un usuario admin."""
+    master_password: str  # Contraseña maestra para autorizar la eliminación
+
+
+@router.delete("/{user_id}")
+async def delete_admin_user(user_id: str, request: DeleteAdminRequest):
+    """Elimina un usuario admin. Requiere contraseña maestra."""
+    try:
+        config = get_config()
+        
+        # Verificar contraseña maestra
+        if not config.admin_master_password:
+            raise HTTPException(
+                status_code=500,
+                detail="La contraseña maestra no está configurada"
+            )
+        
+        if request.master_password.strip() != config.admin_master_password.strip():
+            raise HTTPException(
+                status_code=403,
+                detail="Contraseña maestra incorrecta"
+            )
+        
+        headers = {
+            "apikey": config.supabase_key,
+            "Authorization": f"Bearer {config.supabase_key}",
+        }
+        
+        async with httpx.AsyncClient(verify=False) as client:
+            response = await client.delete(
+                f"{config.supabase_url}/auth/v1/admin/users/{user_id}",
+                headers=headers,
+                timeout=10,
+            )
+        
+        if response.status_code == 403:
+            raise HTTPException(
+                status_code=500,
+                detail="No tienes permisos para eliminar usuarios. Necesitas configurar SUPABASE_KEY con la service_role_key en backend/.env"
+            )
+        
+        response.raise_for_status()
+        
+        return {"message": "Usuario eliminado correctamente"}
+        
+    except HTTPException:
+        raise
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Error al comunicarse con Supabase: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al eliminar usuario: {str(e)}")
+

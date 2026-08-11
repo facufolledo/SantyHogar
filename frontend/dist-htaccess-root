@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# Si no es un archivo ni directorio real
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Redirigir todo a SantyHogar/index.html
+RewriteRule ^(.*)$ SantyHogar/index.html [L]
