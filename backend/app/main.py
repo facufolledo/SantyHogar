@@ -173,15 +173,15 @@ def create_app() -> FastAPI:
             
             # Filtro: excluir productos con stock = 0 Y precio = 0, o invisibles
             try:
-                stock = int(product.stock or 0)
-                price = float(product.price or 0)
-                visible = bool(product.get('visible', True))
+                stock = int(product.stock or 0) if hasattr(product, 'stock') else int(product.get('stock', 0) or 0)
+                price = float(product.price or 0) if hasattr(product, 'price') else float(product.get('price', 0) or 0)
+                visible = bool(product.visible) if hasattr(product, 'visible') else bool(product.get('visible', True))
                 
                 if stock == 0 and price == 0:
                     continue
                 if not visible:
                     continue
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, AttributeError):
                 pass  # Si hay error, incluir el producto
             
             results.append(product_to_response(product).model_dump(mode="json"))
@@ -209,15 +209,15 @@ def create_app() -> FastAPI:
             
             # Filtro: excluir productos con stock = 0 Y precio = 0, o invisibles
             try:
-                stock = int(product.stock or 0)
-                price = float(product.price or 0)
-                visible = bool(product.get('visible', True))
+                stock = int(product.stock or 0) if hasattr(product, 'stock') else int(product.get('stock', 0) or 0)
+                price = float(product.price or 0) if hasattr(product, 'price') else float(product.get('price', 0) or 0)
+                visible = bool(product.visible) if hasattr(product, 'visible') else bool(product.get('visible', True))
                 
                 if stock == 0 and price == 0:
                     continue
                 if not visible:
                     continue
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, AttributeError):
                 pass  # Si hay error, incluir el producto
             
             results.append(product_to_response(product).model_dump(mode="json"))
