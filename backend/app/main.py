@@ -160,18 +160,32 @@ def create_app() -> FastAPI:
             return {**_pagination([], page, limit), "query": q}
 
         products_data = await (await _product_service()).get_all_products()
-        results = [
-            product_to_response(product).model_dump(mode="json")
-            for product in products_data
-            if (term in product.name.lower()
+        results = []
+        
+        for product in products_data:
+            # Filtro de búsqueda
+            if not (term in product.name.lower()
                 or term in product.description.lower()
                 or term in product.category.lower()
                 or term in product.subcategory.lower()
-                or term in product.brand.lower())
+                or term in product.brand.lower()):
+                continue
+            
             # Filtro: excluir productos con stock = 0 Y precio = 0, o invisibles
-            and not (product.stock == 0 and product.price == 0)
-            and product.get('visible', True)
-        ]
+            try:
+                stock = int(product.stock or 0)
+                price = float(product.price or 0)
+                visible = bool(product.get('visible', True))
+                
+                if stock == 0 and price == 0:
+                    continue
+                if not visible:
+                    continue
+            except (ValueError, TypeError):
+                pass  # Si hay error, incluir el producto
+            
+            results.append(product_to_response(product).model_dump(mode="json"))
+        
         return {**_pagination(results, page, limit), "query": q}
 
     @app.get("/products/filter", tags=["products"])
@@ -192,11 +206,20 @@ def create_app() -> FastAPI:
                 continue
             if price_max is not None and product.price > price_max:
                 continue
+            
             # Filtro: excluir productos con stock = 0 Y precio = 0, o invisibles
-            if product.stock == 0 and product.price == 0:
-                continue
-            if not product.get('visible', True):
-                continue
+            try:
+                stock = int(product.stock or 0)
+                price = float(product.price or 0)
+                visible = bool(product.get('visible', True))
+                
+                if stock == 0 and price == 0:
+                    continue
+                if not visible:
+                    continue
+            except (ValueError, TypeError):
+                pass  # Si hay error, incluir el producto
+            
             results.append(product_to_response(product).model_dump(mode="json"))
 
         filters_applied = {

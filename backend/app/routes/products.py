@@ -45,11 +45,23 @@ async def list_products(
     all_products = await product_service.get_all_products()
     
     # Filtrar productos: excluir los que tengan stock = 0 Y precio = 0, o que no sean visibles
-    products = [
-        p for p in all_products
-        if not (p.get('stock', 0) == 0 and p.get('price', 0) == 0)
-        and p.get('visible', True)  # Mostrar solo si visible es True
-    ]
+    products = []
+    for p in all_products:
+        try:
+            stock = int(p.get('stock', 0) or 0)
+            price = float(p.get('price', 0) or 0)
+            visible = bool(p.get('visible', True))
+            
+            # Excluir si stock=0 AND precio=0, o si no es visible
+            if stock == 0 and price == 0:
+                continue
+            if not visible:
+                continue
+                
+            products.append(p)
+        except (ValueError, TypeError):
+            # Si hay error de conversión, incluir el producto
+            products.append(p)
     
     pager = PaginationService(page=page, limit=limit)
     paginated = pager.paginate(
