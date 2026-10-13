@@ -302,6 +302,18 @@ export async function deleteProduct(productId: string): Promise<void> {
   });
 }
 
+export interface ToggleVisibilityResponse {
+  id_producto: string;
+  visible: boolean;
+  message: string;
+}
+
+export async function toggleProductVisibility(productId: string): Promise<ToggleVisibilityResponse> {
+  return apiFetch<ToggleVisibilityResponse>(`/products/${productId}/visibility`, {
+    method: 'PATCH',
+  });
+}
+
 export interface ImageUploadResponse {
   url: string;
   filename: string;

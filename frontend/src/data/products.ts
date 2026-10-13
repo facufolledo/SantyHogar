@@ -23,6 +23,7 @@ export interface Product {
   brand: string;
   rating: number;
   reviews: number;
+  visible?: boolean; // Controls visibility in customer-facing pages
 }
 
 /** Metadatos de categorías (imagen / nombre); el conteo se calcula con la lista cargada desde la API. */

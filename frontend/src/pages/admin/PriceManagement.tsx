@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, DollarSign, Save, AlertCircle, Sliders, TrendingUp } from 'lucide-react';
+import { Search, DollarSign, Save, AlertCircle, Sliders, TrendingUp, Eye, EyeOff } from 'lucide-react';
 import { useProducts } from '../../context/ProductsContext';
 import { useCategoriesNav } from '../../hooks/useCategoriesNav';
 import { formatPrice } from '../../utils/format';
 import ProductsErrorBanner from '../../components/ProductsErrorBanner';
-import { updateProductPrice } from '../../api/productsApi';
+import { updateProductPrice, toggleProductVisibility } from '../../api/productsApi';
 
 export default function PriceManagement() {
   const { products, loading, error, refetch } = useProducts();
@@ -15,6 +15,7 @@ export default function PriceManagement() {
   const [filterNoPriceOnly, setFilterNoPriceOnly] = useState(true);
   const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const [togglingVisibility, setTogglingVisibility] = useState<Set<string>>(new Set());
 
   const getCategoryColor = (categorySlug: string): string => {
     const colors: Record<string, string> = {
@@ -96,6 +97,29 @@ export default function PriceManagement() {
       alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al actualizar el precio'}`);
     } finally {
       setSavingIds(prev => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+    }
+  };
+
+  const handleToggleVisibility = async (productId: string) => {
+    setTogglingVisibility(prev => new Set(prev).add(productId));
+
+    try {
+      await toggleProductVisibility(productId);
+      
+      // Refrescar la lista de productos
+      await refetch();
+      
+      // Mostrar mensaje de éxito
+      alert('✅ Visibilidad actualizada correctamente');
+    } catch (error) {
+      console.error('Error al cambiar visibilidad:', error);
+      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al cambiar la visibilidad'}`);
+    } finally {
+      setTogglingVisibility(prev => {
         const next = new Set(prev);
         next.delete(productId);
         return next;
@@ -339,23 +363,40 @@ export default function PriceManagement() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleSavePrice(product.id)}
-                          disabled={!isEditing || isSaving}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isSaving ? (
-                            <>
-                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              Guardando...
-                            </>
-                          ) : (
-                            <>
-                              <Save size={13} />
-                              Guardar
-                            </>
-                          )}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleSavePrice(product.id)}
+                            disabled={!isEditing || isSaving}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isSaving ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Guardando...
+                              </>
+                            ) : (
+                              <>
+                                <Save size={13} />
+                                Guardar
+                              </>
+                            )}
+                          </button>
+                          
+                          <button
+                            onClick={() => handleToggleVisibility(product.id)}
+                            disabled={togglingVisibility.has(product.id)}
+                            title={product.visible !== false ? 'Ocultar del catálogo' : 'Mostrar en catálogo'}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {togglingVisibility.has(product.id) ? (
+                              <div className="w-3 h-3 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+                            ) : product.visible !== false ? (
+                              <Eye size={13} />
+                            ) : (
+                              <EyeOff size={13} />
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </motion.tr>
                   );

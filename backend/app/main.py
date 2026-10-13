@@ -168,8 +168,9 @@ def create_app() -> FastAPI:
                 or term in product.category.lower()
                 or term in product.subcategory.lower()
                 or term in product.brand.lower())
-            # Filtro: excluir productos con stock = 0 Y precio = 0
+            # Filtro: excluir productos con stock = 0 Y precio = 0, o invisibles
             and not (product.stock == 0 and product.price == 0)
+            and product.get('visible', True)
         ]
         return {**_pagination(results, page, limit), "query": q}
 
@@ -191,8 +192,10 @@ def create_app() -> FastAPI:
                 continue
             if price_max is not None and product.price > price_max:
                 continue
-            # Filtro: excluir productos con stock = 0 Y precio = 0
+            # Filtro: excluir productos con stock = 0 Y precio = 0, o invisibles
             if product.stock == 0 and product.price == 0:
+                continue
+            if not product.get('visible', True):
                 continue
             results.append(product_to_response(product).model_dump(mode="json"))
 

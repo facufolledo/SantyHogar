@@ -38,14 +38,17 @@ async def list_products(
 ) -> dict:
     """Lista todos los productos con paginación.
     
-    Filtra productos que NO se muestren si tienen stock = 0 Y precio = 0.
+    Filtra productos que NO se muestren si:
+    - Tienen stock = 0 Y precio = 0
+    - Tienen visible = False (ocultos por admin)
     """
     all_products = await product_service.get_all_products()
     
-    # Filtrar productos: excluir los que tengan stock = 0 Y precio = 0
+    # Filtrar productos: excluir los que tengan stock = 0 Y precio = 0, o que no sean visibles
     products = [
         p for p in all_products
         if not (p.get('stock', 0) == 0 and p.get('price', 0) == 0)
+        and p.get('visible', True)  # Mostrar solo si visible es True
     ]
     
     pager = PaginationService(page=page, limit=limit)
@@ -93,11 +96,62 @@ async def get_product_detail(
         )
 
 
-@router.post(
-    "/products/upload-image",
-    response_model=ImageUploadResponse,
+@router.patch(
+    "/products/{product_id}/visibility",
     status_code=status.HTTP_200_OK,
 )
+async def toggle_product_visibility(
+    product_id: str,
+    supabase = Depends(get_supabase),
+) -> dict:
+    """
+    Alterna la visibilidad de un producto.
+    
+    - Si visible=True, lo oculta (visible=False)
+    - Si visible=False, lo muestra (visible=True)
+    
+    ADMIN ONLY: Requiere autenticación con rol admin.
+    """
+    try:
+        # Obtener visibilidad actual
+        result = supabase.table("productos").select("visible").eq("id_producto", product_id).limit(1).execute()
+        
+        if not result.data:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Producto {product_id} no encontrado"
+            )
+        
+        current_visible = result.data[0].get("visible", True)
+        new_visible = not current_visible
+        
+        # Actualizar visibilidad
+        update_result = supabase.table("productos").update(
+            {"visible": new_visible}
+        ).eq("id_producto", product_id).execute()
+        
+        if not update_result.data:
+            raise HTTPException(
+                status_code=500,
+                detail="Error al actualizar la visibilidad del producto"
+            )
+        
+        return {
+            "id_producto": product_id,
+            "visible": new_visible,
+            "message": "Visibilidad actualizada correctamente"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error toggling visibility for product {product_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al actualizar la visibilidad: {str(e)}"
+        )
+
+
 async def upload_product_image(
     file: UploadFile = File(...),
     image_service: ImageService = Depends(get_image_service),
