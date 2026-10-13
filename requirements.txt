@@ -31,6 +31,10 @@ hypothesis==6.98.3
 # Development
 python-dotenv==1.0.0
 
+# Security — password hashing
+passlib>=1.7.4
+bcrypt>=4.0.0
+
 # Document processing
 python-docx==1.1.0
 openpyxl==3.1.2
