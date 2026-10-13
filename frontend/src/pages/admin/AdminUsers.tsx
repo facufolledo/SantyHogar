@@ -17,8 +17,13 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+  
+  // Admin to delete
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; email: string } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -29,6 +34,10 @@ export default function AdminUsers() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showMasterPassword, setShowMasterPassword] = useState(false);
+  
+  // Delete confirmation state
+  const [deleteMasterPassword, setDeleteMasterPassword] = useState('');
+  const [showDeleteMasterPassword, setShowDeleteMasterPassword] = useState(false);
 
   useEffect(() => {
     loadAdminUsers();
@@ -62,8 +71,21 @@ export default function AdminUsers() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast('La contraseña debe tener al menos 6 caracteres', 'error');
+    // Validar contraseña más estricta
+    if (formData.password.length < 8) {
+      toast('La contraseña debe tener mínimo 8 caracteres', 'error');
+      return;
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      toast('La contraseña debe incluir al menos una mayúscula', 'error');
+      return;
+    }
+    if (!/[a-z]/.test(formData.password)) {
+      toast('La contraseña debe incluir al menos una minúscula', 'error');
+      return;
+    }
+    if (!/\d/.test(formData.password)) {
+      toast('La contraseña debe incluir al menos un número', 'error');
       return;
     }
 
@@ -95,25 +117,45 @@ export default function AdminUsers() {
     }
   };
 
-  const handleDeleteAdmin = async (userId: string, email: string) => {
-    if (!confirm(`¿Estás seguro de eliminar al admin ${email}?`)) {
+  const handleDeleteAdmin = (userId: string, email: string) => {
+    setDeleteTarget({ id: userId, email });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAdmin = async () => {
+    if (!deleteTarget) return;
+    
+    if (!deleteMasterPassword) {
+      toast('Ingresa la contraseña maestra', 'error');
       return;
     }
 
+    setDeleting(true);
+
     try {
-      const response = await fetch(`${API_URL}/admin/users/${userId}`, {
+      const response = await fetch(`${API_URL}/admin/users/${deleteTarget.id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ master_password: deleteMasterPassword }),
       });
       
       if (!response.ok) {
-        throw new Error('Error al eliminar usuario');
+        const error = await response.json();
+        throw new Error(error.detail || 'Error al eliminar usuario');
       }
 
       toast('Usuario admin eliminado', 'success');
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+      setDeleteMasterPassword('');
       loadAdminUsers();
     } catch (error: any) {
       console.error('Error deleting admin:', error);
-      toast('Error al eliminar usuario admin', 'error');
+      toast(error.message || 'Error al eliminar usuario admin', 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -302,10 +344,10 @@ export default function AdminUsers() {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Ej: Segura2024!"
                     className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-600"
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                   <button
                     type="button"
@@ -315,7 +357,15 @@ export default function AdminUsers() {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">La contraseña debe tener al menos 6 caracteres</p>
+                <div className="text-xs text-gray-500 mt-2 space-y-1">
+                  <p>Requisitos:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>Mínimo 8 caracteres</li>
+                    <li>Al menos una mayúscula (A-Z)</li>
+                    <li>Al menos una minúscula (a-z)</li>
+                    <li>Al menos un número (0-9)</li>
+                  </ul>
+                </div>
               </div>
 
               {/* Master Password */}
@@ -365,6 +415,79 @@ export default function AdminUsers() {
                   className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
                 >
                   {creating ? 'Creando...' : 'Crear Admin'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Admin Confirmation Modal */}
+      {showDeleteModal && deleteTarget && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gray-900 rounded-xl border border-red-900/60 w-full max-w-md overflow-hidden"
+          >
+            <div className="px-6 py-4 border-b border-red-900/60 bg-red-950/20">
+              <h3 className="text-lg font-bold text-red-400">Eliminar Usuario Admin</h3>
+              <p className="text-sm text-gray-400 mt-1">Esta acción no se puede deshacer</p>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); confirmDeleteAdmin(); }} className="p-6 space-y-4">
+              <div className="bg-red-950/20 border border-red-900/50 rounded-lg p-3">
+                <p className="text-sm text-red-200">
+                  ¿Estás seguro de que deseas eliminar a <strong>{deleteTarget.email}</strong>?
+                </p>
+              </div>
+
+              {/* Master Password */}
+              <div>
+                <label className="block text-sm font-medium text-yellow-400 mb-2">
+                  <Shield size={14} className="inline mr-1" />
+                  Contraseña Maestra
+                </label>
+                <div className="relative">
+                  <input
+                    type={showDeleteMasterPassword ? 'text' : 'password'}
+                    value={deleteMasterPassword}
+                    onChange={(e) => setDeleteMasterPassword(e.target.value)}
+                    placeholder="Ingresa la contraseña maestra para confirmar"
+                    className="w-full px-4 py-2 bg-gray-800 border border-yellow-600/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-600"
+                    required
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteMasterPassword(!showDeleteMasterPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  >
+                    {showDeleteMasterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteTarget(null);
+                    setDeleteMasterPassword('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg font-medium transition-colors"
+                  disabled={deleting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                >
+                  {deleting ? 'Eliminando...' : 'Eliminar'}
                 </button>
               </div>
             </form>

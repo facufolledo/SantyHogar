@@ -19,6 +19,7 @@ import CheckoutPending from './pages/CheckoutPending';
 import AuthCallback from './pages/AuthCallback';
 import Contact from './pages/Contact';
 import TermsAndConditions from './pages/TermsAndConditions';
+import ScrollToTop from './components/ScrollToTop';
 // Admin
 import AdminLayout from './pages/admin/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
@@ -79,6 +80,7 @@ const MainLayout = () => {
 function App() {
   return (
     <BrowserRouter basename="/">
+      <ScrollToTop />
       <AuthProvider>
         <OrdersProvider>
         <ProductsProvider>

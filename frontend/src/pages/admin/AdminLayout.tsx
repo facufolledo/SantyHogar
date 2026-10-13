@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Bell, Settings, Store, Upload, LayoutDashboard, Package, ShoppingBag, Users, LogOut, ChevronRight, DollarSign, Tags } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -98,6 +99,58 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isValidAdmin, setIsValidAdmin] = useState<boolean | null>(null);
+
+  // Verificar si el usuario es admin consultando la API
+  React.useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsValidAdmin(false);
+        navigate('/');
+        return;
+      }
+
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/admin/users`);
+        
+        if (!response.ok) {
+          setIsValidAdmin(false);
+          navigate('/');
+          return;
+        }
+
+        const admins = await response.json();
+        const isAdmin = admins.some((admin: any) => admin.email === user.email);
+        
+        if (!isAdmin) {
+          setIsValidAdmin(false);
+          navigate('/');
+        } else {
+          setIsValidAdmin(true);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsValidAdmin(false);
+        navigate('/');
+      }
+    };
+
+    checkAdminStatus();
+  }, [user, navigate]);
+
+  // Mostrar loading mientras se verifica
+  if (isValidAdmin === null) {
+    return <div className="flex items-center justify-center h-screen bg-gray-950">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+    </div>;
+  }
+
+  // Si no es admin, no renderizar nada
+  if (!isValidAdmin) {
+    return null;
+  }
 
   const currentLabel = navItems.find(n =>
     n.exact ? location.pathname === n.to : location.pathname.startsWith(n.to)

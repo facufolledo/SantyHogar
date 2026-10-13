@@ -1,5 +1,7 @@
 """Webhook Mercado Pago (notificaciones IPN)."""
 import logging
+import hmac
+import hashlib
 from typing import Annotated, Any, Optional
 from uuid import UUID
 
@@ -29,6 +31,27 @@ def _extract_payment_id(payload: Any) -> Optional[str]:
     if payload.get("id") is not None and payload.get("type") == "payment":
         return str(payload["id"])
     return None
+
+def _validate_signature(request: Request, data_id: str, secret: str) -> bool:
+    """Valida la firma del webhook de Mercado Pago."""
+    x_signature = request.headers.get("x-signature")
+    x_request_id = request.headers.get("x-request-id")
+    
+    if not x_signature or not x_request_id:
+        return False
+        
+    parts = dict(part.split('=') for part in x_signature.split(',') if '=' in part)
+    ts = parts.get('ts')
+    v1 = parts.get('v1')
+    
+    if not ts or not v1:
+        return False
+        
+    manifest = f"id:{data_id};request-id:{x_request_id};ts:{ts};"
+    sha = hmac.new(secret.encode(), msg=manifest.encode(), digestmod=hashlib.sha256).hexdigest()
+    
+    return hmac.compare_digest(sha, v1)
+
 
 
 @router.post("/webhook")
@@ -74,6 +97,16 @@ async def mercadopago_webhook(
     if not payment_id:
         logger.info("Webhook: sin payment_id en payload")
         return {"status": "ok"}
+
+    # Validar firma del webhook
+    config = get_config()
+    if config.mercadopago_webhook_secret:
+        is_valid = _validate_signature(request, payment_id, config.mercadopago_webhook_secret)
+        if not is_valid:
+            logger.error(f"🔴 CRÍTICO: Firma de webhook inválida para pago {payment_id}. Posible ataque.")
+            raise HTTPException(status_code=403, detail="Invalid signature")
+    else:
+        logger.warning("mercadopago_webhook_secret no está configurado. Saltando validación de firma (INSEGURO)")
 
     logger.info(f"💳 Procesando pago {payment_id}")
 
@@ -134,6 +167,12 @@ async def mercadopago_webhook(
         return {"status": "ok"}
 
     logger.info(f"✅ Procesando orden {order.id} para pago {payment_id}")
+    
+    # CRÍTICO: Validar que el monto pagado coincida con el total de la orden
+    transaction_amount = float(payment_data.get("transaction_amount", 0))
+    if abs(transaction_amount - order.total) > 0.01:
+        logger.error(f"🔴 CRÍTICO: Monto pagado ({transaction_amount}) no coincide con el total de la orden ({order.total}) para pago {payment_id}")
+        return {"status": "ok"}
 
     try:
         # Actualizar estado de la orden a "pagada"
