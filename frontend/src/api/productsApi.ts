@@ -76,7 +76,7 @@ export async function fetchProductsFromApi(): Promise<Product[]> {
       break;
     }
 
-    all.push(...batch.map(normalizeProduct));
+    all.push(...batch.map(normalizeProduct).filter(p => p.stock > 0));
 
     if (Array.isArray(response)) break;
 
