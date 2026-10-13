@@ -171,13 +171,12 @@ def create_app() -> FastAPI:
                 or term in product.brand.lower()):
                 continue
             
-            # Filtro: excluir productos con stock = 0 Y precio = 0, o invisibles
+            # Filtro: excluir productos sin stock o invisibles
             try:
                 stock = int(product.stock or 0) if hasattr(product, 'stock') else int(product.get('stock', 0) or 0)
-                price = float(product.price or 0) if hasattr(product, 'price') else float(product.get('price', 0) or 0)
                 visible = bool(product.visible) if hasattr(product, 'visible') else bool(product.get('visible', True))
                 
-                if stock == 0 and price == 0:
+                if stock == 0:
                     continue
                 if not visible:
                     continue
@@ -207,13 +206,12 @@ def create_app() -> FastAPI:
             if price_max is not None and product.price > price_max:
                 continue
             
-            # Filtro: excluir productos con stock = 0 Y precio = 0, o invisibles
+            # Filtro: excluir productos sin stock o invisibles
             try:
                 stock = int(product.stock or 0) if hasattr(product, 'stock') else int(product.get('stock', 0) or 0)
-                price = float(product.price or 0) if hasattr(product, 'price') else float(product.get('price', 0) or 0)
                 visible = bool(product.visible) if hasattr(product, 'visible') else bool(product.get('visible', True))
                 
-                if stock == 0 and price == 0:
+                if stock == 0:
                     continue
                 if not visible:
                     continue

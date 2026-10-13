@@ -39,21 +39,20 @@ async def list_products(
     """Lista todos los productos con paginación.
     
     Filtra productos que NO se muestren si:
-    - Tienen stock = 0 Y precio = 0
+    - No tienen stock (stock = 0)
     - Tienen visible = False (ocultos por admin)
     """
     all_products = await product_service.get_all_products()
     
-    # Filtrar productos: excluir los que tengan stock = 0 Y precio = 0, o que no sean visibles
+    # Filtrar productos: excluir los que no tengan stock o que no sean visibles
     products = []
     for p in all_products:
         try:
             stock = int(p.stock or 0) if hasattr(p, 'stock') else int(p.get('stock', 0) or 0)
-            price = float(p.price or 0) if hasattr(p, 'price') else float(p.get('price', 0) or 0)
             visible = bool(p.visible) if hasattr(p, 'visible') else bool(p.get('visible', True))
             
-            # Excluir si stock=0 AND precio=0, o si no es visible
-            if stock == 0 and price == 0:
+            # Excluir si stock=0 o si no es visible
+            if stock == 0:
                 continue
             if not visible:
                 continue
