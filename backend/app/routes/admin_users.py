@@ -3,8 +3,12 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import List
 import httpx
+from passlib.context import CryptContext
 from app.config import get_config
 from app.utils.validation import validate_password, validate_name
+
+# Context para hash de contraseñas
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Force redeploy - using httpx instead of requests to avoid urllib3 conflicts
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
@@ -127,14 +131,15 @@ async def create_admin_user(request: CreateAdminRequest):
     try:
         config = get_config()
         
-        # Verificar contraseña maestra
+        # Verificar contraseña maestra de forma segura (timing-safe)
         if not config.admin_master_password:
             raise HTTPException(
                 status_code=500,
                 detail="La contraseña maestra no está configurada. Configura ADMIN_MASTER_PASSWORD en backend/.env"
             )
         
-        if request.master_password.strip() != config.admin_master_password.strip():
+        # Usar bcrypt para comparación timing-safe
+        if not pwd_context.verify(request.master_password.strip(), config.admin_master_password.strip()):
             raise HTTPException(
                 status_code=403,
                 detail="Contraseña maestra incorrecta"
@@ -215,14 +220,14 @@ async def delete_admin_user(user_id: str, request: DeleteAdminRequest):
     try:
         config = get_config()
         
-        # Verificar contraseña maestra
+        # Verificar contraseña maestra de forma segura
         if not config.admin_master_password:
             raise HTTPException(
                 status_code=500,
                 detail="La contraseña maestra no está configurada"
             )
         
-        if request.master_password.strip() != config.admin_master_password.strip():
+        if not pwd_context.verify(request.master_password.strip(), config.admin_master_password.strip()):
             raise HTTPException(
                 status_code=403,
                 detail="Contraseña maestra incorrecta"

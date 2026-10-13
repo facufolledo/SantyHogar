@@ -68,12 +68,12 @@ class ProductService:
             ensure_stock_available(by_id[pid], qty)
 
     async def decrement_stock(self, order_id: UUID) -> None:
-        """Descuenta stock por cada ítem de la orden (tras pago aprobado)."""
-        items = await self._db.get_order_items(order_id)
-        for row in items:
-            pid = UUID(str(row["id_producto"]))
-            qty = int(row["cantidad"])
-            await self._db.decrement_product_stock(pid, qty)
+        """Descuenta stock por cada ítem de la orden (tras pago aprobado).
+        
+        Usa una función SQL atómica para prevenir race conditions.
+        Si dos pedidos llegan simultáneamente, la BD garantiza consistencia.
+        """
+        result = await self._db.call_decrement_stock_function(order_id)
 
     async def update_product_price(
         self, product_id: UUID, price: float, original_price: float | None = None

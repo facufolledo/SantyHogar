@@ -123,6 +123,32 @@ class DatabaseOperations:
             logger.exception("decrement_product_stock")
             self._raise_db_error(e)
 
+    async def call_decrement_stock_function(self, order_id: UUID) -> bool:
+        """Llama la función SQL atómica para decrementar stock.
+        
+        Esto previene race conditions usando transacciones en BD.
+        """
+        return await asyncio.to_thread(
+            self._call_decrement_stock_function_sync, order_id
+        )
+
+    def _call_decrement_stock_function_sync(self, order_id: UUID) -> bool:
+        """Ejecuta decrement_order_stock() desde SQL."""
+        try:
+            result = self._client().rpc(
+                "decrement_order_stock",
+                {"order_id": str(order_id)}
+            ).execute()
+            
+            if result.data is True:
+                logger.info(f"✓ Stock decrementado atomicamente para orden {order_id}")
+                return True
+            else:
+                raise DatabaseError(f"Error decrementando stock para orden {order_id}")
+        except Exception as e:
+            logger.error(f"Error en decrement_order_stock: {str(e)}")
+            raise DatabaseError(f"No se pudo decrementar stock: {str(e)}")
+
     # ------------------------------------------------------------------ #
     # Órdenes e ítems
     # ------------------------------------------------------------------ #
