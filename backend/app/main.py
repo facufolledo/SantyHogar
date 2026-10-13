@@ -163,11 +163,13 @@ def create_app() -> FastAPI:
         results = [
             product_to_response(product).model_dump(mode="json")
             for product in products_data
-            if term in product.name.lower()
-            or term in product.description.lower()
-            or term in product.category.lower()
-            or term in product.subcategory.lower()
-            or term in product.brand.lower()
+            if (term in product.name.lower()
+                or term in product.description.lower()
+                or term in product.category.lower()
+                or term in product.subcategory.lower()
+                or term in product.brand.lower())
+            # Filtro: excluir productos con stock = 0 Y precio = 0
+            and not (product.stock == 0 and product.price == 0)
         ]
         return {**_pagination(results, page, limit), "query": q}
 
@@ -188,6 +190,9 @@ def create_app() -> FastAPI:
             if price_min is not None and product.price < price_min:
                 continue
             if price_max is not None and product.price > price_max:
+                continue
+            # Filtro: excluir productos con stock = 0 Y precio = 0
+            if product.stock == 0 and product.price == 0:
                 continue
             results.append(product_to_response(product).model_dump(mode="json"))
 

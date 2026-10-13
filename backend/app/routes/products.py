@@ -36,8 +36,18 @@ async def list_products(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> dict:
-    """Lista todos los productos con paginación."""
-    products = await product_service.get_all_products()
+    """Lista todos los productos con paginación.
+    
+    Filtra productos que NO se muestren si tienen stock = 0 Y precio = 0.
+    """
+    all_products = await product_service.get_all_products()
+    
+    # Filtrar productos: excluir los que tengan stock = 0 Y precio = 0
+    products = [
+        p for p in all_products
+        if not (p.get('stock', 0) == 0 and p.get('price', 0) == 0)
+    ]
+    
     pager = PaginationService(page=page, limit=limit)
     paginated = pager.paginate(
         total=len(products),
