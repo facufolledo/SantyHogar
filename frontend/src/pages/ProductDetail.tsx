@@ -211,7 +211,6 @@ const ProductDetail = () => {
             {[
               { icon: Truck, text: 'Envío gratis en compras mayores a $200.000' },
               { icon: Shield, text: 'Garantía oficial del fabricante' },
-              { icon: RefreshCw, text: 'Devolución sin cargo en 30 días' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-2 text-sm text-gray-600">
                 <Icon size={15} className="text-primary-600 flex-shrink-0" />
