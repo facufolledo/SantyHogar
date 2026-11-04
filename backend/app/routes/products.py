@@ -163,6 +163,11 @@ async def toggle_product_visibility(
         )
 
 
+@router.post(
+    "/products/upload-image",
+    response_model=ImageUploadResponse,
+    status_code=status.HTTP_200_OK,
+)
 async def upload_product_image(
     file: UploadFile = File(...),
     image_service: ImageService = Depends(get_image_service),
