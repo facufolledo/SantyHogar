@@ -39,12 +39,35 @@ const slides = [
 
 const Home = () => {
   const { products, loading } = useProducts();
+  console.log('🏠 [Home] products received:', products);
+  console.log('🏠 [Home] is array:', Array.isArray(products));
+  console.log('🏠 [Home] length:', products?.length || 0);
+  
   const [slide, setSlide] = useState(0);
-  const categories = useMemo(() => buildCategoryCards(products), [products]);
-  const featured = useMemo(
-    () => products.filter(p => p.featured).slice(0, 8),
-    [products]
-  );
+  const categories = useMemo(() => {
+    console.log('🏗️  [Home] buildCategoryCards input:', products);
+    try {
+      const result = buildCategoryCards(Array.isArray(products) ? products : []);
+      console.log('🏗️  [Home] buildCategoryCards output:', result);
+      return result;
+    } catch (e) {
+      console.error('❌ [Home] buildCategoryCards error:', e);
+      return [];
+    }
+  }, [products]);
+  
+  const featured = useMemo(() => {
+    console.log('⭐ [Home] featured - input products:', products);
+    console.log('⭐ [Home] featured - is array:', Array.isArray(products));
+    try {
+      const result = (Array.isArray(products) ? products : []).filter(p => p.featured).slice(0, 8);
+      console.log('⭐ [Home] featured - output:', result);
+      return result;
+    } catch (e) {
+      console.error('❌ [Home] featured error:', e);
+      return [];
+    }
+  }, [products]);
 
   useEffect(() => {
     const t = setInterval(() => setSlide(s => (s + 1) % slides.length), 5000);
@@ -158,7 +181,7 @@ const Home = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {loading && products.length === 0 ? (
             <p className="col-span-full text-center text-gray-500 py-8">Cargando categorías…</p>
-          ) : (
+          ) : Array.isArray(categories) && categories.length > 0 ? (
           categories.map((cat, i) => (
             <motion.div
               key={cat.id}
@@ -214,7 +237,9 @@ const Home = () => {
               </Link>
             </motion.div>
           ))
-          )}
+            ) : (
+              <p className="col-span-full text-center text-gray-500 py-8">No hay categorías disponibles</p>
+            )}
         </div>
         </div>
       </section>
@@ -238,7 +263,7 @@ const Home = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {loading && featured.length === 0 ? (
               <p className="col-span-full text-center text-gray-500 py-12">Cargando productos…</p>
-            ) : (
+            ) : Array.isArray(featured) && featured.length > 0 ? (
             featured.map((p, i) => (
               <motion.div
                 key={p.id}
@@ -250,6 +275,8 @@ const Home = () => {
                 <ProductCard product={p} />
               </motion.div>
             ))
+            ) : (
+              <p className="col-span-full text-center text-gray-500 py-12">No hay productos destacados</p>
             )}
           </div>
         </div>

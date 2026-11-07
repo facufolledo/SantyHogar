@@ -17,8 +17,38 @@ function normalizeProduct(p: ProductDto): Product {
 }
 
 export async function fetchProductsFromApi(): Promise<Product[]> {
-  const raw = await apiFetch<ProductDto[]>('/products', { method: 'GET' });
-  return raw.map(normalizeProduct);
+  try {
+    console.log('📡 [API] Fetching /products...');
+    const raw = await apiFetch<ProductDto[] | { data: ProductDto[] }>('/products', { method: 'GET' });
+    
+    console.log('📦 [API] Raw response received:', raw);
+    console.log('📦 [API] Response type:', typeof raw);
+    console.log('📦 [API] Is array?:', Array.isArray(raw));
+    
+    // Si la respuesta es un objeto con propiedad 'data', extraer el array
+    let products = Array.isArray(raw) ? raw : (raw as any)?.data || [];
+    
+    console.log('📦 [API] Extracted products:', products);
+    console.log('📦 [API] Products type:', typeof products);
+    console.log('📦 [API] Products is array?:', Array.isArray(products));
+    console.log('📦 [API] Products length:', Array.isArray(products) ? products.length : 'N/A');
+    
+    // Protección: si products no es un array, devolver array vacío
+    if (!Array.isArray(products)) {
+      console.warn('⚠️  [API] Backend devolvió formato inesperado:', raw);
+      console.warn('⚠️  [API] Devolviendo array vacío como fallback');
+      return [];
+    }
+    
+    console.log(`✅ [API] Normalizando ${products.length} productos...`);
+    const normalized = products.map(normalizeProduct);
+    console.log('✅ [API] Productos normalizados:', normalized);
+    
+    return normalized;
+  } catch (error) {
+    console.error('❌ [API] Error en fetchProductsFromApi:', error);
+    throw error;
+  }
 }
 
 export interface BulkImportResponse {
