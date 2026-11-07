@@ -1,91 +1,24 @@
-import type { Product } from '../data/products';
+﻿import type { Product } from '../data/products';
 import { apiFetch } from './client';
 import { getApiBase } from './config';
 
 type ProductDto = Product;
 
-type PaginatedProductsResponse = {
-  data?: ProductDto[];
-  results?: ProductDto[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-};
-
-function extractProductList(response: unknown): ProductDto[] {
-  if (Array.isArray(response)) return response;
-  if (response && typeof response === 'object') {
-    const r = response as PaginatedProductsResponse;
-    if (Array.isArray(r.data)) return r.data;
-    if (Array.isArray(r.results)) return r.results;
-  }
-  return [];
-}
-
 function normalizeProduct(p: ProductDto): Product {
-  const images = Array.isArray(p.images) ? p.images : [];
-  // Check both 'specs' (API) and 'especificaciones' (Supabase column name)
-  const specs =
-    (p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs))
-      ? (p.specs as Record<string, string>)
-      : ((p as any).especificaciones && typeof (p as any).especificaciones === 'object' && !Array.isArray((p as any).especificaciones))
-        ? ((p as any).especificaciones as Record<string, string>)
-        : {};
-  const description = p.description ? String(p.description).trim() : '';
-
   return {
+    ...p,
     id: String(p.id),
-    name: p.name,
-    slug: p.slug,
-    categoryId: (p as any).categoryId || '',
-    categoryName: (p as any).categoryName || '',
-    category: (p as any).category || (p as any).categoryName || '',
-    subcategory: p.subcategory || '',
     price: Number(p.price),
     originalPrice: p.originalPrice != null ? Number(p.originalPrice) : undefined,
-    images,
-    description,
-    specs,
-    stock: Number(p.stock),
-    featured: (p as any).featured || false,
-    brand: (p as any).brand || '',
     rating: Number(p.rating),
     reviews: Number(p.reviews),
+    stock: Number(p.stock),
   };
 }
 
 export async function fetchProductsFromApi(): Promise<Product[]> {
-  const all: Product[] = [];
-  let page = 1;
-  const limit = 100;
-
-  while (true) {
-    const response = await apiFetch<PaginatedProductsResponse | ProductDto[]>(
-      `/products?page=${page}&limit=${limit}`,
-      { method: 'GET' }
-    );
-
-    const batch = extractProductList(response);
-    if (batch.length === 0 && page === 1) {
-      console.error('Unexpected response format from /products:', response);
-      break;
-    }
-
-    all.push(...batch.map(normalizeProduct).filter(p => p.stock > 0 && p.price > 0));
-
-    if (Array.isArray(response)) break;
-
-    const pagination = (response as PaginatedProductsResponse).pagination;
-    if (!pagination?.hasNext || page >= (pagination.pages || 1)) break;
-    page += 1;
-  }
-
-  return all;
+  const raw = await apiFetch<ProductDto[]>('/products', { method: 'GET' });
+  return raw.map(normalizeProduct);
 }
 
 export interface BulkImportResponse {
@@ -105,7 +38,6 @@ export interface BulkImportResponse {
       marca: string;
       descripcion?: string;
       imagen?: string | null;
-      especificaciones?: Record<string, string>;
     };
     errors: string[];
   }>;
@@ -128,7 +60,6 @@ export interface BulkImportPreviewResponse {
       marca: string;
       descripcion?: string;
       imagen?: string | null;
-      especificaciones?: Record<string, string>;
     };
     errors: string[];
   }>;
@@ -143,13 +74,12 @@ export interface BulkImportConfirmRow {
   marca?: string;
   descripcion?: string;
   imagen?: string | null;
-  especificaciones?: Record<string, string>;
 }
 
 export async function bulkImportPreview(file: File): Promise<BulkImportPreviewResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no estâ”œÃ­ configurada');
+    throw new Error('VITE_API_URL no est├í configurada');
   }
   const formData = new FormData();
   formData.append('file', file);
@@ -173,7 +103,7 @@ export async function bulkImportPreview(file: File): Promise<BulkImportPreviewRe
 export async function bulkImportConfirm(rows: BulkImportConfirmRow[]): Promise<BulkImportResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no estâ”œÃ­ configurada');
+    throw new Error('VITE_API_URL no est├í configurada');
   }
 
   const root = base.replace(/\/$/, '');
@@ -196,7 +126,7 @@ export async function bulkImportConfirm(rows: BulkImportConfirmRow[]): Promise<B
 export async function bulkImportProducts(file: File): Promise<BulkImportResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no estâ”œÃ­ configurada');
+    throw new Error('VITE_API_URL no est├í configurada');
   }
   const formData = new FormData();
   formData.append('file', file);
@@ -249,7 +179,7 @@ export async function updateProductPrice(
 
 export interface CreateProductRequest {
   name: string;
-  category_id: string;
+  category: 'electrodomesticos' | 'muebleria' | 'colchoneria';
   subcategory: string;
   price: number;
   originalPrice?: number;
@@ -263,7 +193,7 @@ export interface CreateProductRequest {
 
 export interface UpdateProductRequest {
   name?: string;
-  category_id?: string;
+  category?: 'electrodomesticos' | 'muebleria' | 'colchoneria';
   subcategory?: string;
   price?: number;
   originalPrice?: number;
@@ -302,18 +232,6 @@ export async function deleteProduct(productId: string): Promise<void> {
   });
 }
 
-export interface ToggleVisibilityResponse {
-  id_producto: string;
-  visible: boolean;
-  message: string;
-}
-
-export async function toggleProductVisibility(productId: string): Promise<ToggleVisibilityResponse> {
-  return apiFetch<ToggleVisibilityResponse>(`/products/${productId}/visibility`, {
-    method: 'PATCH',
-  });
-}
-
 export interface ImageUploadResponse {
   url: string;
   filename: string;
@@ -322,7 +240,7 @@ export interface ImageUploadResponse {
 export async function uploadProductImage(file: File): Promise<ImageUploadResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no estâ”œÃ­ configurada');
+    throw new Error('VITE_API_URL no est├í configurada');
   }
   const formData = new FormData();
   formData.append('file', file);

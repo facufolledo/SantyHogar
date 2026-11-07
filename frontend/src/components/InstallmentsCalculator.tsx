@@ -66,9 +66,7 @@ export const InstallmentsCalculator: React.FC<InstallmentsCalculatorProps> = ({
       }
 
       const data = await response.json();
-      
-      // El backend retorna un array directamente de métodos de pago
-      const options = Array.isArray(data) ? data.flatMap(m => m.payer_costs || []) : data.options || [];
+      const options = data.options || [];
 
       setInstallments(options);
 

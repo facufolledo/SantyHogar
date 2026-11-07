@@ -89,25 +89,12 @@ export default function PaymentMethodsWithInstallments({
 
       const data = await response.json();
       
-      // Asegurar que siempre procesamos un array
-      let methods_data: PaymentMethodInstallments[] = [];
-      
+      // MP devuelve un array de objetos con los métodos de pago
       if (Array.isArray(data)) {
-        methods_data = data;
-      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
-        // Si es un objeto (posible error), extraer info o avisar
-        console.warn('Respuesta no es un array:', data);
-        // Si es {detail: "error"}, mostrar error
-        if ('detail' in data) {
-          setError(data.detail);
-        } else {
-          setError('Formato de respuesta inesperado');
-        }
-        setLoading(false);
-        return;
+        setMethods(data);
+      } else {
+        setError('Formato de respuesta inesperado');
       }
-      
-      setMethods(methods_data);
     } catch (err) {
       console.error('Error fetching installments:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');

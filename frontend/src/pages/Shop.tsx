@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
-import { useCategoriesNav } from '../hooks/useCategoriesNav';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import ProductCard from '../components/ProductCard';
 
@@ -31,20 +30,9 @@ const Shop = () => {
   const activeCat = params.get('cat') || '';
   const query = params.get('q') || '';
 
-  const { categories: navCategories, loading: categoriesLoading } = useCategoriesNav();
-
   const filtered = useMemo(() => {
     let list = [...products];
-    if (activeCat && navCategories.length > 0) {
-      // Buscar la categoría por slug para obtener su ID
-      const cat = navCategories.find(c => c.slug === activeCat);
-      if (cat) {
-        // Filtrar por ID de categoría (UUID) en lugar de por nombre
-        list = list.filter(p => p.categoryId === cat.id_categoria);
-      } else {
-        list = []; // Si no encuentra la categoría, devuelve vacío
-      }
-    }
+    if (activeCat) list = list.filter(p => p.category === activeCat);
     if (query) list = list.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) || p.brand.toLowerCase().includes(query.toLowerCase()));
     if (priceRange !== null) {
       const range = PRICE_RANGES[priceRange];
@@ -54,7 +42,7 @@ const Shop = () => {
     else if (sort === 'price-desc') list.sort((a, b) => b.price - a.price);
     else if (sort === 'rating') list.sort((a, b) => b.rating - a.rating);
     return list;
-  }, [activeCat, query, priceRange, sort, products, navCategories]);
+  }, [activeCat, query, priceRange, sort, products]);
 
   const setCategory = (cat: string) => {
     const p = new URLSearchParams(params);
@@ -62,9 +50,10 @@ const Shop = () => {
     setParams(p);
   };
 
-  const getCategoryLabel = (slug: string): string => {
-    const cat = navCategories.find(c => c.slug === slug);
-    return cat ? cat.nombre : slug;
+  const catLabels: Record<string, string> = {
+    electrodomesticos: 'Electrodomésticos',
+    muebleria: 'Mueblería',
+    colchoneria: 'Colchonería',
   };
 
   const FilterPanel = () => (
@@ -76,17 +65,11 @@ const Shop = () => {
           <button onClick={() => setCategory('')} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!activeCat ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
             Todas las categorías
           </button>
-          {categoriesLoading ? (
-            <div className="text-gray-500 text-sm p-2">Cargando categorías...</div>
-          ) : navCategories.length === 0 ? (
-            <div className="text-gray-500 text-sm p-2">No hay categorías disponibles</div>
-          ) : (
-            navCategories.map(cat => (
-              <button key={cat.id_categoria} onClick={() => setCategory(cat.slug)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeCat === cat.slug ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
-                {cat.nombre}
-              </button>
-            ))
-          )}
+          {Object.entries(catLabels).map(([id, label]) => (
+            <button key={id} onClick={() => setCategory(id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeCat === id ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -114,7 +97,7 @@ const Shop = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {activeCat ? getCategoryLabel(activeCat) : query ? `Resultados para "${query}"` : 'Todos los productos'}
+            {activeCat ? catLabels[activeCat] : query ? `Resultados para "${query}"` : 'Todos los productos'}
           </h1>
           <p className="text-gray-500 text-sm mt-1">{filtered.length} productos encontrados</p>
         </div>
@@ -145,7 +128,7 @@ const Shop = () => {
         <div className="flex flex-wrap gap-2 mb-4">
           {activeCat && (
             <span className="flex items-center gap-1 bg-primary-50 text-primary-700 text-xs font-medium px-3 py-1.5 rounded-full">
-              {getCategoryLabel(activeCat)}
+              {catLabels[activeCat]}
               <button onClick={() => setCategory('')}><X size={12} /></button>
             </span>
           )}

@@ -47,10 +47,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
       
       if (event === 'SIGNED_OUT') {
         setUser(null);
       } else if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed');
         if (session?.user) {
           setUserFromSupabase(session.user);
         }
@@ -110,7 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           });
 
           if (createResponse.ok) {
-            // Cliente creado automáticamente
+            console.log('✅ Cliente creado automáticamente');
           }
         }
       } catch (error) {

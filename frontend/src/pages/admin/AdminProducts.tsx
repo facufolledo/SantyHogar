@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, Trash, Sliders } from 'lucide-react';
+import { Search, Edit2, Trash2, Plus, Package, ChevronLeft, ChevronRight, Eye, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Product } from '../../data/products';
 import { formatPrice } from '../../utils/format';
 import { useProducts } from '../../context/ProductsContext';
-import { useCategoriesNav } from '../../hooks/useCategoriesNav';
 import ProductsErrorBanner from '../../components/ProductsErrorBanner';
 import ProductFormModal from './ProductFormModal';
 import { deleteProduct } from '../../api/productsApi';
@@ -12,34 +11,10 @@ import { TableRowSkeleton } from '../../components/SkeletonLoader';
 
 const PAGE_SIZE = 20;
 
-// Colores de categorías - dinámicos con fallback
-const getCategoryColor = (category: string): string => {
-  const colors: Record<string, string> = {
-    electrodomesticos: 'bg-blue-500/20 text-blue-400',
-    muebleria: 'bg-purple-500/20 text-purple-400',
-    colchoneria: 'bg-green-500/20 text-green-400',
-    cocinas: 'bg-orange-500/20 text-orange-400',
-    baños: 'bg-cyan-500/20 text-cyan-400',
-    dormitorios: 'bg-pink-500/20 text-pink-400',
-    living: 'bg-indigo-500/20 text-indigo-400',
-    comedor: 'bg-amber-500/20 text-amber-400',
-  };
-  
-  // Si existe el color específico, usarlo
-  if (colors[category]) {
-    return colors[category];
-  }
-  
-  // Fallback: generar color consistente basado en el nombre
-  const hash = category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const colorOptions = [
-    'bg-teal-500/20 text-teal-400',
-    'bg-violet-500/20 text-violet-400',
-    'bg-rose-500/20 text-rose-400',
-    'bg-sky-500/20 text-sky-400',
-    'bg-lime-500/20 text-lime-400',
-  ];
-  return colorOptions[hash % colorOptions.length];
+const catColors: Record<string, string> = {
+  electrodomesticos: 'bg-blue-500/20 text-blue-400',
+  muebleria: 'bg-purple-500/20 text-purple-400',
+  colchoneria: 'bg-green-500/20 text-green-400',
 };
 
 type SortField = 'name' | 'category' | 'price' | 'stock' | 'brand';
@@ -51,9 +26,7 @@ function shortId(id: string) {
 
 export default function AdminProducts() {
   const { products, loading, error, refetch } = useProducts();
-  const { categories } = useCategoriesNav();
   const [search, setSearch] = useState('');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -61,12 +34,10 @@ export default function AdminProducts() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
-  const [deletingSelected, setDeletingSelected] = useState(false);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      // Cambiar dirección si es el mismo campo
+      // Cambiar direcci├│n si es el mismo campo
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       // Nuevo campo, ordenar ascendente por defecto
@@ -76,67 +47,11 @@ export default function AdminProducts() {
     setPage(1); // Volver a la primera página
   };
 
-  const toggleSelectProduct = (productId: string) => {
-    const newSelected = new Set(selectedProducts);
-    if (newSelected.has(productId)) {
-      newSelected.delete(productId);
-    } else {
-      newSelected.add(productId);
-    }
-    setSelectedProducts(newSelected);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedProducts.size === paginated.length) {
-      setSelectedProducts(new Set());
-    } else {
-      const allIds = new Set(paginated.map(p => p.id));
-      setSelectedProducts(allIds);
-    }
-  };
-
-  const handleDeleteSelected = async () => {
-    if (selectedProducts.size === 0) return;
-
-    if (!confirm(`¿Estás seguro de que quieres eliminar ${selectedProducts.size} producto(s)?`)) {
-      return;
-    }
-
-    setDeletingSelected(true);
-    let successCount = 0;
-    let failureCount = 0;
-
-    for (const productId of selectedProducts) {
-      try {
-        await deleteProduct(productId);
-        successCount++;
-      } catch (error) {
-        console.error('Error al eliminar producto:', error);
-        failureCount++;
-      }
-    }
-
-    setDeletingSelected(false);
-    setSelectedProducts(new Set());
-    
-    if (successCount > 0) {
-      refetch();
-      if (failureCount === 0) {
-        alert(`✅ ${successCount} producto(s) eliminado(s) correctamente`);
-      } else {
-        alert(`⚠️ Se eliminaron ${successCount} producto(s), pero fallaron ${failureCount}`);
-      }
-    } else {
-      alert('❌ Error al eliminar los productos');
-    }
-  };
-
   const filtered = useMemo(() => {
     let result = products.filter(
       p =>
-        (p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.brand.toLowerCase().includes(search.toLowerCase())) &&
-        (filterCategory === 'all' || p.category === filterCategory)
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.brand.toLowerCase().includes(search.toLowerCase())
     );
 
     // Ordenar según el campo seleccionado
@@ -165,7 +80,7 @@ export default function AdminProducts() {
     });
 
     return result;
-  }, [products, search, filterCategory, sortField, sortDirection]);
+  }, [products, search, sortField, sortDirection]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -238,82 +153,17 @@ export default function AdminProducts() {
 
       <ProductsErrorBanner />
 
-      {selectedProducts.size > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between gap-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
-        >
-          <p className="text-sm font-medium text-blue-300">
-            {selectedProducts.size} producto(s) seleccionado(s)
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSelectedProducts(new Set())}
-              className="px-3 py-1.5 text-sm text-blue-300 hover:text-blue-200 transition-colors"
-            >
-              Deseleccionar
-            </button>
-            <button
-              onClick={handleDeleteSelected}
-              disabled={deletingSelected}
-              className="flex items-center gap-2 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-            >
-              <Trash size={14} />
-              {deletingSelected ? 'Eliminando...' : 'Eliminar seleccionados'}
-            </button>
-          </div>
-        </motion.div>
-      )}
-
-      <ProductsErrorBanner />
-
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Buscar productos..."
-              value={search}
-              onChange={e => handleSearch(e.target.value)}
-              disabled={loading || Boolean(error)}
-              className="w-full pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700/60 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-            />
-          </div>
-        </div>
-
-        {/* Category Filter */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Sliders size={16} className="text-primary-400" />
-            <span className="text-sm font-medium text-gray-400">Categoría:</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setFilterCategory('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                filterCategory === 'all'
-                  ? 'bg-primary-500 text-white border border-primary-400'
-                  : 'bg-gray-700/50 text-gray-300 border border-gray-600/30 hover:border-gray-500'
-              }`}
-            >
-              Todas
-            </button>
-            {categories.map(cat => (
-              <button
-                key={cat.id_categoria}
-                onClick={() => setFilterCategory(cat.slug)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                  filterCategory === cat.slug
-                    ? `${getCategoryColor(cat.slug)} border-opacity-100`
-                    : 'bg-gray-700/50 text-gray-300 border-gray-600/30 hover:border-gray-500'
-                }`}
-              >
-                {cat.nombre}
-              </button>
-            ))}
-          </div>
+      <div className="flex gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Buscar productos..."
+            value={search}
+            onChange={e => handleSearch(e.target.value)}
+            disabled={loading || Boolean(error)}
+            className="w-full pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700/60 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+          />
         </div>
       </div>
 
@@ -351,14 +201,6 @@ export default function AdminProducts() {
             <table className="w-full text-sm">
               <thead className="border-b border-gray-700/60">
                 <tr>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 w-10">
-                    <input
-                      type="checkbox"
-                      checked={selectedProducts.size === paginated.length && paginated.length > 0}
-                      onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-600 cursor-pointer"
-                    />
-                  </th>
                   {[
                     { label: 'Producto', field: 'name' as SortField },
                     { label: 'Categoría', field: 'category' as SortField },
@@ -406,16 +248,8 @@ export default function AdminProducts() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.03 }}
-                      className={`hover:bg-gray-700/30 transition-colors ${selectedProducts.has(p.id) ? 'bg-primary-500/10' : ''}`}
+                      className="hover:bg-gray-700/30 transition-colors"
                     >
-                      <td className="px-4 py-3 w-10">
-                        <input
-                          type="checkbox"
-                          checked={selectedProducts.has(p.id)}
-                          onChange={() => toggleSelectProduct(p.id)}
-                          className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary-600 cursor-pointer"
-                        />
-                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {img ? (
@@ -432,7 +266,7 @@ export default function AdminProducts() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getCategoryColor(p.category)}`}>
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${catColors[p.category]}`}>
                           {p.category}
                         </span>
                       </td>

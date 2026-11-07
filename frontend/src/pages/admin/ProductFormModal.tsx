@@ -1,18 +1,17 @@
-import { useState, useRef, useCallback } from 'react';
+﻿import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { X, Upload, ImageIcon, AlertCircle, GripVertical } from 'lucide-react';
 import type { Product } from '../../data/products';
 import { createProduct, updateProduct, uploadProductImage, type CreateProductRequest, type UpdateProductRequest } from '../../api/productsApi';
-import { useCategories } from '../../hooks/useCategories';
 
-type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'especificaciones';
+type Tab = 'general' | 'precios' | 'stock' | 'imagenes' | 'envio';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'general', label: '📋 General' },
   { id: 'precios', label: '💰 Precios' },
   { id: 'stock', label: '📦 Stock' },
   { id: 'imagenes', label: '🖼️ Imágenes' },
-  { id: 'especificaciones', label: '⚙️ Especificaciones' },
+  { id: 'envio', label: '🚚 Envío' },
 ];
 
 interface Props {
@@ -31,7 +30,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
   const [form, setForm] = useState({
     name: product?.name || '',
     description: product?.description || '',
-    category: product?.categoryId || product?.category || '',
+    category: product?.category || 'electrodomesticos',
     subcategory: product?.subcategory || '',
     brand: product?.brand || '',
     price: product?.price || 0,
@@ -40,8 +39,9 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
     stock: product?.stock || 0,
     trackStock: true,
     status: 'active',
+    weight: '',
+    dimensions: '',
     images: product?.images || [],
-    specifications: product?.specs || {},
   });
 
   const set = (key: string, val: unknown) => setForm(p => ({ ...p, [key]: val }));
@@ -62,38 +62,21 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
         const updateData: UpdateProductRequest = {
           name: form.name,
           description: form.description || undefined,
-          category_id: form.category,
+          category: form.category as Product['category'],
           subcategory: form.subcategory || undefined,
           brand: form.brand,
           price: Number(form.price),
           originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
           stock: Number(form.stock),
           images: form.images.length > 0 ? form.images : undefined,
-          specs: Object.keys(form.specifications).length > 0 ? form.specifications : undefined,
         };
         await updateProduct(product.id, updateData);
         alert('✅ Producto actualizado correctamente');
       } else {
         // Create mode
-        if (!form.category) {
-          alert('❌ Selecciona una categoría');
-          setSaving(false);
-          return;
-        }
-        if (!form.name.trim()) {
-          alert('❌ El nombre del producto es requerido');
-          setSaving(false);
-          return;
-        }
-        if (form.price <= 0) {
-          alert('❌ El precio debe ser mayor a 0');
-          setSaving(false);
-          return;
-        }
-        
         const createData: CreateProductRequest = {
           name: form.name,
-          category_id: form.category,
+          category: form.category as Product['category'],
           subcategory: form.subcategory || 'general',
           price: Number(form.price),
           originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
@@ -101,7 +84,6 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
           brand: form.brand,
           description: form.description || undefined,
           images: form.images.length > 0 ? form.images : undefined,
-          specs: Object.keys(form.specifications).length > 0 ? form.specifications : undefined,
         };
         await createProduct(createData);
         alert('✅ Producto creado correctamente');
@@ -109,13 +91,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
       onSave();
     } catch (error) {
       console.error('Error al guardar producto:', error);
-      let errorMsg = 'Error al guardar el producto';
-      
-      if (error instanceof Error) {
-        errorMsg = error.message;
-      }
-      
-      alert(`❌ ${errorMsg}`);
+      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al guardar el producto'}`);
     } finally {
       setSaving(false);
     }
@@ -147,7 +123,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
         </div>
 
         {/* Tabs */}
-        <div className="flex px-6 flex-shrink-0 overflow-x-hidden bg-gradient-to-b from-gray-900/50 to-transparent border-b border-gray-800/50">
+        <div className="flex border-b border-gray-700 px-6 flex-shrink-0 overflow-x-auto">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
@@ -162,7 +138,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
           <fieldset
             disabled={readOnly}
-            className="flex-1 min-h-0 overflow-y-auto border-0 px-5 py-5 mx-0 flex flex-col [&:disabled]:opacity-90 pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-primary-500"
+            className="flex-1 min-h-0 overflow-y-auto border-0 px-6 py-5 mx-0 flex flex-col [&:disabled]:opacity-90"
           >
 
             {/* GENERAL */}
@@ -177,7 +153,13 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                     placeholder="Descripción detallada del producto..." className={`${di} resize-none`} />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <CategorySelect formCategory={form.category} setCategory={(val) => set('category', val)} di={di} />
+                  <Field label="Categoría">
+                    <select value={form.category} onChange={e => set('category', e.target.value)} className={di}>
+                      <option value="electrodomesticos">Electrodomésticos</option>
+                      <option value="muebleria">Mueblería</option>
+                      <option value="colchoneria">Colchonería</option>
+                    </select>
+                  </Field>
                   <Field label="Marca">
                     <input value={form.brand} onChange={e => set('brand', e.target.value)}
                       placeholder="Ej: Samsung" className={di} />
@@ -218,7 +200,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-300">Margen de ganancia</p>
-                      <p className="text-xs text-gray-600 mt-0.5">((precio - costo) / costo) × 100</p>
+                      <p className="text-xs text-gray-600 mt-0.5">((precio - costo) / costo) ├ù 100</p>
                     </div>
                     <div className="text-right">
                       <p className={`text-3xl font-black ${marginColor}`}>{margin}%</p>
@@ -245,7 +227,7 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
                 <div className="flex items-center justify-between p-4 bg-gray-800 border border-gray-700 rounded-xl">
                   <div>
                     <p className="text-sm font-medium text-gray-300">Control de stock</p>
-                    <p className="text-xs text-gray-600">Desactivar para productos sin límite</p>
+                    <p className="text-xs text-gray-600">Desactivar para productos sin l├¡mite</p>
                   </div>
                   <button type="button" onClick={() => set('trackStock', !form.trackStock)}
                     className={`w-11 h-6 rounded-full transition-colors relative ${form.trackStock ? 'bg-primary-600' : 'bg-gray-700'}`}>
@@ -276,13 +258,21 @@ export default function ProductFormModal({ product, onSave, onClose, readOnly = 
               />
             )}
 
-            {/* ESPECIFICACIONES */}
-            {tab === 'especificaciones' && (
-              <SpecificationsTab
-                specifications={form.specifications}
-                setSpecifications={(specs) => set('specifications', specs)}
-                di={di}
-              />
+            {/* ENVÍO */}
+            {tab === 'envio' && (
+              <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                <Field label="Peso (kg)">
+                  <input type="number" step="0.1" value={form.weight} onChange={e => set('weight', e.target.value)}
+                    placeholder="Ej: 2.5" className={di} />
+                </Field>
+                <Field label="Dimensiones (cm)">
+                  <input value={form.dimensions} onChange={e => set('dimensions', e.target.value)}
+                    placeholder="Largo x Ancho x Alto • Ej: 60x40x30" className={di} />
+                </Field>
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-sm text-blue-400">
+                  ℹ️ Estos datos se usan para calcular el costo de envío automáticamente.
+                </div>
+              </motion.div>
             )}
           </fieldset>
 
@@ -586,7 +576,7 @@ function ImagenesTab({ images, setImages, readOnly, di }: ImagenesTabProps) {
         </div>
       ) : (
         <div className="flex items-center gap-2 text-xs text-gray-600 p-4 bg-gray-800 border border-gray-700 rounded-lg">
-          <ImageIcon size={14} /> <span>No hay imágenes cargadas</span>
+          <ImageIcon size={14} /> <span>No hay im├ígenes cargadas</span>
         </div>
       )}
 
@@ -603,216 +593,3 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
     {children}
   </div>
 );
-
-interface SpecificationsTabProps {
-  specifications: Record<string, string>;
-  setSpecifications: (specs: Record<string, string>) => void;
-  di: string;
-}
-
-function SpecificationsTab({ specifications, setSpecifications, di }: SpecificationsTabProps) {
-  const [specKey, setSpecKey] = useState('');
-  const [specValue, setSpecValue] = useState('');
-  const [bulkText, setBulkText] = useState('');
-  const [bulkError, setBulkError] = useState('');
-
-  const parseSpecifications = (text: string) => {
-    setBulkError('');
-    const lines = text.split('\n').filter(line => line.trim());
-    const parsed: Record<string, string> = {};
-    let lineCount = 0;
-
-    for (const line of lines) {
-      // Match patterns like "Name: Value" or "Name:Value"
-      const match = line.match(/^([^:]+):\s*(.+)$/);
-      if (match) {
-        const key = match[1].trim();
-        const value = match[2].trim();
-        
-        if (key && value) {
-          // Skip lines that don't look like specs (too short or metadata)
-          if (key.length > 2 && value.length > 1) {
-            parsed[key] = value;
-            lineCount++;
-          }
-        }
-      }
-    }
-
-    if (lineCount === 0) {
-      setBulkError('❌ No se encontraron especificaciones. Formato esperado: "Nombre: Valor"');
-      return;
-    }
-
-    // Merge with existing specifications
-    const merged = { ...specifications, ...parsed };
-    setSpecifications(merged);
-    setBulkText('');
-    setBulkError('');
-  };
-
-  const addSpecification = () => {
-    if (!specKey.trim() || !specValue.trim()) {
-      alert('❌ Por favor completa nombre y valor de la especificación');
-      return;
-    }
-
-    const key = specKey.trim();
-    if (specifications[key]) {
-      alert(`❌ La especificación "${key}" ya existe`);
-      return;
-    }
-
-    setSpecifications({
-      ...specifications,
-      [key]: specValue.trim(),
-    });
-
-    setSpecKey('');
-    setSpecValue('');
-  };
-
-  const removeSpecification = (key: string) => {
-    const updated = { ...specifications };
-    delete updated[key];
-    setSpecifications(updated);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addSpecification();
-    }
-  };
-
-  return (
-    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-      {/* Bulk parse section */}
-      <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 space-y-3">
-        <p className="font-medium text-purple-400 text-sm">📋 Pegar especificaciones en lote</p>
-        <textarea
-          value={bulkText}
-          onChange={e => setBulkText(e.target.value)}
-          placeholder="Pega aquí tus especificaciones. Formato:&#10;Pulgadas: 32&quot;&#10;Resolución: 1366 × 768&#10;Tipo: Smart TV&#10;Conectividad: Wi-Fi, HDMI&#10;..."
-          className={`${di} min-h-24 resize-none font-mono text-xs [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-800 [&::-webkit-scrollbar-thumb]:bg-primary-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-primary-400`}
-        />
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => parseSpecifications(bulkText)}
-            className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            ✨ Parsear y agregar
-          </button>
-          <button
-            type="button"
-            onClick={() => setBulkText('')}
-            className="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors"
-          >
-            Limpiar
-          </button>
-        </div>
-        {bulkError && (
-          <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2 rounded flex items-center gap-2">
-            <AlertCircle size={14} /> {bulkError}
-          </div>
-        )}
-      </div>
-
-      {/* Manual add section */}
-      <div className="space-y-3">
-        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">O agregar manualmente:</p>
-        <Field label="Nombre de especificación">
-          <input
-            type="text"
-            value={specKey}
-            onChange={e => setSpecKey(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ej: Capacidad, Color, Material, Voltaje"
-            className={di}
-          />
-        </Field>
-        <Field label="Valor de especificación">
-          <input
-            type="text"
-            value={specValue}
-            onChange={e => setSpecValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ej: 8kg, Blanco, Acero inoxidable, 220V"
-            className={di}
-          />
-        </Field>
-        <button
-          type="button"
-          onClick={addSpecification}
-          className="w-full px-4 py-2.5 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          + Agregar especificación
-        </button>
-      </div>
-
-      {Object.keys(specifications).length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-400">Especificaciones agregadas ({Object.keys(specifications).length}):</p>
-          <div className="max-h-56 overflow-y-auto pr-1 space-y-2 [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-gray-800/50 [&::-webkit-scrollbar-track]:rounded-lg [&::-webkit-scrollbar-thumb]:bg-gradient-to-b [&::-webkit-scrollbar-thumb]:from-primary-600 [&::-webkit-scrollbar-thumb]:to-primary-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:from-primary-500 [&::-webkit-scrollbar-thumb:hover]:to-primary-600">
-            {Object.entries(specifications).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between p-3 bg-gray-800 border border-gray-700 rounded-lg group">
-                <div>
-                  <p className="text-sm font-medium text-gray-300">{key}</p>
-                  <p className="text-xs text-gray-500">{value}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeSpecification(key)}
-                  className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 text-xs text-gray-600 p-4 bg-gray-800 border border-gray-700 rounded-lg">
-          <AlertCircle size={14} /> <span>Sin especificaciones agregadas</span>
-        </div>
-      )}
-
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-sm text-blue-400 space-y-1">
-        <p className="font-medium">💡 Ejemplos de especificaciones:</p>
-        <ul className="text-xs text-blue-300 space-y-1 ml-2">
-          <li>• <strong>Lavarropas:</strong> Capacidad: 8kg, Velocidad: 1200 RPM, Color: Blanco</li>
-          <li>• <strong>Colchón:</strong> Material: Resortes ensacados, Firmeza: Media, Medida: 140x190</li>
-          <li>• <strong>Heladera:</strong> Capacidad: 500L, Tipo: Frost Free, Puerta: Francesa</li>
-        </ul>
-      </div>
-    </motion.div>
-  );
-}
-
-function CategorySelect({ formCategory, setCategory, di }: { formCategory: string, setCategory: (val: string) => void, di: string }) {
-  const { categories, loading, error } = useCategories();
-  
-  return (
-    <Field label="Categoría">
-      <select 
-        value={formCategory} 
-        onChange={e => {
-          setCategory(e.target.value);
-        }}
-        className={di}
-        disabled={loading || error !== null}
-      >
-        <option value="">
-          {loading ? 'Cargando categorías...' : error ? 'Error al cargar categorías' : 'Seleccione una categoría'}
-        </option>
-        {categories.map(c => (
-          <option key={c.id} value={c.id}>
-            {c.name} ({c.id})
-          </option>
-        ))}
-      </select>
-      {error && <p className="mt-1 text-xs text-red-400">Error: {error}</p>}
-    </Field>
-  );
-}

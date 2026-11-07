@@ -18,18 +18,13 @@ import CheckoutFailure from './pages/CheckoutFailure';
 import CheckoutPending from './pages/CheckoutPending';
 import AuthCallback from './pages/AuthCallback';
 import Contact from './pages/Contact';
-import TermsAndConditions from './pages/TermsAndConditions';
-import ScrollToTop from './components/ScrollToTop';
 // Admin
 import AdminLayout from './pages/admin/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
-import CategoriesManagement from './pages/admin/CategoriesManagement';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminCustomers from './pages/admin/AdminCustomers';
-import AdminUsers from './pages/admin/AdminUsers';
 import BulkImport from './pages/admin/BulkImport';
-import BulkImageUpload from './pages/admin/BulkImageUpload';
 import PriceManagement from './pages/admin/PriceManagement';
 // User
 import UserLayout from './pages/user/UserLayout';
@@ -68,7 +63,6 @@ const MainLayout = () => {
             <Route path="/checkout/pending" element={<PageWrap><CheckoutPending /></PageWrap>} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/contacto" element={<PageWrap><Contact /></PageWrap>} />
-            <Route path="/terminos-y-condiciones" element={<PageWrap><TermsAndConditions /></PageWrap>} />
           </Routes>
         </AnimatePresence>
       </main>
@@ -80,7 +74,6 @@ const MainLayout = () => {
 function App() {
   return (
     <BrowserRouter basename="/">
-      <ScrollToTop />
       <AuthProvider>
         <OrdersProvider>
         <ProductsProvider>
@@ -90,14 +83,11 @@ function App() {
             {/* Admin — sin Navbar/Footer */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
-              <Route path="categorias" element={<CategoriesManagement />} />
               <Route path="productos" element={<AdminProducts />} />
               <Route path="precios" element={<PriceManagement />} />
               <Route path="pedidos" element={<AdminOrders />} />
               <Route path="clientes" element={<AdminCustomers />} />
-              <Route path="usuarios" element={<AdminUsers />} />
               <Route path="importar" element={<BulkImport />} />
-              <Route path="cargar-imagenes" element={<BulkImageUpload />} />
             </Route>
 
             {/* Panel de usuario — con Navbar/Footer */}

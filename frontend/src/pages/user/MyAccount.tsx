@@ -1,51 +1,22 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Edit2, Check, X, Calendar, Loader } from 'lucide-react';
+import { Edit2, Check, X, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { formatDateArg } from '../../utils/dateUtils';
-import { updateCustomer } from '../../api/customersApi';
 
 export default function MyAccount() {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
   });
 
-  const handleSave = async () => {
-    if (!user?.customerId) {
-      toast('Usuario no autenticado', 'error');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      await updateCustomer(user.customerId, {
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-      });
-      
-      // Actualizar el usuario en el contexto local
-      updateUser({
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-      });
-      
-      setEditing(false);
-      toast('Datos actualizados correctamente');
-    } catch (err) {
-      console.error('Error guardando datos:', err);
-      toast('Error al guardar datos', 'error');
-    } finally {
-      setSaving(false);
-    }
+  const handleSave = () => {
+    setEditing(false);
+    toast('Datos actualizados correctamente');
   };
 
   const fields = [
@@ -71,7 +42,7 @@ export default function MyAccount() {
                 <Calendar size={12} />
                 <span>
                   Cliente desde {user?.joinedAt
-                    ? formatDateArg(user.joinedAt, 'date')
+                    ? new Date(user.joinedAt).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
                     : 'hoy'}
                 </span>
               </div>
@@ -84,18 +55,10 @@ export default function MyAccount() {
             </button>
           ) : (
             <div className="flex gap-2">
-              <button onClick={handleSave} disabled={saving} className="flex items-center gap-1 text-sm bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                {saving ? (
-                  <>
-                    <Loader size={14} className="animate-spin" /> Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Check size={14} /> Guardar
-                  </>
-                )}
+              <button onClick={handleSave} className="flex items-center gap-1 text-sm bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors">
+                <Check size={14} /> Guardar
               </button>
-              <button onClick={() => setEditing(false)} disabled={saving} className="flex items-center gap-1 text-sm border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <button onClick={() => setEditing(false)} className="flex items-center gap-1 text-sm border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                 <X size={14} /> Cancelar
               </button>
             </div>
@@ -116,8 +79,7 @@ export default function MyAccount() {
                     type={type}
                     value={form[key]}
                     onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
-                    disabled={saving}
-                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 ) : (
                   <p className="text-sm font-medium text-gray-800">{form[key] || <span className="text-gray-400 italic">No especificado</span>}</p>

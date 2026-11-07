@@ -2,20 +2,19 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
-import { formatDateArg } from '../../utils/dateUtils';
 import { fetchOrders, fetchOrderDetail, updateOrderStatus, type OrderStatus, type OrderList, type OrderDetail } from '../../api/ordersApi';
 
 const statusColors: Record<string, string> = {
-  pending_pago: 'bg-yellow-500/20 text-yellow-400',
-  pagada: 'bg-green-500/20 text-green-400',
-  cancelada: 'bg-red-500/20 text-red-400',
+  pending: 'bg-yellow-500/20 text-yellow-400',
+  paid: 'bg-green-500/20 text-green-400',
+  cancelled: 'bg-red-500/20 text-red-400',
 };
 const statusLabels: Record<string, string> = {
-  pending_pago: 'Pendiente',
-  pagada: 'Pagado',
-  cancelada: 'Cancelado',
+  pending: 'Pendiente',
+  paid: 'Pagado',
+  cancelled: 'Cancelado',
 };
-const ALL_STATUSES: OrderStatus[] = ['pending_pago', 'pagada', 'cancelada'];
+const ALL_STATUSES: OrderStatus[] = ['pending', 'paid', 'cancelled'];
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<OrderList[]>([]);
@@ -136,7 +135,7 @@ export default function AdminOrders() {
           {filtered.map((order, i) => {
             const isOpen = expanded === order.id;
             const detail = orderDetails[order.id];
-            const date = formatDateArg(order.createdAt, 'datetime');
+            const date = new Date(order.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
             return (
               <motion.div key={order.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}

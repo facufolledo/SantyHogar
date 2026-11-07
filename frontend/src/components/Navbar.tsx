@@ -8,14 +8,26 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { useCategoriesNav } from '../hooks/useCategoriesNav';
 import AuthModal from './AuthModal';
 
 const NAV_BG = 'bg-[#0c1528]/95';
 const NAV_BORDER = 'border-[#1a2540]';
 
+const categories = [
+  { label: 'Electrodomésticos', to: '/tienda?cat=electrodomesticos', icon: LayoutGrid },
+  { label: 'Mueblería', to: '/tienda?cat=muebleria', icon: LayoutGrid },
+  { label: 'Colchonería', to: '/tienda?cat=colchoneria', icon: LayoutGrid },
+];
+
+const searchSuggestions = [
+  { label: 'Electrodomésticos', to: '/tienda?cat=electrodomesticos' },
+  { label: 'Mueblería', to: '/tienda?cat=muebleria' },
+  { label: 'Colchonería', to: '/tienda?cat=colchoneria' },
+  { label: 'Lavarropas', to: '/tienda?q=lavarropas' },
+  { label: 'Heladeras', to: '/tienda?q=heladera' },
+];
+
 const Navbar = () => {
-  const { categories: navCategories } = useCategoriesNav();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -97,7 +109,22 @@ const Navbar = () => {
   return (
     <>
       <div className="sticky top-0 z-50">
-
+        {/* Barra de confianza */}
+        <div className={`hidden md:block ${NAV_BG} backdrop-blur-lg text-gray-400 text-xs py-1.5 px-4 border-b ${NAV_BORDER}`}>
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-6">
+            <span className="flex items-center gap-1.5">
+              <Truck size={12} className="text-orange-400" />
+              Envíos a todo el país
+            </span>
+            <span className="text-gray-600">·</span>
+            <span className="flex items-center gap-1.5">
+              <CreditCard size={12} className="text-orange-400" />
+              Hasta 12 cuotas sin interés
+            </span>
+            <span className="text-gray-600">·</span>
+            <span>Atención al cliente: (011) 4000-0000</span>
+          </div>
+        </div>
 
         <header className={`${NAV_BG} backdrop-blur-lg border-b ${NAV_BORDER} transition-all duration-300 ${scrolled ? 'shadow-2xl shadow-black/30' : 'shadow-lg shadow-black/20'}`}>
           {/* Main bar */}
@@ -130,16 +157,16 @@ const Navbar = () => {
                         exit={{ opacity: 0, y: -4 }}
                         className={`absolute top-full left-0 right-0 mt-1.5 ${NAV_BG} border ${NAV_BORDER} rounded-xl shadow-2xl py-2 z-50 overflow-hidden`}
                       >
-                        <p className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Categorías</p>
-                        {navCategories.map(s => (
+                        <p className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Búsquedas populares</p>
+                        {searchSuggestions.map(s => (
                           <Link
-                            key={s.id_categoria}
-                            to={`/tienda?cat=${s.slug}`}
+                            key={s.to}
+                            to={s.to}
                             onClick={() => { setSearchFocused(false); setSearchQuery(''); }}
                             className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
                           >
                             <Search size={13} className="text-gray-500" />
-                            {s.nombre}
+                            {s.label}
                           </Link>
                         ))}
                       </motion.div>
@@ -287,11 +314,14 @@ const Navbar = () => {
                         <Link to="/tienda" className="flex items-center gap-2.5 px-4 py-2.5 text-gray-300 hover:bg-white/5 hover:text-white text-sm transition-all duration-200 cursor-pointer">
                           <LayoutGrid size={14} className="text-gray-400" /> Ver todo
                         </Link>
-                        {navCategories.map(c => (
-                          <Link key={c.id_categoria} to={`/tienda?cat=${c.slug}`} className="flex items-center gap-2.5 px-4 py-2.5 text-gray-300 hover:bg-white/5 hover:text-white text-sm transition-all duration-200 cursor-pointer">
-                            <LayoutGrid size={14} className="text-gray-400" /> {c.nombre}
-                          </Link>
-                        ))}
+                        {categories.map(c => {
+                          const Icon = c.icon;
+                          return (
+                            <Link key={c.to} to={c.to} className="flex items-center gap-2.5 px-4 py-2.5 text-gray-300 hover:bg-white/5 hover:text-white text-sm transition-all duration-200 cursor-pointer">
+                              <Icon size={14} className="text-gray-400" /> {c.label}
+                            </Link>
+                          );
+                        })}
                       </motion.div>
                     </div>
                   )}
@@ -329,14 +359,14 @@ const Navbar = () => {
                 </form>
                 {!searchQuery && (
                   <div className="flex flex-wrap gap-2">
-                    {navCategories.slice(0, 3).map(s => (
+                    {searchSuggestions.slice(0, 3).map(s => (
                       <Link
-                        key={s.id_categoria}
-                        to={`/tienda?cat=${s.slug}`}
+                        key={s.to}
+                        to={s.to}
                         onClick={() => setSearchOpen(false)}
                         className="text-xs px-3 py-1 rounded-full bg-white/5 border border-[#1a2540] text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                       >
-                        {s.nombre}
+                        {s.label}
                       </Link>
                     ))}
                   </div>
@@ -355,6 +385,12 @@ const Navbar = () => {
                 className={`md:hidden overflow-hidden bg-[#111827] border-t ${NAV_BORDER}`}
               >
                 <div className="px-4 py-3 space-y-1">
+                  {/* Trust info mobile */}
+                  <div className={`flex flex-col gap-1 pb-3 mb-2 border-b ${NAV_BORDER} text-xs text-gray-400`}>
+                    <span className="flex items-center gap-1.5"><Truck size={12} className="text-orange-400" /> Envíos a todo el país</span>
+                    <span className="flex items-center gap-1.5"><CreditCard size={12} className="text-orange-400" /> Hasta 12 cuotas sin interés</span>
+                  </div>
+
                   {isLogged && (
                     <div className={`flex items-center gap-3 py-3 border-b ${NAV_BORDER} mb-2`}>
                       <div className="w-9 h-9 bg-primary-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
@@ -368,8 +404,8 @@ const Navbar = () => {
                   )}
                   <Link to="/" className="block py-2.5 text-gray-300 hover:text-white text-sm transition-colors duration-200 cursor-pointer">Inicio</Link>
                   <Link to="/tienda" className="block py-2.5 text-gray-300 hover:text-white text-sm transition-colors duration-200 cursor-pointer">Todos los productos</Link>
-                  {navCategories.map(c => (
-                    <Link key={c.id_categoria} to={`/tienda?cat=${c.slug}`} className="block py-2 pl-4 text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer">{c.nombre}</Link>
+                  {categories.map(c => (
+                    <Link key={c.to} to={c.to} className="block py-2 pl-4 text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer">{c.label}</Link>
                   ))}
                   <Link to="/contacto" className="block py-2.5 text-gray-300 hover:text-white text-sm transition-colors duration-200 cursor-pointer">Contacto</Link>
                   {isLogged ? (

@@ -1,16 +1,8 @@
-export interface ProductVariant {
-  size: string;
-  stock: number;
-  sku?: string;
-}
-
 export interface Product {
   id: string;
   name: string;
   slug: string;
-  categoryId: string;
-  categoryName?: string;
-  category: string; // Keep for backward compatibility or slug if needed
+  category: 'electrodomesticos' | 'muebleria' | 'colchoneria';
   subcategory: string;
   price: number;
   originalPrice?: number;
@@ -18,12 +10,10 @@ export interface Product {
   description: string;
   specs: Record<string, string>;
   stock: number;
-  variants?: ProductVariant[]; // Available sizes/variants
   featured: boolean;
   brand: string;
   rating: number;
   reviews: number;
-  visible?: boolean; // Controls visibility in customer-facing pages
 }
 
 /** Metadatos de categorías (imagen / nombre); el conteo se calcula con la lista cargada desde la API. */
@@ -46,9 +36,8 @@ export const categoryDefinitions = [
 ];
 
 export function buildCategoryCards(list: Product[]) {
-  const safe = Array.isArray(list) ? list : [];
   return categoryDefinitions.map(cat => ({
     ...cat,
-    count: safe.filter(p => p.category === cat.id).length,
+    count: list.filter(p => p.category === cat.id).length,
   }));
 }

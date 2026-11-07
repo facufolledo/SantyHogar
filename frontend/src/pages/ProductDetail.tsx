@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, ChevronRight, Star, Truck, Shield, RefreshCw, Minus, Plus, Lock, CreditCard } from 'lucide-react';
+import { ShoppingCart, ChevronRight, Star, Minus, Plus, Lock, CreditCard } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
-import ImageZoom from '../components/ImageZoom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -12,7 +11,6 @@ import { formatPrice } from '../utils/format';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
 import PaymentMethodsModal from '../components/PaymentMethodsModal';
-import SizeSelector from '../components/SizeSelector';
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -20,7 +18,6 @@ const ProductDetail = () => {
   const product = products.find(p => p.slug === slug);
   const [activeImg, setActiveImg] = useState(0);
   const [qty, setQty] = useState(1);
-  const [selectedSize, setSelectedSize] = useState<string>('');
   const [showAuth, setShowAuth] = useState(false);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const { addItem } = useCart();
@@ -52,33 +49,17 @@ const ProductDetail = () => {
     </div>
   );
 
-  // Debug logging
-  console.log('📦 ProductDetail:', {
-    descriptionTrim: product.description?.trim(),
-    descriptionLength: product.description?.length,
-    specs: product.specs,
-  });
-
   const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
 
   const handleAdd = () => {
     if (!isLogged) { setShowAuth(true); return; }
-    if (product.variants && product.variants.length > 0 && !selectedSize) {
-      toast('Por favor selecciona un tamaño');
-      return;
-    }
-    for (let i = 0; i < qty; i++) addItem(product, selectedSize);
+    for (let i = 0; i < qty; i++) addItem(product);
     toast(`${product.name} agregado al carrito`);
-    setSelectedSize(''); // Reset after adding
   };
 
   const handleBuyNow = () => {
     if (!isLogged) { setShowAuth(true); return; }
-    if (product.variants && product.variants.length > 0 && !selectedSize) {
-      toast('Por favor selecciona un tamaño');
-      return;
-    }
-    for (let i = 0; i < qty; i++) addItem(product, selectedSize);
+    for (let i = 0; i < qty; i++) addItem(product);
     toast(`${product.name} agregado al carrito`);
     navigate('/carrito');
   };
@@ -105,12 +86,7 @@ const ProductDetail = () => {
             animate={{ opacity: 1 }}
             className="aspect-square rounded-2xl overflow-hidden bg-gray-50 mb-3"
           >
-            <ImageZoom 
-              src={product.images[activeImg]} 
-              alt={product.name}
-              className="w-full h-full object-cover"
-              zoomLevel={2.5}
-            />
+            <img src={product.images[activeImg]} alt={product.name} className="w-full h-full object-cover" />
           </motion.div>
           {product.images.length > 1 && (
             <div className="flex gap-2">
@@ -118,7 +94,7 @@ const ProductDetail = () => {
                 <button
                   key={i}
                   onClick={() => setActiveImg(i)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === activeImg ? 'border-primary-600' : 'border-transparent hover:border-gray-300'}`}
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === activeImg ? 'border-primary-600' : 'border-transparent'}`}
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" />
                 </button>
@@ -158,16 +134,6 @@ const ProductDetail = () => {
             </span>
           </div>
 
-          {/* Size selector */}
-          {product.variants && product.variants.length > 0 && (
-            <SizeSelector 
-              variants={product.variants}
-              selectedSize={selectedSize}
-              onSizeChange={setSelectedSize}
-              disabled={product.stock <= 0}
-            />
-          )}
-
           {/* Qty */}
           {product.stock > 0 && (
             <div className="flex items-center gap-3 mb-5">
@@ -184,11 +150,11 @@ const ProductDetail = () => {
             </div>
           )}
 
-          {/* Payment options button - No login required */}
+          {/* Payment options button */}
           {product.stock > 0 && (
             <button
               onClick={() => setShowPaymentMethods(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-green-600 text-green-600 hover:bg-green-50 font-semibold rounded-xl transition-all mb-5"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 font-semibold rounded-xl transition-all mb-5"
             >
               <CreditCard size={18} />
               Ver medios de pago y cuotas
@@ -197,27 +163,16 @@ const ProductDetail = () => {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            <button onClick={handleAdd} disabled={product.stock <= 0 || product.price <= 0} className="flex-1 flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 disabled:opacity-40 disabled:cursor-not-allowed font-semibold py-3 rounded-xl transition-all">
-              {!isLogged && product.stock > 0 && product.price > 0 ? <Lock size={18} /> : <ShoppingCart size={18} />}
-              {product.stock <= 0 ? 'Sin stock' : product.price <= 0 ? 'Consultar precio' : !isLogged ? 'Inicia sesión para comprar' : 'Agregar al carrito'}
+            <button onClick={handleAdd} disabled={product.stock === 0} className="flex-1 flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 disabled:opacity-40 font-semibold py-3 rounded-xl transition-all">
+              {!isLogged ? <Lock size={18} /> : <ShoppingCart size={18} />}
+              {!isLogged ? 'Iniciá sesión para comprar' : 'Agregar al carrito'}
             </button>
-            <button onClick={handleBuyNow} disabled={product.stock <= 0 || product.price <= 0} className="flex-1 bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all active:scale-95">
-              {product.stock <= 0 ? 'Sin stock' : product.price <= 0 ? 'Consultar precio' : !isLogged ? 'Registrate para comprar' : 'Comprar ahora'}
+            <button onClick={handleBuyNow} disabled={product.stock === 0} className="flex-1 bg-primary-600 hover:bg-primary-700 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-all active:scale-95">
+              {!isLogged ? 'Registrate' : 'Comprar ahora'}
             </button>
           </div>
 
-          {/* Trust */}
-          <div className="space-y-2 border-t border-gray-100 pt-4">
-            {[
-              { icon: Truck, text: 'Envío gratis en compras mayores a $200.000' },
-              { icon: Shield, text: 'Garantía oficial del fabricante' },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2 text-sm text-gray-600">
-                <Icon size={15} className="text-primary-600 flex-shrink-0" />
-                {text}
-              </div>
-            ))}
-          </div>
+
         </div>
       </div>
 
@@ -225,26 +180,18 @@ const ProductDetail = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
         <div className="card p-6">
           <h2 className="font-bold text-gray-900 mb-3">Descripción</h2>
-          {product.description && product.description.trim() ? (
-            <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
-          ) : (
-            <p className="text-gray-400 text-sm italic">Sin descripción disponible para este producto. Contáctanos para más información.</p>
-          )}
+          <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
         </div>
         <div className="card p-6">
           <h2 className="font-bold text-gray-900 mb-3">Especificaciones</h2>
-          {product.specs && Object.keys(product.specs).length > 0 ? (
-            <dl className="space-y-2">
-              {Object.entries(product.specs).map(([k, v]) => (
-                <div key={k} className="flex justify-between text-sm border-b border-gray-50 pb-2">
-                  <dt className="text-gray-500">{k}</dt>
-                  <dd className="font-medium text-gray-800">{String(v)}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : (
-            <p className="text-gray-400 text-sm italic">Sin especificaciones agregadas</p>
-          )}
+          <dl className="space-y-2">
+            {Object.entries(product.specs).map(([k, v]) => (
+              <div key={k} className="flex justify-between text-sm border-b border-gray-50 pb-2">
+                <dt className="text-gray-500">{k}</dt>
+                <dd className="font-medium text-gray-800">{v}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </div>
 

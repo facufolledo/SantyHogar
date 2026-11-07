@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
-import { formatDateArg } from '../../utils/dateUtils';
 import ProvinceSelect from '../../components/ProvinceSelect';
 import CitySelect from '../../components/CitySelect';
 import {
@@ -160,7 +159,17 @@ export default function CustomerFormModal({ customer, mode, onSave, onClose }: P
         ? 'Editar cliente'
         : 'Detalle del cliente';
 
-  const formatDate = (dateString: string) => formatDateArg(dateString, 'date');
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('es-AR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
+  };
 
   const statusLabel = (status: string) => {
     const map: Record<string, { label: string; cls: string }> = {

@@ -1,43 +1,24 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, DollarSign, Save, AlertCircle, Sliders, TrendingUp, Eye, EyeOff } from 'lucide-react';
+import { Search, DollarSign, Save, AlertCircle, Filter, TrendingUp } from 'lucide-react';
 import { useProducts } from '../../context/ProductsContext';
-import { useCategoriesNav } from '../../hooks/useCategoriesNav';
 import { formatPrice } from '../../utils/format';
 import ProductsErrorBanner from '../../components/ProductsErrorBanner';
-import { updateProductPrice, toggleProductVisibility } from '../../api/productsApi';
+import { updateProductPrice } from '../../api/productsApi';
+
+const catColors: Record<string, string> = {
+  electrodomesticos: 'bg-blue-500/20 text-blue-400',
+  muebleria: 'bg-purple-500/20 text-purple-400',
+  colchoneria: 'bg-green-500/20 text-green-400',
+};
 
 export default function PriceManagement() {
   const { products, loading, error, refetch } = useProducts();
-  const { categories: navCategories } = useCategoriesNav();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterNoPriceOnly, setFilterNoPriceOnly] = useState(true);
   const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
-  const [togglingVisibility, setTogglingVisibility] = useState<Set<string>>(new Set());
-
-  const getCategoryColor = (categorySlug: string): string => {
-    const colors: Record<string, string> = {
-      electrodomesticos: 'bg-blue-500/20 text-blue-400',
-      muebleria: 'bg-purple-500/20 text-purple-400',
-      colchoneria: 'bg-green-500/20 text-green-400',
-      cocinas: 'bg-orange-500/20 text-orange-400',
-      baños: 'bg-cyan-500/20 text-cyan-400',
-    };
-    
-    if (colors[categorySlug]) {
-      return colors[categorySlug];
-    }
-    
-    const hash = categorySlug.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const colorOptions = [
-      'bg-teal-500/20 text-teal-400',
-      'bg-violet-500/20 text-violet-400',
-      'bg-rose-500/20 text-rose-400',
-    ];
-    return colorOptions[hash % colorOptions.length];
-  };
 
   const filtered = useMemo(() => {
     let result = products;
@@ -97,29 +78,6 @@ export default function PriceManagement() {
       alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al actualizar el precio'}`);
     } finally {
       setSavingIds(prev => {
-        const next = new Set(prev);
-        next.delete(productId);
-        return next;
-      });
-    }
-  };
-
-  const handleToggleVisibility = async (productId: string) => {
-    setTogglingVisibility(prev => new Set(prev).add(productId));
-
-    try {
-      await toggleProductVisibility(productId);
-      
-      // Refrescar la lista de productos
-      await refetch();
-      
-      // Mostrar mensaje de éxito
-      alert('✅ Visibilidad actualizada correctamente');
-    } catch (error) {
-      console.error('Error al cambiar visibilidad:', error);
-      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error al cambiar la visibilidad'}`);
-    } finally {
-      setTogglingVisibility(prev => {
         const next = new Set(prev);
         next.delete(productId);
         return next;
@@ -202,7 +160,7 @@ export default function PriceManagement() {
               Hay {noPriceCount} productos sin precio
             </p>
             <p className="text-xs text-yellow-500/80 mt-1">
-              Estos productos no se mostrarán correctamente en la tienda hasta que les asignes un precio.
+              Estos productos no se mostrar├ín correctamente en la tienda hasta que les asignes un precio.
             </p>
           </div>
         </div>
@@ -229,9 +187,9 @@ export default function PriceManagement() {
           className="px-4 py-2.5 bg-gray-800 border border-gray-700/60 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
         >
           <option value="all">Todas las categorías</option>
-          {navCategories.map(cat => (
-            <option key={cat.id_categoria} value={cat.slug}>{cat.nombre}</option>
-          ))}
+          <option value="electrodomesticos">Electrodomésticos</option>
+          <option value="muebleria">Mueblería</option>
+          <option value="colchoneria">Colchonería</option>
         </select>
 
         <button
@@ -242,7 +200,7 @@ export default function PriceManagement() {
               : 'bg-gray-800 border border-gray-700/60 text-gray-400 hover:text-white'
           }`}
         >
-          <Sliders size={15} />
+          <Filter size={15} />
           Solo sin precio
         </button>
       </div>
@@ -318,7 +276,7 @@ export default function PriceManagement() {
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                            getCategoryColor(product.category)
+                            catColors[product.category]
                           }`}
                         >
                           {product.category}
@@ -363,40 +321,23 @@ export default function PriceManagement() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleSavePrice(product.id)}
-                            disabled={!isEditing || isSaving}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isSaving ? (
-                              <>
-                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Guardando...
-                              </>
-                            ) : (
-                              <>
-                                <Save size={13} />
-                                Guardar
-                              </>
-                            )}
-                          </button>
-                          
-                          <button
-                            onClick={() => handleToggleVisibility(product.id)}
-                            disabled={togglingVisibility.has(product.id)}
-                            title={product.visible !== false ? 'Ocultar del catálogo' : 'Mostrar en catálogo'}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {togglingVisibility.has(product.id) ? (
-                              <div className="w-3 h-3 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-                            ) : product.visible !== false ? (
-                              <Eye size={13} />
-                            ) : (
-                              <EyeOff size={13} />
-                            )}
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleSavePrice(product.id)}
+                          disabled={!isEditing || isSaving}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSaving ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Guardando...
+                            </>
+                          ) : (
+                            <>
+                              <Save size={13} />
+                              Guardar
+                            </>
+                          )}
+                        </button>
                       </td>
                     </motion.tr>
                   );
@@ -417,7 +358,7 @@ export default function PriceManagement() {
         </div>
       )}
 
-      {/* Botón flotante "Guardar todos" */}
+      {/* Bot├│n flotante "Guardar todos" */}
       {pendingChangesCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

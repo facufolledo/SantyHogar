@@ -30,13 +30,12 @@ export const ProductsProvider = ({ children }: { children: React.ReactNode }) =>
     setError(null);
     try {
       const data = await fetchProductsFromApi();
-      setProducts(Array.isArray(data) ? data : []);
+      setProducts(data);
     } catch (e) {
       setProducts([]);
-      const message = e instanceof Error ? e.message : 'No se pudieron cargar los productos. ¿Está el backend en marcha?';
-      setError(message.includes('.map is not a function')
-        ? 'Error al leer el catálogo. Actualizá la página o contactá soporte.'
-        : message);
+      setError(
+        e instanceof Error ? e.message : 'No se pudieron cargar los productos. ¿Está el backend en marcha?'
+      );
     } finally {
       setLoading(false);
     }
