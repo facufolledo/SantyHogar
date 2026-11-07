@@ -19,14 +19,32 @@ function normalizeProduct(p: ProductDto): Product {
 export async function fetchProductsFromApi(): Promise<Product[]> {
   try {
     console.log('📡 [API] Fetching /products...');
-    const raw = await apiFetch<ProductDto[] | { data: ProductDto[] }>('/products', { method: 'GET' });
+    const raw = await apiFetch<ProductDto[] | { data: ProductDto[]; pagination?: unknown }>('/products', { method: 'GET' });
     
     console.log('📦 [API] Raw response received:', raw);
     console.log('📦 [API] Response type:', typeof raw);
+    console.log('📦 [API] Response keys:', Object.keys(raw || {}));
     console.log('📦 [API] Is array?:', Array.isArray(raw));
+    console.log('📦 [API] raw.data exists?:', (raw as any)?.data !== undefined);
+    console.log('📦 [API] raw.data type:', typeof (raw as any)?.data);
+    console.log('📦 [API] raw.data is array?:', Array.isArray((raw as any)?.data));
     
     // Si la respuesta es un objeto con propiedad 'data', extraer el array
-    let products = Array.isArray(raw) ? raw : (raw as any)?.data || [];
+    let products: unknown[] = [];
+    if (Array.isArray(raw)) {
+      products = raw;
+      console.log('✅ [API] Response is direct array');
+    } else if ((raw as any)?.data) {
+      const dataField = (raw as any).data;
+      if (Array.isArray(dataField)) {
+        products = dataField;
+        console.log('✅ [API] Response has .data array');
+      } else {
+        console.warn('⚠️  [API] Response.data exists but is not array:', dataField);
+      }
+    } else {
+      console.warn('⚠️  [API] Response is neither array nor has .data property');
+    }
     
     console.log('📦 [API] Extracted products:', products);
     console.log('📦 [API] Products type:', typeof products);
@@ -42,11 +60,16 @@ export async function fetchProductsFromApi(): Promise<Product[]> {
     
     console.log(`✅ [API] Normalizando ${products.length} productos...`);
     const normalized = products.map(normalizeProduct);
-    console.log('✅ [API] Productos normalizados:', normalized);
+    console.log('✅ [API] Productos normalizados (first 3):', normalized.slice(0, 3));
+    console.log('✅ [API] Total productos normalizados:', normalized.length);
     
     return normalized;
   } catch (error) {
     console.error('❌ [API] Error en fetchProductsFromApi:', error);
+    if (error instanceof Error) {
+      console.error('❌ [API] Error message:', error.message);
+      console.error('❌ [API] Error stack:', error.stack);
+    }
     throw error;
   }
 }
