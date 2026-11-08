@@ -4,74 +4,126 @@ import { getApiBase } from './config';
 
 type ProductDto = Product;
 
+type PaginatedProductsResponse = {
+  data?: ProductDto[];
+  results?: ProductDto[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+};
+
+function extractProductList(response: unknown): ProductDto[] {
+  if (Array.isArray(response)) return response;
+  if (response && typeof response === 'object') {
+    const r = response as PaginatedProductsResponse;
+    if (Array.isArray(r.data)) return r.data;
+    if (Array.isArray(r.results)) return r.results;
+  }
+  return [];
+}
+
 function normalizeProduct(p: ProductDto): Product {
+  const images = Array.isArray(p.images) ? p.images : [];
+  // Check both 'specs' (API) and 'especificaciones' (Supabase column name)
+  const specs =
+    (p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs))
+      ? (p.specs as Record<string, string>)
+      : ((p as any).especificaciones && typeof (p as any).especificaciones === 'object' && !Array.isArray((p as any).especificaciones))
+        ? ((p as any).especificaciones as Record<string, string>)
+        : {};
+  const description = p.description ? String(p.description).trim() : '';
   return {
-    ...p,
     id: String(p.id),
+    name: p.name,
+    slug: p.slug,
+    categoryId: (p as any).categoryId || '',
+    categoryName: (p as any).categoryName || '',
+    category: (p as any).category || (p as any).categoryName || '',
+    subcategory: p.subcategory || '',
     price: Number(p.price),
     originalPrice: p.originalPrice != null ? Number(p.originalPrice) : undefined,
+    images,
+    description,
+    specs,
+    stock: Number(p.stock),
+    featured: (p as any).featured || false,
+    brand: (p as any).brand || '',
     rating: Number(p.rating),
     reviews: Number(p.reviews),
-    stock: Number(p.stock),
   };
 }
 
 export async function fetchProductsFromApi(): Promise<Product[]> {
-  try {
-    console.log('📡 [API] Fetching /products...');
-    const raw = await apiFetch<ProductDto[] | { data: ProductDto[]; pagination?: unknown }>('/products', { method: 'GET' });
-    
-    console.log('📦 [API] Raw response received:', raw);
-    console.log('📦 [API] Response type:', typeof raw);
-    console.log('📦 [API] Response keys:', Object.keys(raw || {}));
-    console.log('📦 [API] Is array?:', Array.isArray(raw));
-    console.log('📦 [API] raw.data exists?:', (raw as any)?.data !== undefined);
-    console.log('📦 [API] raw.data type:', typeof (raw as any)?.data);
-    console.log('📦 [API] raw.data is array?:', Array.isArray((raw as any)?.data));
-    
-    // Si la respuesta es un objeto con propiedad 'data', extraer el array
-    let products: unknown[] = [];
-    if (Array.isArray(raw)) {
-      products = raw;
-      console.log('✅ [API] Response is direct array');
-    } else if ((raw as any)?.data) {
-      const dataField = (raw as any).data;
-      if (Array.isArray(dataField)) {
-        products = dataField;
-        console.log('✅ [API] Response has .data array');
-      } else {
-        console.warn('⚠️  [API] Response.data exists but is not array:', dataField);
-      }
-    } else {
-      console.warn('⚠️  [API] Response is neither array nor has .data property');
+  const all: Product[] = [];
+  let page = 1;
+  const limit = 100;
+
+  while (true) {
+    const response = await apiFetch<PaginatedProductsResponse | ProductDto[]>(
+      `/products?page=${page}&limit=${limit}`,
+      { method: 'GET' }
+    );
+
+    const batch = extractProductList(response);
+
+    if (batch.length === 0 && page === 1) {
+      console.error('Unexpected response format from /products:', response);
+      break;
     }
-    
-    console.log('📦 [API] Extracted products:', products);
-    console.log('📦 [API] Products type:', typeof products);
-    console.log('📦 [API] Products is array?:', Array.isArray(products));
-    console.log('📦 [API] Products length:', Array.isArray(products) ? products.length : 'N/A');
-    
-    // Protección: si products no es un array, devolver array vacío
-    if (!Array.isArray(products)) {
-      console.warn('⚠️  [API] Backend devolvió formato inesperado:', raw);
-      console.warn('⚠️  [API] Devolviendo array vacío como fallback');
-      return [];
-    }
-    
-    console.log(`✅ [API] Normalizando ${products.length} productos...`);
-    const normalized = products.map(normalizeProduct);
-    console.log('✅ [API] Productos normalizados (first 3):', normalized.slice(0, 3));
-    console.log('✅ [API] Total productos normalizados:', normalized.length);
-    
-    return normalized;
-  } catch (error) {
-    console.error('❌ [API] Error en fetchProductsFromApi:', error);
-    if (error instanceof Error) {
-      console.error('❌ [API] Error message:', error.message);
-      console.error('❌ [API] Error stack:', error.stack);
-    }
-    throw error;
+
+    // TIENDA: Filtrar productos sin stock Y sin precio
+    all.push(...batch.map(normalizeProduct).filter(p => p.stock > 0 && p.price > 0));
+
+    if (Array.isArray(response)) break;
+
+    const pagination = (response as PaginatedProductsResponse).pagination;
+    if (!pagination?.hasNext || page >= (pagination.pages || 1)) break;
+
+    page += 1;
   }
+
+  return all;
+}
+
+/**
+ * Obtiene TODOS los productos para el panel admin (sin filtros)
+ * Incluye productos con stock=0 y precio=0 para poder asignarles valores
+ */
+export async function fetchAllProductsForAdmin(): Promise<Product[]> {
+  const all: Product[] = [];
+  let page = 1;
+  const limit = 100;
+
+  while (true) {
+    const response = await apiFetch<PaginatedProductsResponse | ProductDto[]>(
+      `/products?page=${page}&limit=${limit}`,
+      { method: 'GET' }
+    );
+
+    const batch = extractProductList(response);
+
+    if (batch.length === 0 && page === 1) {
+      console.error('Unexpected response format from /products:', response);
+      break;
+    }
+
+    // ADMIN: Sin filtros - muestra TODOS los productos
+    all.push(...batch.map(normalizeProduct));
+
+    if (Array.isArray(response)) break;
+
+    const pagination = (response as PaginatedProductsResponse).pagination;
+    if (!pagination?.hasNext || page >= (pagination.pages || 1)) break;
+
+    page += 1;
+  }
+
+  return all;
 }
 
 export interface BulkImportResponse {
@@ -91,6 +143,7 @@ export interface BulkImportResponse {
       marca: string;
       descripcion?: string;
       imagen?: string | null;
+      especificaciones?: Record<string, string>;
     };
     errors: string[];
   }>;
@@ -113,6 +166,7 @@ export interface BulkImportPreviewResponse {
       marca: string;
       descripcion?: string;
       imagen?: string | null;
+      especificaciones?: Record<string, string>;
     };
     errors: string[];
   }>;
@@ -127,13 +181,15 @@ export interface BulkImportConfirmRow {
   marca?: string;
   descripcion?: string;
   imagen?: string | null;
+  especificaciones?: Record<string, string>;
 }
 
 export async function bulkImportPreview(file: File): Promise<BulkImportPreviewResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no est├í configurada');
+    throw new Error('VITE_API_URL no estâ configurada');
   }
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -156,7 +212,7 @@ export async function bulkImportPreview(file: File): Promise<BulkImportPreviewRe
 export async function bulkImportConfirm(rows: BulkImportConfirmRow[]): Promise<BulkImportResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no est├í configurada');
+    throw new Error('VITE_API_URL no estâ configurada');
   }
 
   const root = base.replace(/\/$/, '');
@@ -179,8 +235,9 @@ export async function bulkImportConfirm(rows: BulkImportConfirmRow[]): Promise<B
 export async function bulkImportProducts(file: File): Promise<BulkImportResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no est├í configurada');
+    throw new Error('VITE_API_URL no estâ configurada');
   }
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -232,7 +289,7 @@ export async function updateProductPrice(
 
 export interface CreateProductRequest {
   name: string;
-  category: 'electrodomesticos' | 'muebleria' | 'colchoneria';
+  category_id: string;
   subcategory: string;
   price: number;
   originalPrice?: number;
@@ -246,7 +303,7 @@ export interface CreateProductRequest {
 
 export interface UpdateProductRequest {
   name?: string;
-  category?: 'electrodomesticos' | 'muebleria' | 'colchoneria';
+  category_id?: string;
   subcategory?: string;
   price?: number;
   originalPrice?: number;
@@ -265,6 +322,7 @@ export async function createProduct(
     method: 'POST',
     body: JSON.stringify(productData),
   });
+
   return normalizeProduct(response);
 }
 
@@ -276,12 +334,25 @@ export async function updateProduct(
     method: 'PATCH',
     body: JSON.stringify(productData),
   });
+
   return normalizeProduct(response);
 }
 
 export async function deleteProduct(productId: string): Promise<void> {
   await apiFetch(`/products/${productId}`, {
     method: 'DELETE',
+  });
+}
+
+export interface ToggleVisibilityResponse {
+  id_producto: string;
+  visible: boolean;
+  message: string;
+}
+
+export async function toggleProductVisibility(productId: string): Promise<ToggleVisibilityResponse> {
+  return apiFetch<ToggleVisibilityResponse>(`/products/${productId}/visibility`, {
+    method: 'PATCH',
   });
 }
 
@@ -293,8 +364,9 @@ export interface ImageUploadResponse {
 export async function uploadProductImage(file: File): Promise<ImageUploadResponse> {
   const base = getApiBase();
   if (!base) {
-    throw new Error('VITE_API_URL no est├í configurada');
+    throw new Error('VITE_API_URL no estâ configurada');
   }
+
   const formData = new FormData();
   formData.append('file', file);
 

@@ -19,11 +19,12 @@ class ImageService:
 
     BUCKET = "product-images"
     MAX_SIZE = 5 * 1024 * 1024  # 5 MB
-    ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+    ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
 
     # Mapeo de content-type a extensión
     EXTENSION_MAP = {
         "image/jpeg": ".jpg",
+        "image/jpg": ".jpg",
         "image/png": ".png",
         "image/webp": ".webp",
     }
@@ -36,7 +37,7 @@ class ImageService:
         """
         if content_type not in self.ALLOWED_TYPES:
             raise ImageValidationError(
-                "El archivo debe ser una imagen (JPEG, PNG o WebP)"
+                "El archivo debe ser una imagen (JPG, JPEG, PNG o WebP)"
             )
         if size > self.MAX_SIZE:
             raise ImageValidationError("La imagen no debe exceder 5 MB")

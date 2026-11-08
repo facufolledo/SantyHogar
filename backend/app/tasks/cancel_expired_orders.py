@@ -1,8 +1,8 @@
 """Task para cancelar órdenes pendientes que expiraron (después de 2 horas)."""
 
 import logging
-from datetime import datetime, timezone
-from app.main import get_supabase_client
+from datetime import datetime, timezone, timedelta
+from app.database.connection import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,6 @@ def cancel_expired_orders():
     """
     supabase = get_supabase_client()
     # IMPORTANTE: Usar la MISMA timezone que cuando se creó la orden (Argentina UTC-3)
-    from datetime import timedelta
     argentina_tz = timezone(timedelta(hours=-3))
     now = datetime.now(argentina_tz)
     
@@ -116,7 +115,6 @@ def cancel_expired_orders():
         try:
             # Marcar órdenes como canceladas EN LUGAR DE ELIMINARLAS
             # Esto permite que el webhook aún pueda procesarlas si llega el pago tarde
-            from datetime import datetime, timedelta, timezone
             argentina_tz = timezone(timedelta(hours=-3))
             now = datetime.now(argentina_tz).isoformat()
             

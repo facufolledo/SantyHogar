@@ -174,8 +174,8 @@ async def upload_product_image(
 ) -> ImageUploadResponse:
     """Sube una imagen de producto a Supabase Storage.
 
-    Valida tipo (JPEG, PNG, WebP) y tama├▒o (Ôëñ5 MB).
-    Retorna la URL p├║blica y el nombre del archivo generado.
+    Valida tipo (JPG, JPEG, PNG, WebP) y tamaño (máx 5 MB).
+    Retorna la URL pública y el nombre del archivo generado.
     """
     try:
         url, filename = await image_service.upload_image(file)

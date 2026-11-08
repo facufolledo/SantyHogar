@@ -166,22 +166,16 @@ def create_app() -> FastAPI:
             # Filtro de búsqueda
             if not (term in product.name.lower()
                 or term in product.description.lower()
-                or term in product.category.lower()
+                or term in (product.categoria_nombre or "").lower()
                 or term in product.subcategory.lower()
                 or term in product.brand.lower()):
                 continue
             
-            # Filtro: excluir productos sin stock o invisibles
-            try:
-                stock = int(product.stock or 0) if hasattr(product, 'stock') else int(product.get('stock', 0) or 0)
-                visible = bool(product.visible) if hasattr(product, 'visible') else bool(product.get('visible', True))
-                
-                if stock == 0:
-                    continue
-                if not visible:
-                    continue
-            except (ValueError, TypeError, AttributeError):
-                pass  # Si hay error, incluir el producto
+            # Filtro: excluir productos sin stock, sin precio o invisibles
+            if product.stock == 0:
+                continue
+            if hasattr(product, 'visible') and not product.visible:
+                continue
             
             results.append(product_to_response(product).model_dump(mode="json"))
         
@@ -199,7 +193,7 @@ def create_app() -> FastAPI:
         products_data = await (await _product_service()).get_all_products()
         results = []
         for product in products_data:
-            if category and product.category != category:
+            if category and product.categoria_nombre != category:
                 continue
             if price_min is not None and product.price < price_min:
                 continue
@@ -207,16 +201,10 @@ def create_app() -> FastAPI:
                 continue
             
             # Filtro: excluir productos sin stock o invisibles
-            try:
-                stock = int(product.stock or 0) if hasattr(product, 'stock') else int(product.get('stock', 0) or 0)
-                visible = bool(product.visible) if hasattr(product, 'visible') else bool(product.get('visible', True))
-                
-                if stock == 0:
-                    continue
-                if not visible:
-                    continue
-            except (ValueError, TypeError, AttributeError):
-                pass  # Si hay error, incluir el producto
+            if product.stock == 0:
+                continue
+            if hasattr(product, 'visible') and not product.visible:
+                continue
             
             results.append(product_to_response(product).model_dump(mode="json"))
 

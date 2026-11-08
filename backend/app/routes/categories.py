@@ -4,7 +4,7 @@ import uuid
 from typing import List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, File, UploadFile
 from uuid import UUID
 
 from app.database.connection import get_supabase_client
@@ -13,6 +13,7 @@ from app.models.schemas import (
     CreateCategoryRequest,
     UpdateCategoryRequest,
 )
+from app.services.image_service import ImageService, ImageValidationError
 
 
 logger = logging.getLogger(__name__)
@@ -343,3 +344,79 @@ async def delete_category(category_id: UUID):
     except Exception as e:
         logger.error(f"Error deleting category {category_id}: {e}")
         raise HTTPException(status_code=500, detail="Error al eliminar categoría")
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# POST /api/categories/{id}/upload-image - Subir imagen de categoría
+# ════════════════════════════════════════════════════════════════════════════════
+
+@router.post("/{category_id}/upload-image")
+async def upload_category_image(
+    category_id: UUID,
+    file: UploadFile = File(...),
+):
+    """
+    Sube una imagen para una categoría.
+    
+    Parámetros:
+    - category_id: ID de la categoría (UUID)
+    - file: Archivo de imagen (JPG, JPEG, PNG, WebP - máx 5 MB)
+    
+    Retorna: URL pública de la imagen y nombre del archivo
+    """
+    try:
+        client = get_supabase_client()
+        
+        # Verificar que la categoría existe
+        existing = client.table("categorias")\
+            .select("id_categoria")\
+            .eq("id_categoria", str(category_id))\
+            .execute()
+        
+        if not existing.data:
+            raise HTTPException(status_code=404, detail="Categoría no encontrada")
+        
+        # Validar y subir imagen usando ImageService
+        image_service = ImageService()
+        
+        # Leer contenido y validar
+        content = await file.read()
+        content_type = file.content_type or ""
+        
+        # Validar tipo de archivo
+        image_service.validate_file(content_type, len(content))
+        
+        # Generar nombre único
+        filename = image_service.generate_unique_filename(content_type)
+        file_path = f"categories/{category_id}/{filename}"
+        
+        # Subir a Supabase Storage
+        storage = client.storage.from_("product-images")
+        storage.upload(
+            file_path,
+            content,
+            {"content-type": content_type}
+        )
+        
+        # Obtener URL pública
+        public_url = storage.get_public_url(file_path)
+        
+        # Actualizar categoría con la URL de la imagen
+        client.table("categorias").update({
+            "image_url": public_url,
+            "fecha_actualizacion": datetime.utcnow().isoformat()
+        }).eq("id_categoria", str(category_id)).execute()
+        
+        return {
+            "url": public_url,
+            "filename": filename,
+            "message": "Imagen subida correctamente"
+        }
+        
+    except ImageValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading category image {category_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error al subir la imagen")
