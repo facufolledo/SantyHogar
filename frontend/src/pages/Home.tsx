@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { buildCategoryCards } from '../data/products';
 import { useProducts } from '../context/ProductsContext';
+import { useCategoriesNav } from '../hooks/useCategoriesNav';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import ProductCard from '../components/ProductCard';
 
@@ -39,22 +39,43 @@ const slides = [
 
 const Home = () => {
   const { products, loading } = useProducts();
+  const { categories: apiCategories, loading: categoriesLoading } = useCategoriesNav();
+  
   console.log('🏠 [Home] products received:', products);
   console.log('🏠 [Home] is array:', Array.isArray(products));
   console.log('🏠 [Home] length:', products?.length || 0);
+  console.log('🏠 [Home] apiCategories:', apiCategories);
   
   const [slide, setSlide] = useState(0);
+  
   const categories = useMemo(() => {
-    console.log('🏗️  [Home] buildCategoryCards input:', products);
-    try {
-      const result = buildCategoryCards(Array.isArray(products) ? products : []);
-      console.log('🏗️  [Home] buildCategoryCards output:', result);
-      return result;
-    } catch (e) {
-      console.error('❌ [Home] buildCategoryCards error:', e);
-      return [];
+    console.log('🏗️  [Home] Constructing categories from:', apiCategories);
+    
+    // Usar categorías dinámicas de la API
+    if (Array.isArray(apiCategories) && apiCategories.length > 0) {
+      return apiCategories.map(cat => {
+        // Mapear estructura del hook al formato esperado
+        const categorySlug = cat.slug || cat.id_categoria || '';
+        const productCount = Array.isArray(products) 
+          ? products.filter(p => {
+              const productCat = p.category?.toLowerCase() || '';
+              return productCat === categorySlug.toLowerCase();
+            }).length
+          : 0;
+        
+        return {
+          id: cat.id_categoria,
+          slug: categorySlug,
+          name: cat.nombre,
+          image: cat.image || `https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=400&q=80`, // Fallback
+          count: productCount,
+        };
+      });
     }
-  }, [products]);
+    
+    console.warn('⚠️  [Home] No categories from API, falling back to empty');
+    return [];
+  }, [apiCategories, products]);
   
   const featured = useMemo(() => {
     console.log('⭐ [Home] featured - input products:', products);
@@ -179,7 +200,7 @@ const Home = () => {
             </Link>
           </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {loading && products.length === 0 ? (
+          {(categoriesLoading || loading) && apiCategories.length === 0 ? (
             <p className="col-span-full text-center text-gray-500 py-8">Cargando categorías…</p>
           ) : Array.isArray(categories) && categories.length > 0 ? (
           categories.map((cat, i) => (
@@ -191,7 +212,7 @@ const Home = () => {
               transition={{ delay: i * 0.1 }}
             >
               <Link 
-                to={`/tienda?cat=${cat.id}`} 
+                to={`/tienda?cat=${cat.slug}`} 
                 className="group relative overflow-hidden rounded-2xl block aspect-[4/3] shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer"
               >
                 <img 
@@ -208,17 +229,17 @@ const Home = () => {
 
                 <div className="absolute bottom-0 left-0 p-5 w-full">
                   <div className="w-8 h-8 mb-2 text-white opacity-90">
-                    {cat.id === 'electrodomesticos' && (
+                    {cat.slug === 'electrodomesticos' && (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/><path d="M9 6h6M9 10h6"/>
                       </svg>
                     )}
-                    {cat.id === 'muebleria' && (
+                    {cat.slug === 'muebleria' && (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0Z"/><path d="M4 18v2M20 18v2M12 4v9"/>
                       </svg>
                     )}
-                    {cat.id === 'colchoneria' && (
+                    {cat.slug === 'colchoneria' && (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>
                       </svg>
@@ -229,9 +250,10 @@ const Home = () => {
 
                   {/* Detalle extra solo en hover */}
                   <p className="text-gray-300 text-xs mt-2 max-h-0 overflow-hidden opacity-0 group-hover:max-h-10 group-hover:opacity-100 transition-all duration-300">
-                    {cat.id === 'electrodomesticos' && 'Heladeras, cocinas y lavarropas'}
-                    {cat.id === 'muebleria' && 'Muebles modernos y funcionales'}
-                    {cat.id === 'colchoneria' && 'Colchones y sommiers de calidad'}
+                    {cat.slug === 'electrodomesticos' && 'Heladeras, cocinas y lavarropas'}
+                    {cat.slug === 'muebleria' && 'Muebles modernos y funcionales'}
+                    {cat.slug === 'colchoneria' && 'Colchones y sommiers de calidad'}
+                    {!['electrodomesticos', 'muebleria', 'colchoneria'].includes(cat.slug) && 'Ver productos de esta categoría'}
                   </p>
                 </div>
               </Link>

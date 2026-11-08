@@ -2,7 +2,7 @@ export interface Product {
   id: string;
   name: string;
   slug: string;
-  category: 'electrodomesticos' | 'muebleria' | 'colchoneria';
+  category: string;  // Dinámico: se carga desde BD (electrodomesticos, muebleria, colchoneria, etc)
   subcategory: string;
   price: number;
   originalPrice?: number;
@@ -16,7 +16,10 @@ export interface Product {
   reviews: number;
 }
 
-/** Metadatos de categorías (imagen / nombre); el conteo se calcula con la lista cargada desde la API. */
+/**
+ * Metadatos de categorías por defecto (se sobrescriben con datos dinámicos del hook).
+ * Mantener solo para fallback si la API falla.
+ */
 export const categoryDefinitions = [
   {
     id: 'electrodomesticos' as const,
@@ -35,6 +38,10 @@ export const categoryDefinitions = [
   },
 ];
 
+/**
+ * NOTA: Esta función es legacy. Usar hook `useCategoriesNav()` en componentes
+ * para obtener categorías dinámicas en tiempo real.
+ */
 export function buildCategoryCards(list: Product[]) {
   return categoryDefinitions.map(cat => ({
     ...cat,

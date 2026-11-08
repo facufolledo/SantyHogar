@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileSpreadsheet, CheckCircle, AlertCircle, X, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
-import { useProducts } from '../../context/ProductsContext';
+import { useProductsAdmin } from '../../hooks/useProductsAdmin';
 import { bulkImportPreview, bulkImportConfirm, uploadProductImage, type BulkImportPreviewResponse, type BulkImportResponse } from '../../api/productsApi';
 
 interface PreviewRow {
@@ -29,7 +29,7 @@ export default function BulkImport() {
   const [summary, setSummary] = useState<{ total: number; valid: number; invalid: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { refetch } = useProducts();
+  const { refetch } = useProductsAdmin();
 
   const handleFile = async (file: File) => {
     if (!file.name.endsWith('.xlsx')) {

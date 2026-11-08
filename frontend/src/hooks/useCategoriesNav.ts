@@ -7,6 +7,7 @@ export interface Category {
   slug: string;
   color?: string;
   icono?: string;
+  image?: string;  // Imagen URL de la categoría
 }
 
 /**
@@ -43,6 +44,7 @@ export function useCategoriesNav() {
           slug: cat.slug || '',
           color: cat.color,
           icono: cat.icon || cat.icono,
+          image: cat.imageUrl || cat.image_url,  // Imagen de categoría
         }));
         
         setCategories(mappedCategories);

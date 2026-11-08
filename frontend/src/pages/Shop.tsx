@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
+import { useCategoriesNav } from '../hooks/useCategoriesNav';
 import ProductsErrorBanner from '../components/ProductsErrorBanner';
 import ProductCard from '../components/ProductCard';
 
@@ -22,6 +23,7 @@ const PRICE_RANGES = [
 
 const Shop = () => {
   const { products, loading, error } = useProducts();
+  const { categories: apiCategories } = useCategoriesNav();
   const [params, setParams] = useSearchParams();
   const [sort, setSort] = useState('relevance');
   const [priceRange, setPriceRange] = useState<number | null>(null);
@@ -50,11 +52,16 @@ const Shop = () => {
     setParams(p);
   };
 
-  const catLabels: Record<string, string> = {
-    electrodomesticos: 'Electrodomésticos',
-    muebleria: 'Mueblería',
-    colchoneria: 'Colchonería',
-  };
+  // Construir catLabels dinámicamente de la API
+  const catLabels: Record<string, string> = useMemo(() => {
+    const labels: Record<string, string> = {};
+    if (Array.isArray(apiCategories)) {
+      apiCategories.forEach(cat => {
+        labels[cat.slug] = cat.nombre;
+      });
+    }
+    return labels;
+  }, [apiCategories]);
 
   const FilterPanel = () => (
     <div className="space-y-6">
@@ -65,9 +72,9 @@ const Shop = () => {
           <button onClick={() => setCategory('')} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!activeCat ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
             Todas las categorías
           </button>
-          {Object.entries(catLabels).map(([id, label]) => (
-            <button key={id} onClick={() => setCategory(id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeCat === id ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
-              {label}
+          {Array.isArray(apiCategories) && apiCategories.map((cat) => (
+            <button key={cat.id_categoria} onClick={() => setCategory(cat.slug)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeCat === cat.slug ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+              {cat.nombre}
             </button>
           ))}
         </div>

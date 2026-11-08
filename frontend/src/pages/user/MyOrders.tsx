@@ -6,34 +6,38 @@ import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/format';
 
 const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  processing: 'bg-blue-100 text-blue-700',
-  ready: 'bg-purple-100 text-purple-700',
-  delivered: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-700',
+  pending_pago: 'bg-yellow-100 text-yellow-700',
+  pagada: 'bg-green-100 text-green-700',
+  cancelada: 'bg-red-100 text-red-700',
 };
 const statusLabels: Record<string, string> = {
-  pending: 'Pendiente',
-  processing: 'En preparación',
-  ready: 'Listo para retirar',
-  delivered: 'Retirado',
-  cancelled: 'Cancelado',
+  pending_pago: 'Pendiente de Pago',
+  pagada: 'Pagada',
+  cancelada: 'Cancelada',
 };
 
-// Tracking steps for pickup flow
-const trackingSteps = ['Pedido recibido', 'En preparación', 'Listo para retirar', 'Retirado'];
+// Tracking steps for payment flow
+const trackingSteps = ['Pedido recibido', 'Pago procesado', 'Preparación', 'Listo para retirar'];
 const statusToStep: Record<string, number> = {
-  pending: 0, processing: 1, ready: 2, delivered: 3, cancelled: -1,
+  pending_pago: 0, pagada: 2, cancelada: -1,
 };
 
 export default function MyOrders() {
   const [expanded, setExpanded] = useState<string | null>(null);
-  const { getUserOrders } = useOrders();
+  const { orders, loading } = useOrders();
   const { user } = useAuth();
 
-  const orders = user ? getUserOrders(user.id) : [];
+  // Filtrar solo los pedidos del usuario actual
+  const userOrders = user ? orders.filter(o => o.userId === user.id) : [];
 
-  if (orders.length === 0) return (
+  if (loading) return (
+    <div className="text-center py-16 text-gray-400">
+      <Package size={48} className="mx-auto mb-3 opacity-20 animate-spin" />
+      <p className="font-medium text-gray-600">Cargando tus pedidos...</p>
+    </div>
+  );
+
+  if (userOrders.length === 0) return (
     <div className="text-center py-16 text-gray-400">
       <Package size={48} className="mx-auto mb-3 opacity-20" />
       <p className="font-medium text-gray-600">Todavía no tenés pedidos</p>
@@ -45,10 +49,10 @@ export default function MyOrders() {
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-bold text-gray-900">Mis pedidos</h2>
-        <span className="text-sm text-gray-400">{orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'}</span>
+        <span className="text-sm text-gray-400">{userOrders.length} {userOrders.length === 1 ? 'pedido' : 'pedidos'}</span>
       </div>
 
-      {orders.map((order, i) => {
+      {userOrders.map((order, i) => {
         const isOpen = expanded === order.id;
         const trackStep = statusToStep[order.status] ?? 0;
         const date = new Date(order.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -89,7 +93,7 @@ export default function MyOrders() {
                   <div className="p-4 space-y-4">
 
                     {/* Tracking */}
-                    {order.status !== 'cancelled' && (
+                    {order.status !== 'cancelada' && (
                       <div>
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Seguimiento</p>
                         <div className="flex items-center">

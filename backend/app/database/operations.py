@@ -65,11 +65,25 @@ class DatabaseOperations:
 
     def _get_all_products_sync(self) -> List[dict[str, Any]]:
         try:
-            # JOIN con categorias para obtener el slug
+            # JOIN con categorias para obtener el nombre y slug
             res = self._client().table("productos").select(
                 "*, categorias(id_categoria, nombre, slug)"
             ).execute()
-            return list(res.data or [])
+            
+            # Procesar respuesta para extraer categoria_nombre del objeto anidado
+            products = []
+            for row in (res.data or []):
+                if isinstance(row, dict):
+                    # Si hay un objeto 'categorias' anidado, extraer el nombre (display)
+                    # El slug se usa en 'category' para filtros
+                    if isinstance(row.get('categorias'), dict):
+                        row['categoria_nombre'] = row['categorias'].get('nombre') or row['categorias'].get('slug')
+                    products.append(row)
+            
+            return products
+        except Exception as e:
+            logger.exception("get_all_products")
+            self._raise_db_error(e)
         except Exception as e:
             logger.exception("get_all_products")
             self._raise_db_error(e)
@@ -88,7 +102,20 @@ class DatabaseOperations:
                 .in_("id_producto", id_strs)
                 .execute()
             )
-            return list(res.data or [])
+            
+            # Procesar respuesta para extraer categoria_nombre del objeto anidado
+            products = []
+            for row in (res.data or []):
+                if isinstance(row, dict):
+                    # Si hay un objeto 'categorias' anidado, extraer el slug
+                    if isinstance(row.get('categorias'), dict):
+                        row['categoria_nombre'] = row['categorias'].get('slug') or row['categorias'].get('nombre')
+                    products.append(row)
+            
+            return products
+        except Exception as e:
+            logger.exception("get_products_by_ids")
+            self._raise_db_error(e)
         except Exception as e:
             logger.exception("get_products_by_ids")
             self._raise_db_error(e)

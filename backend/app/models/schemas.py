@@ -257,6 +257,7 @@ class ProductResponse(BaseModel):
     id: UUID
     name: str
     slug: str
+    category: str  # El slug de la categoría (e.g., "electrodomesticos")
     categoryId: UUID
     categoryName: str
     subcategory: str
@@ -353,6 +354,7 @@ class Product(BaseModel):
     slug: str
     id_categoria: Optional[UUID] = None
     categoria_nombre: Optional[str] = None
+    categoria_slug: Optional[str] = None  # Slug para filtros (ej: "heladeras")
     subcategory: str
     price: float
     originalPrice: Optional[float] = None

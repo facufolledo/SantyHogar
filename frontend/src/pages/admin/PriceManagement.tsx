@@ -1,7 +1,7 @@
 ﻿import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, DollarSign, Save, AlertCircle, Filter, TrendingUp } from 'lucide-react';
-import { useProducts } from '../../context/ProductsContext';
+import { useProductsAdmin } from '../../hooks/useProductsAdmin';
 import { formatPrice } from '../../utils/format';
 import ProductsErrorBanner from '../../components/ProductsErrorBanner';
 import { updateProductPrice } from '../../api/productsApi';
@@ -13,7 +13,7 @@ const catColors: Record<string, string> = {
 };
 
 export default function PriceManagement() {
-  const { products, loading, error, refetch } = useProducts();
+  const { products, loading, error, refetch } = useProductsAdmin();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterNoPriceOnly, setFilterNoPriceOnly] = useState(true);

@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { to: '/admin/productos', label: 'Productos', icon: Package },
+  { to: '/admin/categorias', label: 'Categorías', icon: Store },
   { to: '/admin/precios', label: 'Gestión de Precios', icon: DollarSign },
   { to: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
   { to: '/admin/clientes', label: 'Clientes', icon: Users },

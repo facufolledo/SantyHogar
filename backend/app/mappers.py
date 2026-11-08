@@ -46,21 +46,25 @@ def row_to_product(row: dict[str, Any]) -> Product:
     # Obtener ID de categoría
     id_cat = row.get("id_categoria")
     
-    # Extraer slug desde el objeto categorias nested (si existe)
+    # Extraer slug y nombre desde el objeto categorias nested (si existe)
     categoria_slug = None
+    categoria_nombre = None
     categorias_obj = row.get("categorias")
     if categorias_obj:
         if isinstance(categorias_obj, dict):
             categoria_slug = categorias_obj.get("slug")
+            categoria_nombre = categorias_obj.get("nombre")
         elif isinstance(categorias_obj, list) and len(categorias_obj) > 0:
             categoria_slug = categorias_obj[0].get("slug")
+            categoria_nombre = categorias_obj[0].get("nombre")
     
     # Fallback: usar categoria antigua (string) si existe
     if not categoria_slug:
         categoria_slug = row.get("categoria") or "electrodomesticos"
     
-    # Usar categorias_nombre si existe, sino usar el slug
-    cat_name = row.get("categoria_nombre") or categoria_slug or "Desconocida"
+    # Usar categoria_nombre de la BD si existe, sino usar el slug
+    if not categoria_nombre:
+        categoria_nombre = row.get("categoria_nombre") or categoria_slug or "Desconocida"
 
     sub = row.get("subcategoria") or ""
 
@@ -85,7 +89,8 @@ def row_to_product(row: dict[str, Any]) -> Product:
         name=row.get("nombre") or "",
         slug=row.get("slug") or "",
         id_categoria=UUID(str(id_cat)) if id_cat else None,
-        categoria_nombre=categoria_slug,  # Usar el slug como categoria_nombre
+        categoria_nombre=categoria_nombre,  # Nombre display (ej: "Heladeras")
+        categoria_slug=categoria_slug,  # Slug para filtros (ej: "heladeras")
         subcategory=sub,
         price=_f(row.get("precio", 0)),
         originalPrice=original,
@@ -101,14 +106,23 @@ def row_to_product(row: dict[str, Any]) -> Product:
     )
 
 
+def product_dict_to_response(p_dict: dict[str, Any]) -> ProductResponse:
+    """Dict producto (de BD) → respuesta API (camelCase)."""
+    # Convertir a Product primero
+    p = row_to_product(p_dict)
+    # Luego a respuesta
+    return product_to_response(p)
+
+
 def product_to_response(p: Product) -> ProductResponse:
     """Product → respuesta API (camelCase)."""
     return ProductResponse(
         id=p.id,
         name=p.name,
         slug=p.slug,
+        category=getattr(p, 'categoria_slug', None) or p.categoria_nombre or "electrodomesticos",  # Slug para filtros
         categoryId=p.id_categoria or UUID(int=0),  # Default UUID si es None
-        categoryName=p.categoria_nombre or "Desconocida",
+        categoryName=p.categoria_nombre or "Desconocida",  # Nombre display
         subcategory=p.subcategory,
         price=p.price,
         originalPrice=p.originalPrice,
