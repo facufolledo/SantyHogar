@@ -3,6 +3,25 @@ import { getApiBase } from './config';
 /** Si el backend no responde (colgado en Supabase, etc.), cortamos para no dejar la UI en carga infinita. */
 const FETCH_TIMEOUT_MS = 25_000;
 
+/**
+ * Generar un token CSRF único para cada sesión.
+ * Se genera la primera vez y se mantiene para toda la sesión del usuario.
+ */
+function getCsrfToken(): string {
+  const STORAGE_KEY = 'csrf_token';
+  let token = sessionStorage.getItem(STORAGE_KEY);
+  
+  if (!token) {
+    // Generar token aleatorio seguro (32 caracteres hex)
+    token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    sessionStorage.setItem(STORAGE_KEY, token);
+  }
+  
+  return token;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -27,15 +46,23 @@ export async function apiFetch<T>(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
+  // Agregar CSRF token a requests mutantes
+  const method = (init?.method || 'GET').toUpperCase();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...init?.headers,
+  };
+  
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    (headers as Record<string, string>)['X-CSRF-Token'] = getCsrfToken();
+  }
+
   let res: Response;
   try {
     res = await fetch(url, {
       ...init,
       signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...init?.headers,
-      },
+      headers,
     });
   } catch (err: unknown) {
     const aborted =

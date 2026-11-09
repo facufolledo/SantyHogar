@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.middleware import RateLimitMiddleware
+from app.middleware.csrf import CSRFProtectionMiddleware
 
 from app.config import get_config
 from app.database.connection import get_supabase_client
@@ -102,11 +103,13 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=cfg.frontend_url.split(',') if ',' in cfg.frontend_url else [cfg.frontend_url],
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+        allow_headers=["Content-Type", "Authorization"],
+        max_age=600,
     )
     
-    # Agregar rate limiting middleware
+    # Agregar middleware de seguridad (el orden importa: se ejecutan al revés)
+    app.add_middleware(CSRFProtectionMiddleware)
     app.add_middleware(RateLimitMiddleware)
 
     def _pagination(items: list, page: int, limit: int) -> dict:

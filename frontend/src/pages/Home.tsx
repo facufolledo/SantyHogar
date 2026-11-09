@@ -41,16 +41,9 @@ const Home = () => {
   const { products, loading } = useProducts();
   const { categories: apiCategories, loading: categoriesLoading } = useCategoriesNav();
   
-  console.log('🏠 [Home] products received:', products);
-  console.log('🏠 [Home] is array:', Array.isArray(products));
-  console.log('🏠 [Home] length:', products?.length || 0);
-  console.log('🏠 [Home] apiCategories:', apiCategories);
-  
   const [slide, setSlide] = useState(0);
   
   const categories = useMemo(() => {
-    console.log('🏗️  [Home] Constructing categories from:', apiCategories);
-    
     // Usar categorías dinámicas de la API
     if (Array.isArray(apiCategories) && apiCategories.length > 0) {
       return apiCategories.map(cat => {
@@ -73,19 +66,14 @@ const Home = () => {
       });
     }
     
-    console.warn('⚠️  [Home] No categories from API, falling back to empty');
     return [];
   }, [apiCategories, products]);
   
   const featured = useMemo(() => {
-    console.log('⭐ [Home] featured - input products:', products);
-    console.log('⭐ [Home] featured - is array:', Array.isArray(products));
     try {
       const result = (Array.isArray(products) ? products : []).filter(p => p.featured).slice(0, 8);
-      console.log('⭐ [Home] featured - output:', result);
       return result;
     } catch (e) {
-      console.error('❌ [Home] featured error:', e);
       return [];
     }
   }, [products]);

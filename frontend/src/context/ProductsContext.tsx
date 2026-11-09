@@ -19,7 +19,6 @@ export const ProductsProvider = ({ children }: { children: React.ReactNode }) =>
 
   const load = useCallback(async () => {
     if (!isApiConfigured()) {
-      console.warn('⚠️  [Context] API no configurada');
       setProducts([]);
       setError(
         'No hay API configurada. Agregá VITE_API_URL en frontend/.env (ej. http://localhost:8000) y reiniciá el servidor de Vite.'
@@ -27,18 +26,12 @@ export const ProductsProvider = ({ children }: { children: React.ReactNode }) =>
       setLoading(false);
       return;
     }
-    console.log('🔄 [Context] Iniciando carga de productos...');
     setLoading(true);
     setError(null);
     try {
       const data = await fetchProductsFromApi();
-      console.log('📥 [Context] Datos recibidos:', data);
-      console.log('📥 [Context] ¿Es array?:', Array.isArray(data));
-      console.log('📥 [Context] Cantidad:', data.length);
       setProducts(data);
-      console.log('✅ [Context] Productos seteados en state');
     } catch (e) {
-      console.error('❌ [Context] Error:', e);
       setProducts([]);
       setError(
         e instanceof Error ? e.message : 'No se pudieron cargar los productos. ¿Está el backend en marcha?'

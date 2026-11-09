@@ -1,20 +1,12 @@
 #!/usr/bin/env python
-"""Script para ejecutar el backend en desarrollo con SSL fix aplicado globalmente."""
+"""Script para ejecutar el backend en desarrollo."""
 import os
 import sys
-import ssl
-import warnings
 
-# Deshabilitar SSL verification en desarrollo
-os.environ['PYTHONHTTPSVERIFY'] = '0'
-os.environ['CURL_CA_BUNDLE'] = ''
-os.environ['REQUESTS_CA_BUNDLE'] = ''
+# Asegurar que estamos en modo desarrollo
+os.environ['ENV'] = os.getenv('ENV', 'development')
 
-ssl._create_default_https_context = ssl._create_unverified_context
-
-warnings.filterwarnings('ignore')
-
-# Ahora sí importar uvicorn
+# Importar uvicorn
 import uvicorn
 
 if __name__ == "__main__":

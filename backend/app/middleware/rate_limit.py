@@ -1,120 +1,116 @@
-"""Rate limiting middleware para proteger contra abuso y DoS."""
+"""Rate Limiting Middleware con mejor control por endpoint."""
+import time
 import logging
-import os
-from datetime import datetime, timedelta, timezone
-from typing import Optional
-from collections import defaultdict
-import asyncio
+from typing import Dict, Tuple
+from fastapi import Request, HTTPException, status
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
 
-# Almacenar intentos en memoria (en producción usaría Redis)
-# {ip: [(timestamp, endpoint), ...]}
-REQUEST_TRACKER = defaultdict(list)
-CLEANUP_INTERVAL = 300  # Limpiar cada 5 minutos
+# En-memory rate limiter (en producción, usar Redis)
+# Estructura: {(ip, endpoint): [(timestamp1, timestamp2, ...)]}
+_rate_limit_store: Dict[Tuple[str, str], list] = {}
 
-# Detectar entorno
-IS_DEVELOPMENT = os.getenv("ENV", "development") == "development"
+# Configuración de limits por tipo de endpoint
+RATE_LIMITS = {
+    "/admin/users/create": (5, 3600),  # 5 requests por hora
+    "/auth": (10, 3600),  # 10 requests por hora
+    "/checkout": (20, 3600),  # 20 requests por hora
+    "/webhook": (100, 60),  # 100 requests por minuto
+    "default": (100, 60),  # 100 requests por minuto (default)
+}
+
+CLEANUP_INTERVAL = 3600  # Limpiar cada hora
+_last_cleanup = time.time()
 
 
-class RateLimiter:
-    """Rate limiter por IP y endpoint."""
+def _cleanup_expired():
+    """Limpiar timestamps expirados."""
+    global _last_cleanup
+    now = time.time()
     
-    def __init__(self, requests_per_minute: int = 60, burst_size: int = 10):
-        """
-        Args:
-            requests_per_minute: Máximo de requests por minuto por IP
-            burst_size: Máximo de requests simultáneos permitidos
-        """
-        self.requests_per_minute = requests_per_minute
-        self.burst_size = burst_size
-        self.last_cleanup = datetime.now(timezone.utc)
+    if now - _last_cleanup < CLEANUP_INTERVAL:
+        return
     
-    def _cleanup_old_requests(self):
-        """Eliminar requests más viejos de 1 minuto."""
-        now = datetime.now(timezone.utc)
-        
-        # Limpiar cada 5 minutos
-        if (now - self.last_cleanup).total_seconds() < CLEANUP_INTERVAL:
-            return
-        
-        self.last_cleanup = now
-        cutoff = now - timedelta(minutes=1)
-        
-        ips_to_remove = []
-        for ip, requests in REQUEST_TRACKER.items():
-            # Eliminar requests viejos
-            REQUEST_TRACKER[ip] = [
-                (ts, ep) for ts, ep in requests 
-                if ts > cutoff
-            ]
-            # Si no hay requests, eliminar la IP
-            if not REQUEST_TRACKER[ip]:
-                ips_to_remove.append(ip)
-        
-        for ip in ips_to_remove:
-            del REQUEST_TRACKER[ip]
+    _last_cleanup = now
+    keys_to_delete = []
     
-    def is_rate_limited(self, client_ip: str, endpoint: str) -> tuple[bool, Optional[int]]:
-        """
-        Verifica si el cliente está rate-limitado.
-        
-        Args:
-            client_ip: IP del cliente
-            endpoint: Ruta del endpoint (ej: POST /api/checkout/create-preference)
-        
-        Returns:
-            (is_limited, retry_after_seconds)
-        """
-        # En desarrollo desde localhost, permitir sin restricciones
-        if IS_DEVELOPMENT and client_ip in ("127.0.0.1", "localhost"):
-            return False, None
-        
-        self._cleanup_old_requests()
-        now = datetime.now(timezone.utc)
-        cutoff = now - timedelta(minutes=1)
-        
-        # Obtener requests en el último minuto para esta IP
-        requests = REQUEST_TRACKER[client_ip]
-        recent = [(ts, ep) for ts, ep in requests if ts > cutoff]
-        
-        # Endpoints críticos tienen límites más bajos
-        critical_endpoints = [
-            "/api/checkout/create-preference",
-            "/api/customers",
-            "/api/orders",
-            "/mercadopago",
-            "/webhook",
-            "/customers",
-        ]
-        
-        is_critical = any(ep in endpoint for ep in critical_endpoints)
-        
-        # En desarrollo, ser más permisivo
-        if IS_DEVELOPMENT:
-            limit = 100 if is_critical else 200
-        else:
-            limit = 10 if is_critical else self.requests_per_minute
-        
-        # Contar requests recientes
-        count = len(recent)
-        
-        if count >= limit:
-            # Calcular cuántos segundos hasta que se puede reintentar
-            oldest = min((ts for ts, _ in recent), default=now)
-            retry_after = int((oldest + timedelta(minutes=1) - now).total_seconds()) + 1
-            return True, retry_after
-        
-        # Agregar este request
-        REQUEST_TRACKER[client_ip].append((now, endpoint))
-        
-        return False, None
+    for key, timestamps in _rate_limit_store.items():
+        # Remover timestamps más viejos que 1 hora
+        _rate_limit_store[key] = [ts for ts in timestamps if now - ts < 3600]
+        if not _rate_limit_store[key]:
+            keys_to_delete.append(key)
+    
+    for key in keys_to_delete:
+        del _rate_limit_store[key]
+    
+    logger.debug(f"Rate limiter cleanup: removieron {len(keys_to_delete)} claves")
 
 
-# Instancia global
-_rate_limiter = RateLimiter(requests_per_minute=60, burst_size=10)
+def _get_rate_limit(endpoint: str) -> Tuple[int, int]:
+    """Obtener limit (count, window) para un endpoint."""
+    for pattern, limit in RATE_LIMITS.items():
+        if endpoint.startswith(pattern):
+            return limit
+    return RATE_LIMITS["default"]
 
 
-def get_rate_limiter() -> RateLimiter:
-    """Obtener la instancia global de rate limiter."""
-    return _rate_limiter
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Rate limiting por IP y endpoint."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        # Skip para health checks y docs
+        if request.url.path in {"/health", "/docs", "/openapi.json", "/redoc"}:
+            return await call_next(request)
+        
+        # Obtener IP del cliente
+        client_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        if not client_ip and request.client:
+            client_ip = request.client.host
+        if not client_ip:
+            client_ip = "unknown"
+        
+        # Determinar endpoint base
+        endpoint = request.url.path.split("?")[0]
+        
+        # Cleanup periódico
+        _cleanup_expired()
+        
+        # Obtener configuración de rate limit
+        max_requests, window_seconds = _get_rate_limit(endpoint)
+        
+        # Clave para el store
+        key = (client_ip, endpoint)
+        now = time.time()
+        
+        # Obtener timestamps previos
+        timestamps = _rate_limit_store.get(key, [])
+        
+        # Remover timestamps fuera de la ventana
+        valid_timestamps = [ts for ts in timestamps if now - ts < window_seconds]
+        
+        # Verificar límite
+        if len(valid_timestamps) >= max_requests:
+            logger.warning(
+                f"Rate limit exceeded: {client_ip} on {endpoint} "
+                f"({len(valid_timestamps)}/{max_requests} in {window_seconds}s)"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Demasiadas solicitudes. Máximo {max_requests} por {window_seconds}s",
+            )
+        
+        # Agregar timestamp actual
+        valid_timestamps.append(now)
+        _rate_limit_store[key] = valid_timestamps
+        
+        # Continuar con la request
+        response = await call_next(request)
+        
+        # Agregar headers informativos
+        response.headers["X-RateLimit-Limit"] = str(max_requests)
+        response.headers["X-RateLimit-Window"] = str(window_seconds)
+        response.headers["X-RateLimit-Remaining"] = str(max(0, max_requests - len(valid_timestamps)))
+        
+        return response

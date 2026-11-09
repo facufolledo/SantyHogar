@@ -1,47 +1,30 @@
-"""SSL fix para desarrollo en Windows.
+"""SSL configuration for development and production.
 
-DEBE importarse ANTES que cualquier otro módulo que use SSL/HTTPS.
+En producción, siempre usa SSL/TLS verificado.
+En desarrollo, acepta certificados auto-firmados pero NUNCA deshabilita verificación.
 """
 import os
 import ssl
-import warnings
+import logging
 
-# Solo aplicar en desarrollo
-if os.getenv('DEBUG', 'false').lower() == 'true':
-    # Deshabilitar verificación SSL completamente
-    os.environ['PYTHONHTTPSVERIFY'] = '0'
-    os.environ['CURL_CA_BUNDLE'] = ''
-    os.environ['REQUESTS_CA_BUNDLE'] = ''
+logger = logging.getLogger(__name__)
+
+ENV = os.getenv('ENV', 'development').lower()
+
+if ENV == 'development':
+    # En desarrollo: aceptar certificados auto-firmados pero verificar
+    # Esto permite trabajar con certificados self-signed (ej. localhost)
+    # pero NO deshabilita seguridad completamente
+    import certifi
     
-    # Patch SSL context
-    ssl._create_default_https_context = ssl._create_unverified_context
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    ssl_context.check_hostname = True
+    ssl_context.verify_mode = ssl.CERT_REQUIRED
     
-    # Suprimir warnings
-    warnings.filterwarnings('ignore')
-    
-    # Patch requests Session
-    try:
-        import requests
-        from requests.adapters import HTTPAdapter
-        import urllib3
-        
-        urllib3.disable_warnings()
-        
-        class NoVerifyHTTPAdapter(HTTPAdapter):
-            def init_poolmanager(self, *args, **kwargs):
-                import ssl
-                kwargs['cert_reqs'] = ssl.CERT_NONE
-                kwargs['assert_hostname'] = False
-                kwargs['check_hostname'] = False
-                return super().init_poolmanager(*args, **kwargs)
-        
-        # Monkey patch Session
-        _original_init = requests.Session.__init__
-        def _patched_init(self, *args, **kwargs):
-            _original_init(self, *args, **kwargs)
-            self.verify = False
-            self.mount('https://', NoVerifyHTTPAdapter())
-        
-        requests.Session.__init__ = _patched_init
-    except ImportError:
-        pass
+    logger.info("SSL en modo DEVELOPMENT: usando certificados del sistema")
+else:
+    # En producción, forzar SSL/TLS verificado
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = True
+    ssl_context.verify_mode = ssl.CERT_REQUIRED
+    logger.info("SSL en modo PRODUCTION: verificación obligatoria")
