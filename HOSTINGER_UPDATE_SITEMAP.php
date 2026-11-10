@@ -3,14 +3,14 @@
  * Sincronizador de Sitemap - SantyHogar
  * 
  * Este script descarga el sitemap dinámico de Railway y lo guarda en Hostinger
- * Debe ejecutarse cada 6 horas vía cron job
+ * Puede ejecutarse vía navegador O vía cron job
  * 
  * Ubicación: /home/usuario/public_html/update-sitemap.php
  * 
  * Cron command:
  * php /home/usuario/public_html/update-sitemap.php
  * 
- * Schedule: Cada 6 horas (0 */6 * * *)
+ * Schedule: Cada día a las 6 AM (0 6 * * *)
  */
 
 // ============================================================================
@@ -32,17 +32,35 @@ $LOG_FILE = __DIR__ . '/.sitemap-sync-log';
 // Timeout para la descarga (segundos)
 $DOWNLOAD_TIMEOUT = 30;
 
+// Detectar si se ejecuta desde navegador
+$is_browser = !empty($_SERVER['HTTP_HOST']);
+
 // ============================================================================
 // LÓGICA PRINCIPAL
 // ============================================================================
+
+// Headers para navegador
+if ($is_browser) {
+    header('Content-Type: application/json');
+    $response = array();
+}
 
 // Registrar inicio
 log_message("=== Iniciando sincronización de sitemap ===");
 
 // Evitar ejecución simultánea
 if (is_executing()) {
-    log_message("⚠️ Sincronización ya en progreso, abortando");
-    exit("Sincronización en progreso\n");
+    $msg = "Sincronización ya en progreso, abortando";
+    log_message("⚠️ $msg");
+    
+    if ($is_browser) {
+        $response['status'] = 'warning';
+        $response['message'] = $msg;
+        echo json_encode($response);
+    } else {
+        echo "$msg\n";
+    }
+    exit;
 }
 
 // Marcar como en ejecución
@@ -50,31 +68,47 @@ mark_executing();
 
 try {
     // 1. Descargar sitemap de Railway
-    log_message("📥 Descargando sitemap de Railway...");
+    $step1 = "Descargando sitemap de Railway...";
+    log_message("📥 $step1");
+    if ($is_browser) $response['step1'] = $step1;
+    
     $xml = download_sitemap($RAILWAY_URL, $DOWNLOAD_TIMEOUT);
     
     if ($xml === false) {
         throw new Exception("Fallo al descargar sitemap de Railway");
     }
     
-    log_message("✅ Descarga completada (" . strlen($xml) . " bytes)");
+    $download_size = strlen($xml);
+    $step1_ok = "Descarga completada ($download_size bytes)";
+    log_message("✅ $step1_ok");
+    if ($is_browser) $response['step1_result'] = $step1_ok;
     
     // 2. Validar XML
-    log_message("🔍 Validando XML...");
+    $step2 = "Validando XML...";
+    log_message("🔍 $step2");
+    if ($is_browser) $response['step2'] = $step2;
+    
     if (!is_valid_xml($xml)) {
         throw new Exception("XML descargado es inválido");
     }
     
     $product_count = count_urls_in_xml($xml);
-    log_message("✅ XML válido con $product_count productos");
+    $step2_ok = "XML válido con $product_count productos";
+    log_message("✅ $step2_ok");
+    if ($is_browser) $response['step2_result'] = $step2_ok;
     
     // 3. Guardar localmente
-    log_message("💾 Guardando en disco local...");
+    $step3 = "Guardando en disco local...";
+    log_message("💾 $step3");
+    if ($is_browser) $response['step3'] = $step3;
+    
     if (!save_sitemap($xml, $LOCAL_PATH)) {
-        throw new Exception("No se pudo escribir archivo local");
+        throw new Exception("No se pudo escribir archivo local: " . $LOCAL_PATH);
     }
     
-    log_message("✅ Archivo guardado: $LOCAL_PATH");
+    $step3_ok = "Archivo guardado: $LOCAL_PATH";
+    log_message("✅ $step3_ok");
+    if ($is_browser) $response['step3_result'] = $step3_ok;
     
     // 4. Verificar que se guardó bien
     if (!file_exists($LOCAL_PATH)) {
@@ -82,18 +116,37 @@ try {
     }
     
     $file_size = filesize($LOCAL_PATH);
-    log_message("✅ Verificación exitosa ($file_size bytes)");
+    $verify_ok = "Verificación exitosa ($file_size bytes)";
+    log_message("✅ $verify_ok");
+    if ($is_browser) $response['verify_result'] = $verify_ok;
     
     // 5. Éxito
-    log_message("🎉 Sincronización completada exitosamente");
-    log_message("   Próxima ejecución: en 6 horas");
+    $success_msg = "Sincronización completada exitosamente";
+    log_message("🎉 $success_msg");
+    log_message("   Productos sincronizados: $product_count");
+    log_message("   Próxima ejecución: 2026-11-11 06:00:00");
     
-    echo "✅ Sitemap sincronizado: $product_count productos\n";
+    if ($is_browser) {
+        $response['status'] = 'success';
+        $response['message'] = $success_msg;
+        $response['products'] = $product_count;
+        $response['file_size'] = $file_size;
+        echo json_encode($response);
+    } else {
+        echo "✅ Sitemap sincronizado: $product_count productos\n";
+    }
     
 } catch (Exception $e) {
     $error_msg = $e->getMessage();
     log_message("❌ ERROR: $error_msg");
-    echo "❌ Error: $error_msg\n";
+    
+    if ($is_browser) {
+        $response['status'] = 'error';
+        $response['message'] = $error_msg;
+        echo json_encode($response);
+    } else {
+        echo "❌ Error: $error_msg\n";
+    }
     
 } finally {
     // Desmarcar ejecución

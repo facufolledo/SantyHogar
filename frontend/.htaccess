@@ -1,18 +1,39 @@
-# Enable Rewrite Engine
-RewriteEngine On
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
 
-# Hostinger specific configuration
-RewriteBase /
+  # NO redireccionar si es un archivo real (-f) o directorio (-d)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ - [L]
 
-# Handle React Router - serve index.html for all routes
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ /index.html [L]
+  # Excepciones especiales: estos archivos se sirven como están
+  RewriteRule ^sitemap\.xml$ - [L]
+  RewriteRule ^sitemap-products\.xml$ - [L]
+  RewriteRule ^robots\.txt$ - [L]
+  RewriteRule ^favicon\.ico$ - [L]
+  RewriteRule ^manifest\.json$ - [L]
+  RewriteRule ^\.well-known/ - [L]
 
-# Alternative method for Hostinger
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
+  # El resto: React Router
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Configurar tipos MIME correctos
+<Files "robots.txt">
+  AddType text/plain .txt
+  Header set Cache-Control "public, max-age=86400"
+</Files>
+
+<Files "sitemap.xml">
+  AddType application/xml .xml
+  Header set Cache-Control "public, max-age=604800"
+</Files>
+
+<Files "sitemap-products.xml">
+  AddType application/xml .xml
+  Header set Cache-Control "public, max-age=604800"
+</Files>
 
 # Security Headers
 <IfModule mod_headers.c>
@@ -44,7 +65,3 @@ RewriteRule . /index.html [L]
 
 # Disable directory browsing
 Options -Indexes
-
-# Custom error pages
-ErrorDocument 404 /index.html
-ErrorDocument 500 /index.html

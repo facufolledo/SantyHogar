@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 
-const WA_NUMBER = '5491140000000'; // reemplazar con número real
+const WA_NUMBER = '5493512005937'; // Teléfono de Córdoba
 const WA_MESSAGE = encodeURIComponent('Hola! Quiero hacer una consulta sobre un producto.');
 
 export default function Contact() {
@@ -14,10 +14,10 @@ export default function Contact() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {[
-          { icon: Phone, title: 'Teléfono', lines: ['(011) 4000-0000'], sub: 'Lun–Vie 9:00–18:00' },
-          { icon: Mail, title: 'Email', lines: ['ventas@santyhogar.com.ar'], sub: 'Respondemos en 24hs' },
-          { icon: MapPin, title: 'Ubicación', lines: ['Viamonte 1261, B° Pueyrredón'], sub: 'Córdoba, Argentina' },
-          { icon: Clock, title: 'Horarios', lines: ['Lun–Vie: 9:00 – 18:00'], sub: 'Sáb: 9:00 – 13:00' },
+          { icon: Phone, title: 'Teléfono', lines: ['0351 200-5937'], sub: 'Martes a Viernes' },
+          { icon: Mail, title: 'Email', lines: ['lucia.accietto18@gmail.com'], sub: 'Respondemos en 24hs' },
+          { icon: MapPin, title: 'Ubicación', lines: ['Gral. Juan José Viamonte 1261'], sub: 'X5004AVG Córdoba, Argentina' },
+          { icon: Clock, title: 'Horarios', lines: ['Mar: 12–18:30', 'Mié-Vie: 9:30–1:30, 2:30–6:30', 'Sáb: 9–13', 'Dom: Cerrado', 'Lun: 9:30–13:30, 14:30–00:00'], sub: '' },
         ].map(({ icon: Icon, title, lines, sub }, i) => (
           <motion.div
             key={title}

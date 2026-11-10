@@ -17,6 +17,8 @@ CSRF_EXEMPT_PATHS = {
     "/docs",
     "/openapi.json",
     "/redoc",
+    "/api/hero-slides",  # Admin panel - protegido por autenticación
+    "/api/categories",    # Admin panel - protegido por autenticación
 }
 
 

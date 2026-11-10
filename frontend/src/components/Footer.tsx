@@ -62,20 +62,23 @@ const Footer = () => (
           <ul className="space-y-3 text-sm">
             <li className="flex items-start gap-2">
               <Phone size={15} className="mt-0.5 text-primary-400 flex-shrink-0" />
-              <span>(011) 4000-0000</span>
+              <span>0351 200-5937</span>
             </li>
             <li className="flex items-start gap-2">
               <Mail size={15} className="mt-0.5 text-primary-400 flex-shrink-0" />
-              <span>ventas@santyhogar.com.ar</span>
+              <span>lucia.accietto18@gmail.com</span>
             </li>
             <li className="flex items-start gap-2">
               <MapPin size={15} className="mt-0.5 text-primary-400 flex-shrink-0" />
-              <span>Viamonte 1261, B° Pueyrredón, Córdoba</span>
+              <span>Gral. Juan José Viamonte 1261, X5004AVG Córdoba</span>
             </li>
           </ul>
           <div className="mt-4 text-xs text-gray-500">
-            <p>Lun–Vie: 9:00 – 18:00</p>
-            <p>Sáb: 9:00 – 13:00</p>
+            <p>Mar: 12 a.m.–6:30 p.m.</p>
+            <p>Mié-Vie: 9:30 a.m.–1:30 p.m., 2:30–6:30 p.m.</p>
+            <p>Sáb: 9 a.m.–1 p.m.</p>
+            <p>Dom: Cerrado</p>
+            <p>Lun: 9:30 a.m.–1:30 p.m., 2:30 p.m.–12 a.m.</p>
           </div>
         </div>
       </div>

@@ -33,6 +33,7 @@ from app.routes import (
     checkout,
     checkout_pro,
     customers,
+    hero_slides,
     installments,
     orders,
     products,
@@ -104,8 +105,8 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=cfg.frontend_url.split(',') if ',' in cfg.frontend_url else [cfg.frontend_url],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
         max_age=600,
     )
     
@@ -518,6 +519,7 @@ def create_app() -> FastAPI:
     app.include_router(retry_payment.router, prefix="/api")  # New: retry payment endpoint
     app.include_router(customers.router)
     app.include_router(categories.router, prefix="/api")
+    app.include_router(hero_slides.router, prefix="/api")
     app.include_router(admin_users.router)
     app.include_router(admin_users.router, prefix="/api")
     app.include_router(installments.router)

@@ -150,7 +150,7 @@ async def create_category(request: CreateCategoryRequest):
             description=cat.get("descripcion"),
             color=cat.get("color"),
             icon=cat.get("icono"),
-            imageUrl=cat.get("image_url"),  # Agregar imagen
+            imageUrl=cat.get("image_url"),  # Imagen de categoría
             order=cat.get("orden", 0),
             active=cat.get("activo", True),
             createdAt=cat["fecha_creacion"],
@@ -285,7 +285,7 @@ async def update_category(
             description=cat.get("descripcion"),
             color=cat.get("color"),
             icon=cat.get("icono"),
-            imageUrl=cat.get("image_url"),  # Agregar imagen
+            imageUrl=cat.get("image_url"),  # Imagen de categoría
             order=cat.get("orden", 0),
             active=cat.get("activo", True),
             createdAt=cat["fecha_creacion"],

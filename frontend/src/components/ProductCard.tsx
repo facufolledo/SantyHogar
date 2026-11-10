@@ -88,7 +88,6 @@ const ProductCard = ({ product }: Props) => {
                 <p className="text-[10px] sm:text-xs text-gray-400 line-through">{formatPrice(product.originalPrice)}</p>
               )}
               <p className="text-base sm:text-lg font-bold text-gray-900">{formatPrice(product.price)}</p>
-              <p className="text-[10px] sm:text-xs text-green-600 font-medium">12 cuotas sin interés</p>
             </div>
           </div>
         </Link>

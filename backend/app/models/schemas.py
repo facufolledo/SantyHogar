@@ -22,6 +22,56 @@ OrderStatusLiteral = List  # Placeholder
 
 
 # ================================================================== #
+# HERO SLIDES
+# ================================================================== #
+
+class HeroSlideResponse(BaseModel):
+    """Hero slide response for the frontend."""
+    
+    id: UUID
+    titulo: str
+    subtitulo: Optional[str] = None
+    textoCta: Optional[str] = None
+    imagenUrl: str
+    enlace: Optional[str] = None
+    orden: int = 0
+    activo: bool = True
+    fechaInicio: Optional[str] = None
+    fechaFin: Optional[str] = None
+    fechaCreacion: str
+    fechaActualizacion: str
+
+
+class CreateHeroSlideRequest(BaseModel):
+    """Request to create a new hero slide."""
+    
+    titulo: str
+    subtitulo: Optional[str] = None
+    textoCta: Optional[str] = None
+    imagenUrl: str
+    enlace: Optional[str] = None
+    orden: int = 0
+    fechaInicio: Optional[str] = None
+    fechaFin: Optional[str] = None
+
+
+class UpdateHeroSlideRequest(BaseModel):
+    """Request to update a hero slide."""
+    
+    titulo: Optional[str] = None
+    subtitulo: Optional[str] = None
+    textoCta: Optional[str] = None
+    imagenUrl: Optional[str] = None
+    enlace: Optional[str] = None
+    orden: Optional[int] = None
+    activo: Optional[bool] = None
+    fechaInicio: Optional[str] = None
+    fechaFin: Optional[str] = None
+
+    model_config = {"extra": "ignore"}  # Ignorar campos extra
+
+
+# ================================================================== #
 # CATEGORÍAS
 # ================================================================== #
 

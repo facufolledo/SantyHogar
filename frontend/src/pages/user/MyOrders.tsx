@@ -141,8 +141,8 @@ export default function MyOrders() {
                           <MapPin size={13} className="text-primary-600" />
                           <p className="text-xs font-semibold text-gray-600">Retiro en depósito</p>
                         </div>
-                        <p className="text-xs text-gray-500">Viamonte 1261, B° Pueyrredón</p>
-                        <p className="text-xs text-gray-400">Córdoba, Argentina</p>
+                        <p className="text-xs text-gray-500">Gral. Juan José Viamonte 1261</p>
+                        <p className="text-xs text-gray-400">X5004AVG Córdoba, Argentina</p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3">
                         <div className="flex items-center gap-2 mb-1">

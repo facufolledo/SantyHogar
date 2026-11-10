@@ -7,10 +7,10 @@ import { useProducts } from '../context/ProductsContext';
 
 // Datos del depósito (mismo que en Checkout.tsx)
 const DEPOSITO = {
-  address: 'Viamonte 1261, B° Pueyrredón',
-  city: 'Córdoba, Argentina',
-  hours: 'Lun–Vie 9:00–18:00 · Sáb 9:00–13:00',
-  mapsUrl: 'https://www.google.com/maps/search/Viamonte+1261+Barrio+Pueyrredon+Cordoba+Argentina',
+  address: 'Gral. Juan José Viamonte 1261',
+  city: 'X5004AVG Córdoba, Argentina',
+  hours: 'Martes: 12–18:30 · Mié-Vie: 9:30–13:30, 14:30–18:30 · Sáb: 9–13 · Lun: 9:30–13:30, 14:30–00:00',
+  mapsUrl: 'https://www.google.com/maps/search/Gral+Juan+José+Viamonte+1261+Córdoba+Argentina',
 };
 
 export default function CheckoutSuccess() {

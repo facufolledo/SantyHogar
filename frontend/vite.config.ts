@@ -24,7 +24,10 @@ export default defineConfig({
           icons: ['lucide-react']
         }
       }
-    }
+    },
+    // Copiar archivos PHP al dist/
+    copyPublicDir: true,
+    assetsInlineLimit: 0,
   },
   server: {
     port: 5173,
