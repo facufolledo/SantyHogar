@@ -17,6 +17,7 @@ Disallow: /*.env$
 # Delay entre requests (opcional, para bots agresivos)
 # Crawl-delay: 2
 
-# Sitemap
+# Sitemaps
 Sitemap: https://santyhogar.com.ar/sitemap.xml
 Sitemap: https://santyhogar.com.ar/sitemap-products.xml
+Sitemap: https://santyhogar-production.up.railway.app/api/sitemap-products.xml

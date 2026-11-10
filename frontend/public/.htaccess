@@ -2,30 +2,33 @@
   RewriteEngine On
   RewriteBase /
 
-  # Permitir que archivos reales se sirvan sin redireccionar
-  RewriteRule ^index\.html$ - [L]
+  # NO redireccionar si es un archivo real (-f) o directorio (-d)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
   
-  # Archivos estáticos: no redireccionar
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
+  # Excepciones especiales: estos archivos se sirven como están
+  RewriteRule ^sitemap\.xml$ - [L]
+  RewriteRule ^robots\.txt$ - [L]
+  RewriteRule ^favicon\.ico$ - [L]
+  RewriteRule ^manifest\.json$ - [L]
   
-  # Excepciones: permitir que estos archivos se sirvan como están
-  RewriteCond %{REQUEST_URI} !^/sitemap\.xml$
-  RewriteCond %{REQUEST_URI} !^/robots\.txt$
-  RewriteCond %{REQUEST_URI} !^/favicon\.ico$
-  RewriteCond %{REQUEST_URI} !^/manifest\.json$
-  
-  # El resto de rutas van a index.html (React Router)
+  # El resto: React Router
   RewriteRule . /index.html [L]
 </IfModule>
 
-# Configurar tipos MIME para robots.txt y sitemap.xml
+# Configurar tipos MIME correctos
 <Files "robots.txt">
   AddType text/plain .txt
   Header set Cache-Control "public, max-age=86400"
 </Files>
 
 <Files "sitemap.xml">
-  AddType text/xml .xml
+  AddType application/xml .xml
+  Header set Cache-Control "public, max-age=604800"
+</Files>
+
+<Files "sitemap-products.xml">
+  AddType application/xml .xml
   Header set Cache-Control "public, max-age=604800"
 </Files>
