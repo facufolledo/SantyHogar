@@ -38,6 +38,7 @@ from app.routes import (
     products,
     retry_payment,
     webhook,
+    seo,
 )
 from app.mappers import product_to_response
 from app.services.pagination_service import PaginationService
@@ -525,6 +526,7 @@ def create_app() -> FastAPI:
     # Deprecated checkout.router solo retorna 410 Gone, registrado bajo /api/deprecated-checkout
     app.include_router(checkout.router, prefix="/api/deprecated-checkout")
     app.include_router(webhook.router)
+    app.include_router(seo.router)
 
     @app.get("/health", tags=["health"])
     async def health() -> dict[str, str]:

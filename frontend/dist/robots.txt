@@ -1,11 +1,22 @@
+# Robots.txt para SantyHogar - santyhogar.com.ar
+# Permite a los motores de búsqueda indexar contenido público
+
 User-agent: *
 Allow: /
 
-# Sitemap (ajustá el dominio en producción si difiere)
-Sitemap: https://www.santyhogar.com/SantyHogar/sitemap.xml
+# Disallow admin y páginas privadas
+Disallow: /admin/
+Disallow: /account/
+Disallow: /checkout/
+Disallow: /orders/
 
-Crawl-delay: 1
+# Disallow archivos específicos
+Disallow: /*.json$
+Disallow: /*.env$
 
-# Áreas privadas / panel
-Disallow: /SantyHogar/admin/
-Disallow: /SantyHogar/cuenta/
+# Delay entre requests (opcional, para bots agresivos)
+# Crawl-delay: 2
+
+# Sitemap
+Sitemap: https://santyhogar.com.ar/sitemap.xml
+Sitemap: https://santyhogar.com.ar/sitemap-products.xml

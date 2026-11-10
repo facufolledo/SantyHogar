@@ -1,8 +1,31 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  # Permitir que archivos reales se sirvan sin redireccionar
   RewriteRule ^index\.html$ - [L]
+  
+  # Archivos estáticos: no redireccionar
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Excepciones: permitir que estos archivos se sirvan como están
+  RewriteCond %{REQUEST_URI} !^/sitemap\.xml$
+  RewriteCond %{REQUEST_URI} !^/robots\.txt$
+  RewriteCond %{REQUEST_URI} !^/favicon\.ico$
+  RewriteCond %{REQUEST_URI} !^/manifest\.json$
+  
+  # El resto de rutas van a index.html (React Router)
   RewriteRule . /index.html [L]
 </IfModule>
+
+# Configurar tipos MIME para robots.txt y sitemap.xml
+<Files "robots.txt">
+  AddType text/plain .txt
+  Header set Cache-Control "public, max-age=86400"
+</Files>
+
+<Files "sitemap.xml">
+  AddType text/xml .xml
+  Header set Cache-Control "public, max-age=604800"
+</Files>
