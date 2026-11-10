@@ -10,8 +10,8 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './AuthModal';
 
-const NAV_BG = 'bg-[#0c1528]/95';
-const NAV_BORDER = 'border-[#1a2540]';
+const NAV_BG = 'bg-slate-900/95 backdrop-blur-xl';
+const NAV_BORDER = 'border-slate-700/50';
 
 const categories = [
   { label: 'Electrodomésticos', to: '/tienda?cat=electrodomesticos', icon: LayoutGrid },
@@ -109,29 +109,13 @@ const Navbar = () => {
   return (
     <>
       <div className="sticky top-0 z-50">
-        {/* Barra de confianza */}
-        <div className={`hidden md:block ${NAV_BG} backdrop-blur-lg text-gray-400 text-xs py-1.5 px-4 border-b ${NAV_BORDER}`}>
-          <div className="max-w-7xl mx-auto flex items-center justify-center gap-6">
-            <span className="flex items-center gap-1.5">
-              <Truck size={12} className="text-orange-400" />
-              Envíos a todo el país
-            </span>
-            <span className="text-gray-600">·</span>
-            <span className="flex items-center gap-1.5">
-              <CreditCard size={12} className="text-orange-400" />
-              Hasta 12 cuotas sin interés
-            </span>
-            <span className="text-gray-600">·</span>
-            <span>Atención al cliente: (011) 4000-0000</span>
-          </div>
-        </div>
 
-        <header className={`${NAV_BG} backdrop-blur-lg border-b ${NAV_BORDER} transition-all duration-300 ${scrolled ? 'shadow-2xl shadow-black/30' : 'shadow-lg shadow-black/20'}`}>
+        <header className={`${NAV_BG} border-b ${NAV_BORDER} transition-all duration-300 ${scrolled ? 'shadow-2xl shadow-black/40' : 'shadow-lg shadow-black/20'}`}>
           {/* Main bar */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex items-center gap-4 h-16">
               <Link to="/" className="flex-shrink-0">
-                <img src={`${import.meta.env.BASE_URL}santyhogar-logo.png`} alt="Santy Hogar" className="h-9 sm:h-10 w-auto object-contain" />
+                <img src={`${import.meta.env.BASE_URL}santyhogar-logo-new.png`} alt="Santy Hogar" className="h-9 sm:h-10 w-auto object-contain" />
               </Link>
 
               {/* Search bar - desktop */}
@@ -143,7 +127,7 @@ const Navbar = () => {
                     onChange={e => setSearchQuery(e.target.value)}
                     onFocus={() => setSearchFocused(true)}
                     placeholder="¿Qué estás buscando?"
-                    className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-[#111827]/80 border border-[#1a2540] text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                    className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                   />
                   <button type="submit" className="absolute right-0 top-0 h-full px-4 bg-primary-600 hover:bg-primary-700 rounded-r-lg text-white transition-all duration-200 cursor-pointer">
                     <Search size={18} />
@@ -351,7 +335,7 @@ const Navbar = () => {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="¿Qué estás buscando?"
-                    className="flex-1 px-4 py-2 rounded-lg bg-[#0c1528] border border-[#1a2540] text-white placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="flex-1 px-4 py-2 rounded-lg bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 text-white placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                   <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200 cursor-pointer">
                     <Search size={18} />
@@ -385,11 +369,7 @@ const Navbar = () => {
                 className={`md:hidden overflow-hidden bg-[#111827] border-t ${NAV_BORDER}`}
               >
                 <div className="px-4 py-3 space-y-1">
-                  {/* Trust info mobile */}
-                  <div className={`flex flex-col gap-1 pb-3 mb-2 border-b ${NAV_BORDER} text-xs text-gray-400`}>
-                    <span className="flex items-center gap-1.5"><Truck size={12} className="text-orange-400" /> Envíos a todo el país</span>
-                    <span className="flex items-center gap-1.5"><CreditCard size={12} className="text-orange-400" /> Hasta 12 cuotas sin interés</span>
-                  </div>
+                  <div className={`flex flex-col gap-1 pb-3 mb-2 border-b ${NAV_BORDER} text-xs text-gray-400`}></div>
 
                   {isLogged && (
                     <div className={`flex items-center gap-3 py-3 border-b ${NAV_BORDER} mb-2`}>
