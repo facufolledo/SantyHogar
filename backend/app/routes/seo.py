@@ -11,6 +11,7 @@ router = APIRouter(tags=["seo"])
 
 
 @router.get("/sitemap-products.xml", tags=["seo"])
+@router.get("/api/sitemap-products.xml", tags=["seo"])
 async def get_products_sitemap():
     """
     Genera un sitemap XML dinámico con todos los productos visibles.
@@ -23,7 +24,7 @@ async def get_products_sitemap():
         
         # Obtener todos los productos visibles
         response = client.table("productos").select(
-            "id_producto,nombre,slug,fecha_actualizacion"
+            "id_producto,nombre,slug,fecha_creacion"
         ).eq("visible", True).execute()
         
         products = response.data or []
@@ -34,7 +35,7 @@ async def get_products_sitemap():
         
         for product in products:
             product_slug = product.get("slug") or product.get("id_producto", "")
-            last_mod = product.get("fecha_actualizacion", datetime.utcnow().isoformat())[:10]
+            last_mod = product.get("fecha_creacion", datetime.utcnow().isoformat())[:10]
             
             xml_content += f"""  <url>
     <loc>https://santyhogar.com.ar/producto/{product_slug}</loc>
@@ -58,6 +59,7 @@ async def get_products_sitemap():
 
 
 @router.get("/robots.txt", tags=["seo"])
+@router.get("/api/robots.txt", tags=["seo"])
 async def get_robots():
     """
     Sirve robots.txt dinámicamente (como respaldo si no está en static).
