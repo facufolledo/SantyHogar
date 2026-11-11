@@ -41,29 +41,29 @@ const ProductCard = ({ product }: Props) => {
       >
         <Link to={`/producto/${product.slug}`} className="flex flex-col flex-1">
           {/* Image */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100/60 aspect-square m-3 rounded-xl backdrop-blur-md border border-blue-200/60 shadow-sm">
+          <div className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 aspect-square">
             <img
               src={product.images[0]}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               loading="lazy"
             />
-            {discount && (
-              <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg shadow-lg">
-                -{discount}%
-              </span>
-            )}
-            {product.stock <= 3 && product.stock > 0 && (
-              <span className="absolute top-2 right-2 sm:top-3 sm:right-3 backdrop-blur-md bg-orange-500/90 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-orange-300/50">
-                ¡Últimas!
-              </span>
-            )}
-            {product.stock === 0 && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-white font-bold text-xs sm:text-sm">Sin stock</span>
-              </div>
-            )}
-          </div>
+              {discount && (
+                <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg shadow-lg">
+                  -{discount}%
+                </span>
+              )}
+              {product.stock <= 3 && product.stock > 0 && (
+                <span className="absolute top-2 right-2 sm:top-3 sm:right-3 backdrop-blur-md bg-orange-500/90 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-orange-300/50">
+                  ¡Últimas!
+                </span>
+              )}
+              {product.stock === 0 && (
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                  <span className="text-white font-bold text-xs sm:text-sm">Sin stock</span>
+                </div>
+              )}
+            </div>
 
           {/* Info */}
           <div className="p-3 sm:p-4 flex flex-col flex-1">

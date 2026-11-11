@@ -84,9 +84,11 @@ const ProductDetail = () => {
             key={activeImg}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="aspect-square rounded-2xl overflow-hidden bg-gray-50 mb-3"
+            className="p-4 bg-gradient-to-br from-blue-400 to-blue-500 rounded-2xl overflow-hidden mb-4"
           >
-            <img src={product.images[activeImg]} alt={product.name} className="w-full h-full object-cover" />
+            <div className="aspect-square rounded-xl overflow-hidden bg-white">
+              <img src={product.images[activeImg]} alt={product.name} className="w-full h-full object-cover" />
+            </div>
           </motion.div>
           {product.images.length > 1 && (
             <div className="flex gap-2">
@@ -94,7 +96,7 @@ const ProductDetail = () => {
                 <button
                   key={i}
                   onClick={() => setActiveImg(i)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === activeImg ? 'border-primary-600' : 'border-transparent'}`}
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === activeImg ? 'border-blue-400 shadow-md' : 'border-gray-200 hover:border-blue-200'}`}
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" />
                 </button>
