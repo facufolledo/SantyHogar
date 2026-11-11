@@ -41,7 +41,7 @@ const ProductCard = ({ product }: Props) => {
       >
         <Link to={`/producto/${product.slug}`} className="flex flex-col flex-1">
           {/* Image */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 aspect-square">
+          <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100/60 aspect-square m-3 rounded-xl backdrop-blur-md border border-blue-200/60 shadow-sm">
             <img
               src={product.images[0]}
               alt={product.name}
