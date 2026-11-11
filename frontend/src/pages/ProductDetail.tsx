@@ -165,14 +165,25 @@ const ProductDetail = () => {
               <div className="flex items-center gap-4 mb-6 p-4 backdrop-blur-sm bg-white/50 border border-white/60 rounded-xl">
                 <span className="text-sm font-semibold text-gray-700">Cantidad:</span>
                 <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg">
-                  <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-4 py-2.5 hover:bg-gray-100 transition-colors font-bold text-primary-600">
+                  <button
+                    onClick={() => setQty(q => Math.max(1, q - 1))}
+                    disabled={qty <= 1}
+                    className="px-4 py-2.5 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-bold text-primary-600"
+                  >
                     −
                   </button>
                   <span className="px-6 py-2.5 text-lg font-black text-gray-900 min-w-16 text-center">{qty}</span>
-                  <button onClick={() => setQty(q => Math.min(product.stock, q + 1))} className="px-4 py-2.5 hover:bg-gray-100 transition-colors font-bold text-primary-600">
+                  <button
+                    onClick={() => setQty(q => Math.min(product.stock, q + 1))}
+                    disabled={qty >= product.stock}
+                    className="px-4 py-2.5 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-bold text-primary-600"
+                  >
                     +
                   </button>
                 </div>
+                <span className="text-xs font-semibold text-gray-500">
+                  {qty} de {product.stock} disponibles
+                </span>
               </div>
             )}
 
