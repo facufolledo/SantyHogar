@@ -84,9 +84,9 @@ const ProductDetail = () => {
             key={activeImg}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-4 bg-gradient-to-br from-blue-400 to-blue-500 rounded-2xl overflow-hidden mb-4"
+            className="backdrop-blur-xl bg-white/70 border border-white/80 rounded-2xl overflow-hidden mb-4 shadow-lg p-1"
           >
-            <div className="aspect-square rounded-xl overflow-hidden bg-white">
+            <div className="aspect-square rounded-xl overflow-hidden">
               <img src={product.images[activeImg]} alt={product.name} className="w-full h-full object-cover" />
             </div>
           </motion.div>
@@ -96,7 +96,7 @@ const ProductDetail = () => {
                 <button
                   key={i}
                   onClick={() => setActiveImg(i)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === activeImg ? 'border-blue-400 shadow-md' : 'border-gray-200 hover:border-blue-200'}`}
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all backdrop-blur-sm ${i === activeImg ? 'border-white/80 shadow-md bg-white/50' : 'border-gray-200 hover:border-white/60 hover:bg-white/40'}`}
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" />
                 </button>
