@@ -100,39 +100,71 @@ class InstallmentsService:
         return [self._format_method(method, metadata_by_id) for method in raw_installments if isinstance(method, dict)]
 
     async def get_all_installments(self, amount: float) -> list[dict[str, Any]]:
-        """Obtiene todas las opciones de pago sin especificar BIN.
+        """Obtiene todas las opciones de pago reales de Mercado Pago.
         
-        Devuelve los medios de pago más comunes con opciones limitadas y deduplica resultados.
+        Solicita el catálogo real y obtiene cuotas para cada método disponible.
         """
         headers = {"Authorization": f"Bearer {self.access_token}", "Accept": "application/json"}
         
-        # BINs representativos para cada tarjeta (una sola vez)
-        bin_samples = {
-            "visa": "411111",           # Visa
-            "master": "555555",         # Mastercard  
-            "amex": "378282",           # American Express
-            "naranja": "589657",        # Naranja
-            "shopping": "603799",       # Shopping
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                # 1. Obtener el catálogo REAL de métodos de pago
+                catalog_response = await client.get(
+                    f"{self.base_url}/v1/payment_methods",
+                    headers=headers
+                )
+                catalog_response.raise_for_status()
+        except httpx.HTTPError as exc:
+            logger.exception("No se pudo conectar con Mercado Pago para obtener catálogo")
+            raise MercadoPagoError("No se pudo consultar Mercado Pago. Intentá nuevamente.") from exc
+        
+        catalog = catalog_response.json()
+        if not isinstance(catalog, list):
+            raise MercadoPagoError("Respuesta inválida de Mercado Pago.")
+        
+        # 2. Filtrar solo tarjetas de crédito/débito
+        credit_cards = [
+            m for m in catalog 
+            if isinstance(m, dict) and m.get("payment_type_id") in ["credit_card", "debit_card"]
+        ]
+        
+        if not credit_cards:
+            logger.warning("No se encontraron tarjetas de crédito en el catálogo de MP")
+            return self.get_development_installments(amount)
+        
+        # 3. Para cada tarjeta real, obtener cuotas usando su BIN representativo
+        all_methods = []
+        seen_ids = set()
+        
+        # Mapeo de IDs a BINs representativos (según MP)
+        bin_map = {
+            "visa": "411111",
+            "master": "555555",
+            "amex": "378282",
+            "naranja": "589657",
+            "shopping": "603799",
+            "argencard": "503733",
+            "cencosud": "601623",
         }
         
         try:
             async with httpx.AsyncClient(timeout=20.0) as client:
-                # Hacer todas las requests en paralelo (mucho más rápido)
+                # Hacer requests en paralelo
                 tasks = []
-                for payment_id, bin_number in bin_samples.items():
+                for card in credit_cards:
+                    card_id = card.get("id", "").lower()
+                    bin_number = bin_map.get(card_id, "411111")
+                    
                     params = {"amount": f"{amount:.2f}", "bin": bin_number}
                     task = client.get(
                         f"{self.base_url}/v1/payment_methods/installments",
                         params=params,
                         headers=headers
                     )
-                    tasks.append((payment_id, task))
+                    tasks.append((card, card_id, task))
                 
-                # Recopilar todas las respuestas
-                all_methods = []
-                seen_ids = set()  # Para deduplicar
-                
-                for payment_id, response_task in tasks:
+                # Procesar respuestas
+                for card, card_id, response_task in tasks:
                     try:
                         inst_response = await response_task
                         
@@ -142,30 +174,63 @@ class InstallmentsService:
                                 raw_installments = raw_installments.get("payment_methods", [])
                             
                             if isinstance(raw_installments, list) and raw_installments:
-                                method = raw_installments[0]  # Tomar el primero
+                                method = raw_installments[0]
                                 if isinstance(method, dict):
-                                    method_id = str(method.get("payment_method_id", payment_id))
+                                    method_id = str(method.get("payment_method_id", card_id))
                                     
-                                    # Deduplicar: si ya vimos este método, saltarlo
+                                    # Deduplicar
                                     if method_id in seen_ids:
                                         continue
                                     seen_ids.add(method_id)
                                     
-                                    # Formatear y limitar cuotas
-                                    formatted = self._format_method(method, {})
+                                    # Usar metadata REAL del catálogo de MP
+                                    formatted = self._format_method_with_catalog(method, card)
                                     formatted["payer_costs"] = self._limit_installments(formatted.get("payer_costs", []))
                                     
                                     if formatted.get("payer_costs"):
                                         all_methods.append(formatted)
                     except Exception as exc:
-                        logger.warning(f"Error obteniendo cuotas para {payment_id}: {exc}")
+                        logger.warning(f"Error obteniendo cuotas para {card_id}: {exc}")
                         continue
                 
                 return all_methods if all_methods else self.get_development_installments(amount)
                 
         except httpx.HTTPError as exc:
-            logger.exception("No se pudo conectar con Mercado Pago")
+            logger.exception("Error haciendo requests en paralelo a MP")
             raise MercadoPagoError("No se pudo consultar Mercado Pago. Intentá nuevamente.") from exc
+    
+    @staticmethod
+    def _format_method_with_catalog(method: dict[str, Any], catalog_entry: dict[str, Any]) -> dict[str, Any]:
+        """Formatea un método de pago usando datos REALES del catálogo de MP."""
+        method_id = str(method.get("payment_method_id") or method.get("id") or "")
+        payer_costs = []
+        
+        for cost in method.get("payer_costs", []):
+            if not isinstance(cost, dict):
+                continue
+            installments = int(cost.get("installments", 0))
+            installment_amount = float(cost.get("installment_amount", 0))
+            if installments < 1 or installment_amount <= 0:
+                continue
+            
+            rate_percent = float(cost.get("installment_rate") or 0)
+            payer_costs.append({
+                "installments": installments,
+                "installment_amount": installment_amount,
+                "total_amount": float(cost.get("total_amount") or installment_amount * installments),
+                "interest_rate": rate_percent / 100,
+                "labels": cost.get("labels") or [],
+            })
+        
+        return {
+            "payment_method_id": method_id,
+            "payment_type_id": method.get("payment_type_id") or "credit_card",
+            "name": catalog_entry.get("name") or method.get("name") or method_id,
+            # Usar logos del catálogo REAL de MP (no del método individual)
+            "secure_thumbnail": catalog_entry.get("secure_thumbnail") or "",
+            "thumbnail": catalog_entry.get("thumbnail") or "",
+            "payer_costs": payer_costs,
+        }
 
     @staticmethod
     def _limit_installments(payer_costs: list[dict[str, Any]]) -> list[dict[str, Any]]:
