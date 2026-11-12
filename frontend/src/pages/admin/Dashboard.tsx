@@ -1,53 +1,102 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, ShoppingBag, Package, ArrowUpRight, DollarSign } from 'lucide-react';
-import { mockOrders } from '../../data/orders';
 import { formatPrice } from '../../utils/format';
-
-const stats = [
-  { label: 'Ventas del día', value: formatPrice(189999), change: '+18%', icon: DollarSign, color: 'bg-blue-500/10 text-blue-400', bar: 'bg-blue-500' },
-  { label: 'Ventas del mes', value: formatPrice(1489995), change: '+12.5%', icon: TrendingUp, color: 'bg-green-500/10 text-green-400', bar: 'bg-green-500' },
-  { label: 'Pedidos', value: '48', change: '+8.2%', icon: ShoppingBag, color: 'bg-purple-500/10 text-purple-400', bar: 'bg-purple-500' },
-  { label: 'Ticket promedio', value: formatPrice(31041), change: '+3.1%', icon: Package, color: 'bg-orange-500/10 text-orange-400', bar: 'bg-orange-500' },
-];
-
-const chartData = [
-  { day: 'L', value: 85 }, { day: 'M', value: 120 }, { day: 'X', value: 95 },
-  { day: 'J', value: 160 }, { day: 'V', value: 190 }, { day: 'S', value: 140 }, { day: 'D', value: 60 },
-];
-const maxVal = Math.max(...chartData.map(d => d.value));
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/20 text-yellow-400',
-  processing: 'bg-blue-500/20 text-blue-400',
-  shipped: 'bg-indigo-500/20 text-indigo-400',
-  delivered: 'bg-green-500/20 text-green-400',
+  procesando: 'bg-blue-500/20 text-blue-400',
+  enviado: 'bg-indigo-500/20 text-indigo-400',
+  entregado: 'bg-green-500/20 text-green-400',
   cancelled: 'bg-red-500/20 text-red-400',
 };
 const statusLabels: Record<string, string> = {
-  pending: 'Pendiente', processing: 'En proceso', shipped: 'Enviado',
-  delivered: 'Entregado', cancelled: 'Cancelado',
+  pending: 'Pendiente',
+  procesando: 'En proceso',
+  enviado: 'Enviado',
+  entregado: 'Entregado',
+  cancelled: 'Cancelado',
 };
 
+const iconMap: Record<string, any> = {
+  DollarSign,
+  TrendingUp,
+  ShoppingBag,
+  Package,
+};
+
+interface DashboardData {
+  stats: any[];
+  chart_data: any[];
+  orders: any[];
+  summary: Record<string, any>;
+}
+
 export default function Dashboard() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/stats`);
+        if (response.ok) {
+          const dashboardData = await response.json();
+          setData(dashboardData);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  if (loading || !data) {
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-gray-800 border border-gray-700/60 rounded-xl p-5 animate-pulse">
+              <div className="h-20 bg-gray-700 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const stats = data.stats || [];
+  const chartData = data.chart_data || [];
+  const orders = data.orders || [];
+  const summary = data.summary || {};
+
+  const maxVal = Math.max(...(chartData.map((d: any) => d.value) || [1]));
+
   return (
     <div className="space-y-5">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-            className="bg-gray-800 border border-gray-700/60 rounded-xl p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color}`}>
-                <s.icon size={19} />
+        {stats.map((s: any, i: number) => {
+          const IconComponent = iconMap[s.icon] || Package;
+          return (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+              className="bg-gray-800 border border-gray-700/60 rounded-xl p-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color}`}>
+                  <IconComponent size={19} />
+                </div>
+                <span className="flex items-center gap-0.5 text-xs font-semibold text-green-400">
+                  <ArrowUpRight size={13} />{s.change}
+                </span>
               </div>
-              <span className="flex items-center gap-0.5 text-xs font-semibold text-green-400">
-                <ArrowUpRight size={13} />{s.change}
-              </span>
-            </div>
-            <p className="text-xl font-black text-white leading-tight">{s.value}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-          </motion.div>
-        ))}
+              <p className="text-xl font-black text-white leading-tight">{s.value}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+            </motion.div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -62,11 +111,11 @@ export default function Dashboard() {
             <span className="text-xs bg-green-500/20 text-green-400 px-2.5 py-1 rounded-full font-medium">+12.5%</span>
           </div>
           <div className="flex items-end gap-2 h-36">
-            {chartData.map((d, i) => (
+            {chartData.map((d: any, i: number) => (
               <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
                 <motion.div
                   initial={{ height: 0 }}
-                  animate={{ height: `${(d.value / maxVal) * 100}%` }}
+                  animate={{ height: maxVal > 0 ? `${(d.value / maxVal) * 100}%` : 0 }}
                   transition={{ delay: 0.4 + i * 0.06, duration: 0.5, ease: 'easeOut' }}
                   className="w-full bg-primary-600 hover:bg-primary-500 rounded-t-md transition-colors cursor-pointer relative group"
                   style={{ minHeight: 4 }}
@@ -87,10 +136,10 @@ export default function Dashboard() {
           <h2 className="font-bold text-white mb-4">Resumen</h2>
           <div className="space-y-4">
             {[
-              { label: 'Productos activos', value: '13', pct: 80 },
-              { label: 'Stock bajo', value: '3', pct: 25, warn: true },
-              { label: 'Clientes nuevos', value: '12', pct: 60 },
-              { label: 'Tasa conversión', value: '3.2%', pct: 32 },
+              { label: 'Productos activos', value: summary.productos_activos || 0, pct: 80 },
+              { label: 'Stock bajo', value: summary.stock_bajo || 0, pct: 25, warn: true },
+              { label: 'Clientes nuevos', value: summary.clientes_nuevos || 0, pct: 60 },
+              { label: 'Tasa conversión', value: summary.tasa_conversion || '0%', pct: 32 },
             ].map(item => (
               <div key={item.label}>
                 <div className="flex justify-between text-sm mb-1.5">
@@ -128,15 +177,15 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/40">
-              {mockOrders.slice(0, 5).map((order, i) => (
+              {orders.map((order: any, i: number) => (
                 <motion.tr key={order.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 + i * 0.05 }}
                   className="hover:bg-gray-700/30 transition-colors">
                   <td className="py-3 pr-4 font-medium text-gray-200">{order.id}</td>
                   <td className="py-3 pr-4 text-gray-400">{order.customer}</td>
                   <td className="py-3 pr-4 text-gray-500 text-xs">{order.date}</td>
                   <td className="py-3 pr-4">
-                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
-                      {statusLabels[order.status]}
+                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[order.status] || statusColors.pending}`}>
+                      {statusLabels[order.status] || order.status}
                     </span>
                   </td>
                   <td className="py-3 font-semibold text-white">{formatPrice(order.total)}</td>

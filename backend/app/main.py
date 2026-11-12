@@ -33,6 +33,7 @@ from app.routes import (
     checkout,
     checkout_pro,
     customers,
+    dashboard_stats,
     hero_slides,
     installments,
     orders,
@@ -520,6 +521,7 @@ def create_app() -> FastAPI:
     app.include_router(customers.router)
     app.include_router(categories.router, prefix="/api")
     app.include_router(hero_slides.router, prefix="/api")
+    app.include_router(dashboard_stats.router)  # Dashboard stats
     app.include_router(admin_users.router)
     app.include_router(admin_users.router, prefix="/api")
     app.include_router(installments.router)
