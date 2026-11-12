@@ -14,26 +14,29 @@ logger = logging.getLogger(__name__)
 @router.get("/calculate")
 async def calculate_installments(
     amount: float = Query(..., gt=0, description="Monto total en ARS"),
-    bin_number: str = Query(..., description="Primeros 6-8 dígitos de la tarjeta"),
+    bin_number: str = Query(None, description="Primeros 6-8 dígitos de la tarjeta (opcional)"),
 ):
-    """Devuelve cuotas reales para monto y BIN, sin iniciar una compra."""
+    """Devuelve cuotas reales para monto y BIN opcional. Sin BIN, devuelve opciones genéricas."""
     
-    # Validar BIN localmente
-    if not bin_number or not bin_number.isdigit():
-        raise HTTPException(status_code=400, detail="BIN debe contener solo dígitos")
-    
-    if len(bin_number) < 6 or len(bin_number) > 8:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"BIN debe tener 6-8 dígitos, recibió {len(bin_number)}"
-        )
+    # Si se proporciona BIN, validar localmente
+    if bin_number:
+        if not bin_number.isdigit():
+            raise HTTPException(status_code=400, detail="BIN debe contener solo dígitos")
+        
+        if len(bin_number) < 6 or len(bin_number) > 8:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"BIN debe tener 6-8 dígitos, recibió {len(bin_number)}"
+            )
     
     if get_config().debug:
         # En local no se llama a MP: se preserva el flujo simulador para desarrollo.
         return InstallmentsService.get_development_installments(amount)
 
     try:
-        return await InstallmentsService().get_installments(amount=amount, bin_number=bin_number)
+        # Si no hay BIN, usar uno de prueba para obtener opciones genéricas
+        bin_to_use = bin_number or "411111"  # Visa de prueba
+        return await InstallmentsService().get_installments(amount=amount, bin_number=bin_to_use)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except MercadoPagoError as exc:
