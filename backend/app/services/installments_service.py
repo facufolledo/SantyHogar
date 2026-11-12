@@ -99,6 +99,73 @@ class InstallmentsService:
 
         return [self._format_method(method, metadata_by_id) for method in raw_installments if isinstance(method, dict)]
 
+    async def get_all_installments(self, amount: float) -> list[dict[str, Any]]:
+        """Obtiene todas las opciones de pago sin especificar BIN.
+        
+        Devuelve los medios de pago más comunes con sus opciones de cuotas.
+        """
+        headers = {"Authorization": f"Bearer {self.access_token}", "Accept": "application/json"}
+        
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # Obtener catálogo de métodos de pago
+                methods_response = await client.get(
+                    f"{self.base_url}/v1/payment_methods",
+                    headers=headers
+                )
+                methods_response.raise_for_status()
+        except httpx.HTTPError as exc:
+            logger.exception("No se pudo conectar con Mercado Pago")
+            raise MercadoPagoError("No se pudo consultar Mercado Pago. Intentá nuevamente.") from exc
+        
+        catalog = methods_response.json()
+        if not isinstance(catalog, list):
+            raise MercadoPagoError("Respuesta inválida de Mercado Pago.")
+        
+        # Filtrar tarjetas de crédito/débito (excluir dinero en cuenta, efectivo, etc.)
+        credit_cards = [m for m in catalog if isinstance(m, dict) and m.get("payment_type_id") in ["credit_card", "debit_card"]]
+        
+        # Para cada tarjeta, obtener cuotas usando BIN representativo
+        all_methods = []
+        bin_samples = {
+            "visa": "411111",           # Visa
+            "master": "555555",         # Mastercard  
+            "amex": "378282",           # American Express
+            "naranja": "589657",        # Naranja
+            "shopping": "603799",       # Shopping
+        }
+        
+        for card in credit_cards:
+            card_id = card.get("id", "").lower()
+            bin_number = bin_samples.get(card_id, "411111")  # Default Visa
+            
+            try:
+                params = {"amount": f"{amount:.2f}", "bin": bin_number}
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    inst_response = await client.get(
+                        f"{self.base_url}/v1/payment_methods/installments",
+                        params=params,
+                        headers=headers
+                    )
+                    
+                    if inst_response.status_code == 200:
+                        raw_installments = inst_response.json()
+                        if isinstance(raw_installments, dict):
+                            raw_installments = raw_installments.get("payment_methods", [])
+                        
+                        if isinstance(raw_installments, list):
+                            for method in raw_installments:
+                                if isinstance(method, dict):
+                                    formatted = self._format_method(method, {card_id: card})
+                                    if formatted.get("payer_costs"):  # Solo agregar si tiene cuotas
+                                        all_methods.append(formatted)
+                                    break  # Una vez procesado, salir del loop
+            except Exception as exc:
+                logger.warning(f"Error obteniendo cuotas para {card_id}: {exc}")
+                continue
+        
+        return all_methods if all_methods else self.get_development_installments(amount)
+
     @staticmethod
     def _format_method(method: dict[str, Any], metadata_by_id: dict[str, dict[str, Any]]) -> dict[str, Any]:
         method_id = str(method.get("payment_method_id") or method.get("id") or "")

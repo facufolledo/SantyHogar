@@ -57,3 +57,21 @@ async def get_installment_price(
             if cost["installments"] == installments:
                 return {**cost, "payment_method_id": method["payment_method_id"]}
     raise HTTPException(status_code=404, detail="La tarjeta no ofrece esa cantidad de cuotas.")
+
+
+@router.get("/all")
+async def get_all_installments(
+    amount: float = Query(..., gt=0, description="Monto total en ARS"),
+):
+    """Devuelve todas las opciones de pago sin BIN. Ideal para mostrar en modal."""
+    if get_config().debug:
+        # En local, usar datos de prueba
+        return InstallmentsService.get_development_installments(amount)
+    
+    try:
+        return await InstallmentsService().get_all_installments(amount=amount)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except MercadoPagoError as exc:
+        logger.warning("Error de Mercado Pago al consultar todos los medios: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

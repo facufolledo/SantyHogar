@@ -50,7 +50,7 @@ export default function PaymentMethodsModal({ amount, isOpen, onClose }: Props) 
       }
 
       const response = await fetch(
-        `${apiBase}/api/installments/calculate?amount=${amount}`,
+        `${apiBase}/api/installments/all?amount=${amount}`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
