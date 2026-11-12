@@ -1,16 +1,15 @@
-"""Dashboard statistics - simplified with SQL view."""
+"""Dashboard statistics - simplified with real orders data."""
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Optional
-from functools import lru_cache
 import hashlib
 
 from app.database.connection import get_supabase_client
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
-# Simple cache decorator
+# Simple cache
 _cache = {}
 _cache_ttl = {}
 CACHE_SECONDS = 300  # 5 min cache
@@ -33,29 +32,22 @@ class DashboardStats(BaseModel):
     stats: List[StatCard]
     chart_data: List[ChartData]
     summary: dict
+    orders: List[dict]
+    date_range: dict
 
 
-def _get_cache_key(start_date: str, end_date: str) -> str:
-    """Generate cache key from dates."""
-    key = f"{start_date}_{end_date}"
-    return hashlib.md5(key.encode()).hexdigest()
-
-
-def _get_cached(key: str) -> Optional[dict]:
-    """Get from cache if not expired."""
-    if key not in _cache:
-        return None
-    if datetime.now().timestamp() - _cache_ttl.get(key, 0) > CACHE_SECONDS:
-        del _cache[key]
-        del _cache_ttl[key]
-        return None
-    return _cache[key]
-
-
-def _set_cache(key: str, data: dict):
-    """Set cache."""
-    _cache[key] = data
-    _cache_ttl[key] = datetime.now().timestamp()
+@router.get("/test")
+async def test_orders(supabase = Depends(get_supabase_client)):
+    """Test endpoint - check available columns."""
+    try:
+        response = supabase.table("ordenes").select("*").limit(1).execute()
+        data = response.data
+        if data:
+            return {"success": True, "columns": list(data[0].keys()), "sample": data[0]}
+        else:
+            return {"success": True, "columns": [], "sample": None}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 @router.get("/stats", response_model=DashboardStats)
@@ -64,44 +56,61 @@ async def get_dashboard_stats(
     end_date: Optional[str] = Query(None),
     supabase = Depends(get_supabase_client)
 ):
-    """Get dashboard stats - cached and simplified."""
+    """Get dashboard stats - real orders data."""
     try:
+        print("\n=== DASHBOARD STATS START ===")
+        
+        # Get recent 100 orders
+        print("Fetching recent 100 orders...")
+        response = supabase.table("ordenes").select("id_orden, total, estado, fecha_creacion, nombre_cliente").order("fecha_creacion", desc=True).limit(100).execute()
+        all_orders = response.data or []
+        print(f"✅ Fetched {len(all_orders)} orders")
+        
         # Parse dates
-        if start_date:
-            date_start = datetime.fromisoformat(start_date.replace('Z', '+00:00')).date()
+        if start_date and end_date:
+            try:
+                date_start = datetime.fromisoformat(start_date.replace('Z', '+00:00')).date()
+                date_end = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
+            except:
+                date_start = datetime.strptime(start_date, "%Y-%m-%d").date()
+                date_end = datetime.strptime(end_date, "%Y-%m-%d").date()
         else:
             date_start = (datetime.now(timezone.utc) - timedelta(days=30)).date()
-        
-        if end_date:
-            date_end = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
-        else:
             date_end = datetime.now(timezone.utc).date()
         
-        # Check cache
-        cache_key = _get_cache_key(str(date_start), str(date_end))
-        cached = _get_cached(cache_key)
-        if cached:
-            return cached
+        print(f"Date range: {date_start} to {date_end}")
         
-        # Single query: get all orders in range
-        orders = await supabase.table("orders").select("*").gte("created_at", f"{date_start}T00:00:00").lte("created_at", f"{date_end}T23:59:59").execute()
-        orders_data = orders.data or []
+        # Filter by date
+        filtered_orders = []
+        date_start_str = str(date_start)
+        date_end_str = str(date_end)
         
-        # Calculate everything from orders (no additional queries!)
-        delivered = [o for o in orders_data if o.get("estado", "").lower() in ["pagada", "entregado", "delivered"]]
-        today_orders = [o for o in orders_data if o.get("created_at", "").startswith(str(datetime.now().date()))]
-        today_delivered = [o for o in today_orders if o.get("estado", "").lower() in ["pagada", "entregado", "delivered"]]
+        for order in all_orders:
+            fecha = order.get("fecha_creacion")
+            if not fecha:
+                continue
+            order_date = fecha[:10] if isinstance(fecha, str) else str(fecha)[:10]
+            if date_start_str <= order_date <= date_end_str:
+                filtered_orders.append(order)
         
-        sales_total = sum(float(o.get("total", 0)) for o in delivered)
-        sales_today = sum(float(o.get("total", 0)) for o in today_delivered)
+        print(f"✅ Filtered to {len(filtered_orders)} orders")
+        
+        # Calculate metrics
+        delivered = [o for o in filtered_orders if o.get("estado", "").lower() in ["pagada", "entregado", "delivered", "completado"]]
+        today_str = str(datetime.now().date())
+        today_orders = [o for o in filtered_orders if o.get("fecha_creacion", "")[:10] == today_str]
+        today_delivered = [o for o in today_orders if o.get("estado", "").lower() in ["pagada", "entregado", "delivered", "completado"]]
+        
+        sales_total = sum(float(o.get("total") or 0) for o in delivered)
+        sales_today = sum(float(o.get("total") or 0) for o in today_delivered)
         avg_ticket = sales_total / len(delivered) if delivered else 0
         
-        # Simple stats
+        # Stats
         stats = [
             {
                 "label": "Ventas período",
                 "value": f"${sales_total:,.0f}",
-                "change": f"+{((sales_today / max(sales_total, 1)) * 100):.0f}%",
+                "change": f"+{int((sales_today / max(sales_total, 1)) * 100)}%",
                 "icon": "DollarSign",
                 "color": "bg-blue-500/10 text-blue-400",
             },
@@ -114,7 +123,7 @@ async def get_dashboard_stats(
             },
             {
                 "label": "Pedidos",
-                "value": str(len(orders_data)),
+                "value": str(len(filtered_orders)),
                 "change": f"{len(delivered)} entregados",
                 "icon": "ShoppingBag",
                 "color": "bg-purple-500/10 text-purple-400",
@@ -128,40 +137,60 @@ async def get_dashboard_stats(
             },
         ]
         
-        # Chart data (group by day)
+        # Chart data
         daily_sales = {}
         for o in delivered:
-            day = o.get("created_at", "")[:10]
-            daily_sales[day] = daily_sales.get(day, 0) + float(o.get("total", 0))
+            day = o.get("fecha_creacion", "")[:10]
+            total = float(o.get("total") or 0)
+            daily_sales[day] = daily_sales.get(day, 0) + total
         
-        chart_data = [
-            {
-                "day": (date_start + timedelta(days=i)).strftime("%a")[0].upper(),
-                "value": daily_sales.get(str(date_start + timedelta(days=i)), 0),
-            }
-            for i in range((date_end - date_start).days + 1)
-        ]
+        chart_data = []
+        for i in range((date_end - date_start).days + 1):
+            day = date_start + timedelta(days=i)
+            day_str = str(day)
+            label = day.strftime("%a")[0].upper()
+            value = daily_sales.get(day_str, 0)
+            chart_data.append({
+                "day": label,
+                "value": float(value),
+            })
         
         # Summary
         summary = {
-            "total_orders": len(orders_data),
-            "delivered": len(delivered),
-            "pending": len(orders_data) - len(delivered),
-            "conversion": f"{(len(delivered) / max(len(orders_data), 1) * 100):.1f}%",
+            "productos_activos": 0,
+            "stock_bajo": 0,
+            "clientes_nuevos": 0,
+            "pedidos_entregados": len(delivered),
+            "pedidos_pendientes": len(filtered_orders) - len(delivered),
         }
+        
+        # Format orders
+        formatted_orders = []
+        for o in filtered_orders[-10:]:
+            formatted_orders.append({
+                "id": o.get("id_orden", ""),
+                "customer": o.get("nombre_cliente", "Sin nombre"),
+                "date": o.get("fecha_creacion", "")[:10],
+                "status": o.get("estado", "").lower(),
+                "total": float(o.get("total") or 0),
+            })
         
         result = {
             "stats": stats,
             "chart_data": chart_data,
             "summary": summary,
+            "orders": formatted_orders,
+            "date_range": {
+                "start": str(date_start),
+                "end": str(date_end),
+            }
         }
         
-        # Cache result
-        _set_cache(cache_key, result)
-        
+        print("=== SUCCESS ===\n")
         return result
-    
+        
     except Exception as e:
-        print(f"Dashboard error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
+        print(f"❌ Error: {e}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

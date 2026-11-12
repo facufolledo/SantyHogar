@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, ShoppingBag, Package, ArrowUpRight, DollarSign, Calendar, X } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Package, ArrowUpRight, DollarSign, Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 
 const statusColors: Record<string, string> = {
@@ -36,24 +36,26 @@ interface DashboardData {
 export default function DashboardPro() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [hasFilters, setHasFilters] = useState(false);
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
 
-  // Set default dates on mount (current month)
+  // Load default (last 30 days) on mount
   useEffect(() => {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    setStartDate(firstDay.toISOString().split('T')[0]);
-    setEndDate(now.toISOString().split('T')[0]);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    setFilterStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
+    setFilterEndDate(now.toISOString().split('T')[0]);
   }, []);
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = async (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return;
+    
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
+      params.append('start_date', startDate);
+      params.append('end_date', endDate);
       
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/stats?${params}`);
       if (response.ok) {
@@ -67,25 +69,44 @@ export default function DashboardPro() {
     }
   };
 
+  // Auto-load on mount with default dates
   useEffect(() => {
-    if (startDate && endDate) {
-      fetchDashboard();
+    if (filterStartDate && filterEndDate) {
+      fetchDashboard(filterStartDate, filterEndDate);
     }
-  }, []);
+  }, [filterStartDate, filterEndDate]);
 
-  const handleFilterChange = () => {
-    if (startDate && endDate) {
-      setHasFilters(startDate !== '' || endDate !== '');
-      fetchDashboard();
+  const handleLoadPreviousPeriod = () => {
+    // Load 30 days before current start date
+    const currentStart = new Date(filterStartDate);
+    const thirtyDaysBefore = new Date(currentStart.getTime() - 30 * 24 * 60 * 60 * 1000);
+    setFilterStartDate(thirtyDaysBefore.toISOString().split('T')[0]);
+  };
+
+  const handleLoadNextPeriod = () => {
+    // Load 30 days after current start date (but not beyond today)
+    const currentStart = new Date(filterStartDate);
+    const thirtyDaysAfter = new Date(currentStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const today = new Date();
+    
+    if (thirtyDaysAfter <= today) {
+      setFilterStartDate(thirtyDaysAfter.toISOString().split('T')[0]);
     }
   };
 
-  const handleClearFilters = () => {
+  const handleApplyCustomFilter = () => {
+    if (filterStartDate && filterEndDate) {
+      fetchDashboard(filterStartDate, filterEndDate);
+      setShowAdvancedFilter(false);
+    }
+  };
+
+  const handleResetFilter = () => {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    setStartDate(firstDay.toISOString().split('T')[0]);
-    setEndDate(now.toISOString().split('T')[0]);
-    setHasFilters(false);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    setFilterStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
+    setFilterEndDate(now.toISOString().split('T')[0]);
+    setShowAdvancedFilter(false);
   };
 
   if (!data && loading) {
@@ -102,7 +123,14 @@ export default function DashboardPro() {
     );
   }
 
-  const stats = data?.stats || [];
+  // If no data yet, show empty state
+  if (!data) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <p className="text-lg">Cargando dashboard...</p>
+      </div>
+    );
+  }
   const chartData = data?.chart_data || [];
   const orders = data?.orders || [];
   const summary = data?.summary || {};
@@ -111,59 +139,122 @@ export default function DashboardPro() {
 
   return (
     <div className="space-y-5">
-      {/* Date Filters */}
+      {/* Date Range Navigation */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gray-800 border border-gray-700/60 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-end"
+        className="bg-gray-800 border border-gray-700/60 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between"
       >
-        <div className="flex-1">
-          <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">Desde</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
-        
-        <div className="flex-1">
-          <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">Hasta</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
-
-        <div className="flex gap-2 sm:w-auto w-full">
+        <div className="flex items-center gap-3 flex-1">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={handleFilterChange}
-            className="flex-1 sm:flex-none bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-6 rounded-lg transition-all"
+            onClick={handleLoadPreviousPeriod}
+            className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-2 px-4 rounded-lg transition-all"
           >
-            <Calendar size={16} className="inline mr-2" />
-            Filtrar
+            <ChevronLeft size={18} />
+            Período anterior
           </motion.button>
+          
+          <div className="flex-1 text-center">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Período mostrado</p>
+            <p className="text-sm text-white font-semibold">
+              {filterStartDate && filterEndDate ? (
+                <>
+                  {new Date(filterStartDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })} - {new Date(filterEndDate + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                </>
+              ) : (
+                'Cargando...'
+              )}
+            </p>
+          </div>
 
-          {hasFilters && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              onClick={handleClearFilters}
-              className="flex-1 sm:flex-none bg-gray-700/50 hover:bg-gray-700 text-gray-300 font-semibold py-2 px-4 rounded-lg transition-all"
-            >
-              <X size={16} />
-            </motion.button>
-          )}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleLoadNextPeriod}
+            className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-2 px-4 rounded-lg transition-all"
+          >
+            Período siguiente
+            <ChevronRight size={18} />
+          </motion.button>
         </div>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
+          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-6 rounded-lg transition-all"
+        >
+          <Calendar size={16} />
+          {showAdvancedFilter ? 'Cerrar filtro' : 'Filtro personalizado'}
+        </motion.button>
       </motion.div>
 
+      {/* Advanced Filter */}
+      {showAdvancedFilter && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gray-800 border border-gray-700/60 rounded-xl p-4 space-y-4"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">Desde</label>
+              <input
+                type="date"
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase mb-2 block">Hasta</label>
+              <input
+                type="date"
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleResetFilter}
+              className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-2 px-4 rounded-lg transition-all"
+            >
+              <X size={16} />
+              Resetear
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleApplyCustomFilter}
+              className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-6 rounded-lg transition-all"
+            >
+              <Calendar size={16} />
+              Aplicar filtro
+            </motion.button>
+          </div>
+        </motion.div>
+      )}
+
+      {loading && (
+        <div className="text-center py-8 text-gray-400">
+          <p className="text-sm">Cargando datos...</p>
+        </div>
+      )}
+
+      {!loading && data && (
+        <>
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s: any, i: number) => {
+        {data.stats.map((s: any, i: number) => {
           const IconComponent = iconMap[s.icon] || Package;
           return (
             <motion.div 
@@ -307,6 +398,8 @@ export default function DashboardPro() {
           </div>
         )}
       </motion.div>
+        </>
+      )}
     </div>
   );
 }

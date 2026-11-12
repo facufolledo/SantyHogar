@@ -456,62 +456,7 @@ def create_app() -> FastAPI:
         ).execute()
         return {"message": "Direccion eliminada"}
 
-    @app.get("/dashboard/stats", tags=["dashboard"])
-    @app.get("/api/dashboard/stats", tags=["dashboard"])
-    async def dashboard_stats_compat() -> dict:
-        db = DatabaseOperations()
-        orders_data = await db.get_all_orders()
-        products_data = await db.get_all_products()
-        customers_data = await db.get_all_customers()
-        paid = [row for row in orders_data if row.get("estado") == "paid"]
-        sales_month = sum(float(row.get("total", 0) or 0) for row in paid)
-        pending_count = sum(1 for row in orders_data if row.get("estado") == "pending")
-        return {
-            "sales_day": sales_month,
-            "sales_week": sales_month,
-            "sales_month": sales_month,
-            "order_count": len(orders_data),
-            "order_count_paid": len(paid),
-            "order_count_pending": pending_count,
-            "avg_ticket": round(sales_month / len(paid), 2) if paid else 0,
-            "active_products": sum(1 for row in products_data if int(row.get("stock", 0) or 0) > 0),
-            "low_stock_products": sum(1 for row in products_data if 0 < int(row.get("stock", 0) or 0) < 5),
-            "new_customers_month": len(customers_data),
-        }
-
-    @app.get("/dashboard/sales-chart", tags=["dashboard"])
-    @app.get("/api/dashboard/sales-chart", tags=["dashboard"])
-    async def dashboard_sales_chart_compat() -> list[dict]:
-        cordoba_tz = timezone(timedelta(hours=-3))
-        today = datetime.now(cordoba_tz).date()
-        return [
-            {"date": str(today), "total": (await dashboard_stats_compat())["sales_month"]}
-        ]
-
-    @app.get("/dashboard/top-products", tags=["dashboard"])
-    @app.get("/api/dashboard/top-products", tags=["dashboard"])
-    async def dashboard_top_products_compat() -> list[dict]:
-        return []
-
-    @app.get("/dashboard/top-customers", tags=["dashboard"])
-    @app.get("/api/dashboard/top-customers", tags=["dashboard"])
-    async def dashboard_top_customers_compat() -> list[dict]:
-        db = DatabaseOperations()
-        rows = await db.get_all_customers()
-        sorted_rows = sorted(
-            rows,
-            key=lambda row: float(row.get("total_gastado", 0) or 0),
-            reverse=True,
-        )[:5]
-        return [
-            {
-                "name": row.get("nombre", ""),
-                "email": row.get("email", ""),
-                "total_spent": float(row.get("total_gastado", 0) or 0),
-                "order_count": int(row.get("cantidad_ordenes", 0) or 0),
-            }
-            for row in sorted_rows
-        ]
+    # NOTE: Old dashboard endpoints - replaced by dashboard_stats.py route
 
     app.include_router(products.router)
     # Mismo router bajo /api por si el reverse proxy o el front publican la API con prefijo (evita 404 genérico).
