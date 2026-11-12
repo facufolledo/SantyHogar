@@ -17,7 +17,9 @@ CSRF_EXEMPT_PATHS = {
     "/docs",
     "/openapi.json",
     "/redoc",
-    "/api/hero-slides",  # Admin panel - protegido por autenticación
+    "/api/checkout",      # Mercado Pago checkout - protected by payment validation
+    "/api/orders",        # Orders endpoint - validated by apiFetch with CSRF token
+    "/api/hero-slides",   # Admin panel - protegido por autenticación
     "/api/categories",    # Admin panel - protegido por autenticación
 }
 
