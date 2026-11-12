@@ -9,6 +9,7 @@ from app.exceptions import ProductNotFoundError
 from app.mappers import row_to_product
 from app.models.schemas import Product
 from app.utils.stock import ensure_stock_available
+from app.services.cache_service import cache_get, cache_set
 
 
 class ProductService:
@@ -16,8 +17,15 @@ class ProductService:
         self._db = db
 
     async def get_all_products(self) -> List[Product]:
+        # Cache por 120 segundos (productos cambian menos frecuentemente)
+        cached = cache_get("all_products")
+        if cached is not None:
+            return cached
+        
         rows = await self._db.get_all_products()
-        return [row_to_product(r) for r in rows]
+        result = [row_to_product(r) for r in rows]
+        cache_set("all_products", result, ttl=120)
+        return result
 
     async def get_product_by_id(self, product_id: str) -> Product:
         """Obtiene un producto por ID.

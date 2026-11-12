@@ -22,6 +22,7 @@ from app.services.bulk_import_service import parse_xlsx_file, process_bulk_impor
 from app.services.image_service import ImageService, ImageValidationError
 from app.services.pagination_service import PaginationService
 from app.services.product_service import ProductService
+from app.services.cache_service import cache_clear
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["products"])
@@ -146,6 +147,9 @@ async def toggle_product_visibility(
                 status_code=500,
                 detail="Error al actualizar la visibilidad del producto"
             )
+        
+        # Invalidar cache
+        cache_clear("all_products")
         
         return {
             "id_producto": product_id,
@@ -418,6 +422,10 @@ async def update_product_price(
             price_data.price,
             price_data.original_price,
         )
+        
+        # Invalidar cache
+        cache_clear("all_products")
+        
         return UpdatePriceResponse(
             id=product.id,
             name=product.name,
@@ -461,6 +469,10 @@ async def create_product(
     
     try:
         product = await product_service.create_product(db_data)
+        
+        # Invalidar cache
+        cache_clear("all_products")
+        
         return product_to_response(product)
     except Exception as e:
         logger.error(f"Error creating product: {str(e)}", exc_info=True)
@@ -505,6 +517,10 @@ async def update_product(
             db_data["destacado"] = product_data.featured
         
         product = await product_service.update_product(product_id, db_data)
+        
+        # Invalidar cache
+        cache_clear("all_products")
+        
         return product_to_response(product)
     except ProductNotFoundError as e:
         raise HTTPException(
@@ -524,6 +540,9 @@ async def delete_product(
     """Elimina un producto."""
     try:
         await product_service.delete_product(product_id)
+        
+        # Invalidar cache
+        cache_clear("all_products")
     except ProductNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

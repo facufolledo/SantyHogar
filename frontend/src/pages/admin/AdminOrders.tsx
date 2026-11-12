@@ -20,6 +20,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState<OrderList[]>([]);
   const [orderDetails, setOrderDetails] = useState<Record<string, OrderDetail>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -32,11 +33,13 @@ export default function AdminOrders() {
   const loadOrders = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await fetchOrders();
       setOrders(data);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error desconocido al cargar órdenes';
       console.error('Error al cargar órdenes:', error);
-      alert('Error al cargar las órdenes');
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -95,7 +98,8 @@ export default function AdminOrders() {
   if (loading) {
     return (
       <div className="text-center py-16 text-gray-500">
-        <p>Cargando órdenes...</p>
+        <p className="mb-2">⏳ Cargando órdenes...</p>
+        <p className="text-xs text-gray-600">Si esto tarda, revisa la consola (F12) para errores</p>
       </div>
     );
   }
@@ -106,6 +110,23 @@ export default function AdminOrders() {
         <h2 className="font-bold text-white">Pedidos</h2>
         <p className="text-sm text-gray-500">{orders.length} pedidos en total</p>
       </div>
+
+      {error && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-500/20 border border-red-500/40 rounded-lg p-4 text-red-400"
+        >
+          <p className="text-sm font-medium">❌ Error al cargar órdenes</p>
+          <p className="text-xs mt-1 text-red-300">{error}</p>
+          <button
+            onClick={loadOrders}
+            className="text-xs mt-2 px-3 py-1.5 bg-red-500/30 hover:bg-red-500/40 rounded-lg transition-colors"
+          >
+            Reintentar
+          </button>
+        </motion.div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">

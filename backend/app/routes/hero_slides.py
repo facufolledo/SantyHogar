@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query
 from app.database.connection import get_supabase_client
 from app.models.schemas import HeroSlideResponse, CreateHeroSlideRequest, UpdateHeroSlideRequest
+from app.services.cache_service import cache_get, cache_set, cache_clear
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/hero-slides", tags=["Hero Slides"])
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/hero-slides", tags=["Hero Slides"])
 async def list_hero_slides(active_only: bool = Query(True)):
     """
     Obtiene todos los hero slides activos, ordenados por fecha y orden.
+    Resultado cacheado por 60 segundos.
     
     Parámetros:
     - active_only: Si True, solo retorna slides con activo=True
@@ -28,6 +30,11 @@ async def list_hero_slides(active_only: bool = Query(True)):
     Retorna: Lista de hero slides
     """
     try:
+        cache_key = f"hero_slides:active={active_only}"
+        cached = cache_get(cache_key)
+        if cached is not None:
+            return cached
+        
         client = get_supabase_client()
         now = datetime.utcnow().isoformat()
         
@@ -44,37 +51,40 @@ async def list_hero_slides(active_only: bool = Query(True)):
         response = query.execute()
         
         if not response.data:
-            return []
+            result = []
+        else:
+            # Filtrar por fechas en memoria (Supabase no soporta bien comparaciones complejas con NULL)
+            slides = []
+            for slide in response.data:
+                # Si tiene fecha_inicio y está en el futuro, skip
+                if slide.get("fecha_inicio"):
+                    if datetime.fromisoformat(slide["fecha_inicio"]) > datetime.fromisoformat(now):
+                        continue
+                
+                # Si tiene fecha_fin y está en el pasado, skip
+                if slide.get("fecha_fin"):
+                    if datetime.fromisoformat(slide["fecha_fin"]) < datetime.fromisoformat(now):
+                        continue
+                
+                slides.append(HeroSlideResponse(
+                    id=UUID(slide["id_hero"]),
+                    titulo=slide["titulo"],
+                    subtitulo=slide.get("subtitulo"),
+                    textoCta=slide.get("texto_cta"),
+                    imagenUrl=slide["imagen_url"],
+                    enlace=slide.get("enlace"),
+                    orden=slide.get("orden", 0),
+                    activo=slide.get("activo", True),
+                    fechaInicio=slide.get("fecha_inicio"),
+                    fechaFin=slide.get("fecha_fin"),
+                    fechaCreacion=slide["fecha_creacion"],
+                    fechaActualizacion=slide["fecha_actualizacion"],
+                ))
+            result = slides
         
-        # Filtrar por fechas en memoria (Supabase no soporta bien comparaciones complejas con NULL)
-        slides = []
-        for slide in response.data:
-            # Si tiene fecha_inicio y está en el futuro, skip
-            if slide.get("fecha_inicio"):
-                if datetime.fromisoformat(slide["fecha_inicio"]) > datetime.fromisoformat(now):
-                    continue
-            
-            # Si tiene fecha_fin y está en el pasado, skip
-            if slide.get("fecha_fin"):
-                if datetime.fromisoformat(slide["fecha_fin"]) < datetime.fromisoformat(now):
-                    continue
-            
-            slides.append(HeroSlideResponse(
-                id=UUID(slide["id_hero"]),
-                titulo=slide["titulo"],
-                subtitulo=slide.get("subtitulo"),
-                textoCta=slide.get("texto_cta"),
-                imagenUrl=slide["imagen_url"],
-                enlace=slide.get("enlace"),
-                orden=slide.get("orden", 0),
-                activo=slide.get("activo", True),
-                fechaInicio=slide.get("fecha_inicio"),
-                fechaFin=slide.get("fecha_fin"),
-                fechaCreacion=slide["fecha_creacion"],
-                fechaActualizacion=slide["fecha_actualizacion"],
-            ))
-        
-        return slides
+        # Cache por 60 segundos
+        cache_set(cache_key, result, ttl=60)
+        return result
         
     except Exception as e:
         logger.error(f"Error listing hero slides: {e}")
@@ -128,6 +138,10 @@ async def create_hero_slide(request: CreateHeroSlideRequest):
         
         if not response.data:
             raise HTTPException(status_code=400, detail="Error al crear hero slide")
+        
+        # Invalidar cache
+        cache_clear("hero_slides:active=True")
+        cache_clear("hero_slides:active=False")
         
         slide = response.data[0]
         return HeroSlideResponse(
@@ -244,6 +258,10 @@ async def update_hero_slide(slide_id: UUID, request: UpdateHeroSlideRequest):
         if not response.data:
             raise HTTPException(status_code=400, detail="Error al actualizar hero slide")
         
+        # Invalidar cache
+        cache_clear("hero_slides:active=True")
+        cache_clear("hero_slides:active=False")
+        
         slide = response.data[0]
         return HeroSlideResponse(
             id=UUID(slide["id_hero"]),
@@ -297,6 +315,10 @@ async def delete_hero_slide(slide_id: UUID):
         
         if not response.data:
             raise HTTPException(status_code=400, detail="Error al eliminar hero slide")
+        
+        # Invalidar cache
+        cache_clear("hero_slides:active=True")
+        cache_clear("hero_slides:active=False")
         
         return None
         

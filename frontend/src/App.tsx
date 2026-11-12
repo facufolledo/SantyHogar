@@ -8,6 +8,7 @@ import { OrdersProvider } from './context/OrdersContext';
 import { ProductsProvider } from './context/ProductsContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import { useScrollTop } from './hooks/useScrollTop';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
@@ -49,6 +50,7 @@ const PageWrap = ({ children }: { children: React.ReactNode }) => (
 
 const MainLayout = () => {
   const location = useLocation();
+  useScrollTop();
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />

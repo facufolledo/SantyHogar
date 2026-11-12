@@ -14,6 +14,7 @@ from app.models.schemas import (
     UpdateCategoryRequest,
 )
 from app.services.image_service import ImageService, ImageValidationError
+from app.services.cache_service import cache_get, cache_set, cache_clear
 
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ async def list_categories(
 ):
     """
     Obtiene todas las categorías (activas o todas).
+    Resultado cacheado por 60 segundos.
     
     Parámetros:
     - active_only: Si True, solo retorna categorías con activo=True
@@ -42,6 +44,11 @@ async def list_categories(
     Retorna: Lista de categorías ordenadas por orden
     """
     try:
+        cache_key = f"categories:active={active_only}"
+        cached = cache_get(cache_key)
+        if cached is not None:
+            return cached
+        
         client = get_supabase_client()
         
         if active_only:
@@ -57,26 +64,29 @@ async def list_categories(
         response = query.execute()
         
         if not response.data:
-            return []
+            result = []
+        else:
+            # Formatear respuesta
+            categories = []
+            for cat in response.data:
+                categories.append(CategoryResponse(
+                    id=UUID(cat["id_categoria"]),
+                    name=cat["nombre"],
+                    slug=cat["slug"],
+                    description=cat.get("descripcion"),
+                    color=cat.get("color"),
+                    icon=cat.get("icono"),
+                    imageUrl=cat.get("image_url"),  # Agregar imagen
+                    order=cat.get("orden", 0),
+                    active=cat.get("activo", True),
+                    createdAt=cat["fecha_creacion"],
+                    updatedAt=cat["fecha_actualizacion"],
+                ))
+            result = categories
         
-        # Formatear respuesta
-        categories = []
-        for cat in response.data:
-            categories.append(CategoryResponse(
-                id=UUID(cat["id_categoria"]),
-                name=cat["nombre"],
-                slug=cat["slug"],
-                description=cat.get("descripcion"),
-                color=cat.get("color"),
-                icon=cat.get("icono"),
-                imageUrl=cat.get("image_url"),  # Agregar imagen
-                order=cat.get("orden", 0),
-                active=cat.get("activo", True),
-                createdAt=cat["fecha_creacion"],
-                updatedAt=cat["fecha_actualizacion"],
-            ))
-        
-        return categories
+        # Cache por 60 segundos
+        cache_set(cache_key, result, ttl=60)
+        return result
         
     except Exception as e:
         logger.error(f"Error listing categories: {e}")
@@ -141,6 +151,10 @@ async def create_category(request: CreateCategoryRequest):
         
         if not response.data:
             raise HTTPException(status_code=400, detail="Error al crear categoría")
+        
+        # Invalidar cache
+        cache_clear("categories:active=True")
+        cache_clear("categories:active=False")
         
         cat = response.data[0]
         return CategoryResponse(
@@ -276,6 +290,10 @@ async def update_category(
         
         if not response.data:
             raise HTTPException(status_code=400, detail="Error al actualizar categoría")
+        
+        # Invalidar cache
+        cache_clear("categories:active=True")
+        cache_clear("categories:active=False")
         
         cat = response.data[0]
         return CategoryResponse(
