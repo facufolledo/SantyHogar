@@ -518,7 +518,7 @@ def create_app() -> FastAPI:
     app.include_router(products.router, prefix="/api")
     app.include_router(orders.router)
     app.include_router(retry_payment.router, prefix="/api")  # New: retry payment endpoint
-    app.include_router(customers.router)
+    app.include_router(customers.router, prefix="/api")
     app.include_router(categories.router, prefix="/api")
     app.include_router(hero_slides.router, prefix="/api")
     app.include_router(dashboard_stats.router)  # Dashboard stats
