@@ -102,31 +102,11 @@ class InstallmentsService:
     async def get_all_installments(self, amount: float) -> list[dict[str, Any]]:
         """Obtiene todas las opciones de pago sin especificar BIN.
         
-        Devuelve los medios de pago más comunes con sus opciones de cuotas.
+        Devuelve los medios de pago más comunes con opciones limitadas y deduplica resultados.
         """
         headers = {"Authorization": f"Bearer {self.access_token}", "Accept": "application/json"}
         
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                # Obtener catálogo de métodos de pago
-                methods_response = await client.get(
-                    f"{self.base_url}/v1/payment_methods",
-                    headers=headers
-                )
-                methods_response.raise_for_status()
-        except httpx.HTTPError as exc:
-            logger.exception("No se pudo conectar con Mercado Pago")
-            raise MercadoPagoError("No se pudo consultar Mercado Pago. Intentá nuevamente.") from exc
-        
-        catalog = methods_response.json()
-        if not isinstance(catalog, list):
-            raise MercadoPagoError("Respuesta inválida de Mercado Pago.")
-        
-        # Filtrar tarjetas de crédito/débito (excluir dinero en cuenta, efectivo, etc.)
-        credit_cards = [m for m in catalog if isinstance(m, dict) and m.get("payment_type_id") in ["credit_card", "debit_card"]]
-        
-        # Para cada tarjeta, obtener cuotas usando BIN representativo
-        all_methods = []
+        # BINs representativos para cada tarjeta (una sola vez)
         bin_samples = {
             "visa": "411111",           # Visa
             "master": "555555",         # Mastercard  
@@ -135,36 +115,83 @@ class InstallmentsService:
             "shopping": "603799",       # Shopping
         }
         
-        for card in credit_cards:
-            card_id = card.get("id", "").lower()
-            bin_number = bin_samples.get(card_id, "411111")  # Default Visa
-            
-            try:
-                params = {"amount": f"{amount:.2f}", "bin": bin_number}
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    inst_response = await client.get(
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                # Hacer todas las requests en paralelo (mucho más rápido)
+                tasks = []
+                for payment_id, bin_number in bin_samples.items():
+                    params = {"amount": f"{amount:.2f}", "bin": bin_number}
+                    task = client.get(
                         f"{self.base_url}/v1/payment_methods/installments",
                         params=params,
                         headers=headers
                     )
-                    
-                    if inst_response.status_code == 200:
-                        raw_installments = inst_response.json()
-                        if isinstance(raw_installments, dict):
-                            raw_installments = raw_installments.get("payment_methods", [])
+                    tasks.append((payment_id, task))
+                
+                # Recopilar todas las respuestas
+                all_methods = []
+                seen_ids = set()  # Para deduplicar
+                
+                for payment_id, response_task in tasks:
+                    try:
+                        inst_response = await response_task
                         
-                        if isinstance(raw_installments, list):
-                            for method in raw_installments:
+                        if inst_response.status_code == 200:
+                            raw_installments = inst_response.json()
+                            if isinstance(raw_installments, dict):
+                                raw_installments = raw_installments.get("payment_methods", [])
+                            
+                            if isinstance(raw_installments, list) and raw_installments:
+                                method = raw_installments[0]  # Tomar el primero
                                 if isinstance(method, dict):
-                                    formatted = self._format_method(method, {card_id: card})
-                                    if formatted.get("payer_costs"):  # Solo agregar si tiene cuotas
+                                    method_id = str(method.get("payment_method_id", payment_id))
+                                    
+                                    # Deduplicar: si ya vimos este método, saltarlo
+                                    if method_id in seen_ids:
+                                        continue
+                                    seen_ids.add(method_id)
+                                    
+                                    # Formatear y limitar cuotas
+                                    formatted = self._format_method(method, {})
+                                    formatted["payer_costs"] = self._limit_installments(formatted.get("payer_costs", []))
+                                    
+                                    if formatted.get("payer_costs"):
                                         all_methods.append(formatted)
-                                    break  # Una vez procesado, salir del loop
-            except Exception as exc:
-                logger.warning(f"Error obteniendo cuotas para {card_id}: {exc}")
-                continue
+                    except Exception as exc:
+                        logger.warning(f"Error obteniendo cuotas para {payment_id}: {exc}")
+                        continue
+                
+                return all_methods if all_methods else self.get_development_installments(amount)
+                
+        except httpx.HTTPError as exc:
+            logger.exception("No se pudo conectar con Mercado Pago")
+            raise MercadoPagoError("No se pudo consultar Mercado Pago. Intentá nuevamente.") from exc
+
+    @staticmethod
+    def _limit_installments(payer_costs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Limita cuotas a las más relevantes: 1, 3, 6, 12 cuotas.
         
-        return all_methods if all_methods else self.get_development_installments(amount)
+        Toma las opciones sin interés primero, luego con interés si es necesario.
+        """
+        relevant_installments = [1, 3, 6, 12]
+        result = []
+        
+        # Primero, opciones sin interés
+        for target in relevant_installments:
+            for cost in payer_costs:
+                if cost.get("installments") == target and cost.get("interest_rate", 0) == 0:
+                    result.append(cost)
+                    break
+        
+        # Luego, opciones con interés si falta alguna
+        for target in relevant_installments:
+            if not any(c.get("installments") == target for c in result):
+                for cost in payer_costs:
+                    if cost.get("installments") == target:
+                        result.append(cost)
+                        break
+        
+        return result[:4]  # Máximo 4 opciones de cuotas
 
     @staticmethod
     def _format_method(method: dict[str, Any], metadata_by_id: dict[str, dict[str, Any]]) -> dict[str, Any]:
